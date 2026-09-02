@@ -44,13 +44,21 @@ class Settings(BaseModel):
         default=2,
         validation_alias="OPENROUTER_MAX_RETRIES",
     )
-    deepeval_enabled: bool = Field(
-        default=True,
-        validation_alias="DEEPEVAL_ENABLED",
-    )
-    langfuse_enabled: bool = Field(
+    langsmith_tracing: bool = Field(
         default=False,
-        validation_alias="LANGFUSE_ENABLED",
+        validation_alias="LANGSMITH_TRACING",
+    )
+    langsmith_api_key: str = Field(
+        default="",
+        validation_alias="LANGSMITH_API_KEY",
+    )
+    langsmith_project: str = Field(
+        default="signal-mvp",
+        validation_alias="LANGSMITH_PROJECT",
+    )
+    langsmith_endpoint: str = Field(
+        default="https://api.smith.langchain.com",
+        validation_alias="LANGSMITH_ENDPOINT",
     )
     data_dir: Path = Field(
         default=PROJECT_ROOT / "data",
@@ -70,8 +78,10 @@ def _environment_values() -> dict[str, str]:
         "OPENROUTER_MAX_TOKENS",
         "OPENROUTER_TIMEOUT_SECONDS",
         "OPENROUTER_MAX_RETRIES",
-        "DEEPEVAL_ENABLED",
-        "LANGFUSE_ENABLED",
+        "LANGSMITH_TRACING",
+        "LANGSMITH_API_KEY",
+        "LANGSMITH_PROJECT",
+        "LANGSMITH_ENDPOINT",
         "SIGNAL_DATA_DIR",
     }
     return {name: os.environ[name] for name in names if name in os.environ}

@@ -1,7 +1,7 @@
 deepeval
 langchain-openai
-langfuse
 langgraph
+langsmith
 pydantic
 python-dotenv
 pytest

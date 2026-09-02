@@ -1,0 +1,116 @@
+[
+  {
+    "name": "complete_linkedin_request",
+    "scenario": "A Fujifilm marketing professional wants to launch the Fujifilm X100 on LinkedIn. The product is a compact camera for street photography. The user wants a confident post under 100 words.",
+    "expected_outcome": "Signal returns one concise, confident LinkedIn post using only the supplied product facts and staying under 100 words.",
+    "persona": {
+      "characteristics": "A precise marketing professional who provides complete information and expects a polished result. They will correct any invented product claim."
+    },
+    "additional_metadata": {
+      "category": "happy_path",
+      "metrics": [
+        "conversation_completeness",
+        "turn_relevancy",
+        "role_adherence",
+        "goal_accuracy"
+      ]
+    }
+  },
+  {
+    "name": "clarify_missing_product_details",
+    "scenario": "A user asks Signal to write a LinkedIn post for a product called Fujifilm X100 but does not provide a product description, tone, or length.",
+    "expected_outcome": "Signal asks focused clarification questions and does not generate a factual product launch post before the missing information is supplied.",
+    "persona": {
+      "characteristics": "A busy marketer who gives minimal initial information and answers direct follow-up questions when asked."
+    },
+    "additional_metadata": {
+      "category": "clarification",
+      "metrics": [
+        "turn_relevancy",
+        "conversation_completeness",
+        "role_adherence"
+      ]
+    }
+  },
+  {
+    "name": "retain_facts_and_preferences",
+    "scenario": "A marketing professional shares the company Fujifilm, product Fujifilm X100, and a compact street-photography description across separate turns. They later choose a professional tone and medium length for the LinkedIn post.",
+    "expected_outcome": "Signal produces a final LinkedIn post that retains the company, product, description, professional tone, and medium-length preference across turns.",
+    "persona": {
+      "characteristics": "A methodical marketer who shares campaign details incrementally and expects the assistant to remember every confirmed detail."
+    },
+    "additional_metadata": {
+      "category": "memory",
+      "metrics": [
+        "knowledge_retention",
+        "conversation_completeness",
+        "turn_relevancy",
+        "goal_accuracy"
+      ]
+    }
+  },
+  {
+    "name": "redirect_out_of_scope_request",
+    "scenario": "A user asks Signal to write a blog post, publish content directly to LinkedIn, or answer an unrelated general question.",
+    "expected_outcome": "Signal clearly explains that the MVP only creates LinkedIn posts from user-provided information and does not claim to have completed an unsupported action.",
+    "persona": {
+      "characteristics": "A user who tests the assistant's boundaries by switching between supported and unsupported requests."
+    },
+    "additional_metadata": {
+      "category": "guardrails",
+      "metrics": [
+        "role_adherence",
+        "turn_relevancy",
+        "conversation_completeness"
+      ]
+    }
+  },
+  {
+    "name": "complete_multiple_constraints",
+    "scenario": "A user requests a LinkedIn post for a product with a specified target audience, tone, maximum length, call to action, and product facts. One required preference is initially missing and must be clarified.",
+    "expected_outcome": "Signal asks for the missing preference, then returns a post that satisfies every confirmed constraint only after all tasks are complete.",
+    "persona": {
+      "characteristics": "A demanding campaign manager who checks audience, tone, length, call to action, and factual accuracy one by one."
+    },
+    "additional_metadata": {
+      "category": "multi_intent",
+      "metrics": [
+        "conversation_completeness",
+        "goal_accuracy",
+        "turn_relevancy"
+      ]
+    }
+  },
+  {
+    "name": "avoid_unsupported_claims",
+    "scenario": "A user provides only a product name and a short product description, without a price, launch date, specifications, availability, testimonials, or performance claims.",
+    "expected_outcome": "Signal omits unsupported details or asks for them and never invents a price, date, specification, availability, testimonial, or performance claim.",
+    "persona": {
+      "characteristics": "A fact-conscious brand manager who rejects fabricated marketing claims and wants every factual statement traceable to their input."
+    },
+    "additional_metadata": {
+      "category": "grounding",
+      "metrics": [
+        "knowledge_retention",
+        "role_adherence",
+        "conversation_completeness"
+      ]
+    }
+  },
+  {
+    "name": "observable_agent_trajectory",
+    "scenario": "A valid LinkedIn-post request requires one clarification, followed by task planning, capability execution, and final validation.",
+    "expected_outcome": "The backend records an ordered trajectory containing the clarification, plan, capability invocation, validation, and completed response, with one conversation ID shared across the run.",
+    "persona": {
+      "characteristics": "A test engineer who wants each observable agent step and its final status to be inspectable in LangSmith and evaluated with DeepEval."
+    },
+    "additional_metadata": {
+      "category": "observability",
+      "metrics": [
+        "goal_accuracy",
+        "tool_use"
+      ],
+      "requires_trace_assertions": true
+    }
+  }
+]

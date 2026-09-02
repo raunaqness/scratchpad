@@ -16,7 +16,8 @@ The MVP is intentionally small and backend-only:
 - one capability agent for LinkedIn posts;
 - DeepEval-driven multi-turn evaluation;
 - local file persistence only;
-- DeepEval and Langfuse observability;
+- DeepEval for test cases, goldens, and metrics;
+- LangSmith for runtime observability;
 - OpenRouter as the only LLM gateway;
 - no database, retrieval, authentication, or publishing integrations yet.
 
@@ -60,7 +61,7 @@ The application entry point. It will:
 - create and execute a task plan;
 - route work to the appropriate capability;
 - validate that all planned tasks are complete;
-- attach the DeepEval LangGraph callback and Langfuse request context;
+- attach LangSmith metadata to the LangGraph invocation;
 - load and update the user's local memory file;
 - apply the guardrails before and during execution;
 - return either one focused clarification or the completed response.
@@ -70,8 +71,8 @@ The graph should keep orchestration separate from content-writing behavior.
 
 Every conversation request must have a stable `conversation_id` and a
 `user_id`. The `conversation_id` identifies one chat thread and is used to
-correlate turns, local conversation files, DeepEval traces, and Langfuse
-sessions. A separate request/run identifier may identify one turn within that
+correlate turns, local conversation files, LangSmith traces, and DeepEval test
+cases. A separate request/run identifier may identify one turn within that
 conversation.
 
 ### `capabilities/social_media.py`
@@ -104,8 +105,7 @@ the shell or a local `.env` file later) and expose typed settings such as:
 - OpenRouter API key, model, temperature, token limit, timeout, and retry
   settings;
 - local data directory;
-- DeepEval and Langfuse tracing enabled flags;
-- Langfuse host and project configuration;
+- LangSmith tracing flag, API key, endpoint, and project;
 - prompt version;
 - guardrails path.
 
@@ -133,10 +133,10 @@ changing configuration, not application logic. The selected OpenRouter model
 and provider metadata should be recorded in local run metadata and safe
 observability metadata, while the API key must never be recorded.
 
-DeepEval and Langfuse are evaluation/observability systems, not alternate LLM
-providers. Their model-backed evaluators may use their separately configured
-evaluation settings, but the Signal application runtime itself uses
-OpenRouter only.
+DeepEval is used for test cases, conversation goldens, simulation, and
+evaluation metrics. LangSmith is used for runtime observability. Their
+model-backed evaluators may use their separately configured evaluation
+settings, but the Signal application runtime itself uses OpenRouter only.
 
 ### `prompts.py`
 
@@ -490,11 +490,10 @@ behavioral change can be evaluated immediately.
 
 ## 9. Conversation tracing and observability
 
-Signal needs two complementary observability outputs:
+Signal uses separate systems for runtime observability and evaluation:
 
-- DeepEval native tracing for Confident AI Observatory and DeepEval trace
-  evaluation;
-- Langfuse tracing for independent end-to-end inspection and session replay.
+- LangSmith traces the runtime LangGraph execution end to end;
+- DeepEval defines goldens, simulates conversations, and evaluates test cases.
 
 These integrations should be additive. Neither dashboard is the source of
 truth for application state; local conversation and memory files remain the
@@ -507,8 +506,7 @@ For every request:
 1. Generate or accept a validated `user_id`.
 2. Generate or accept a stable `conversation_id` for the chat thread.
 3. Generate a per-turn `request_id`.
-4. Reuse the `conversation_id` as the session/thread correlation value in
-   both systems where their APIs support it.
+4. Reuse the `conversation_id` as the thread correlation value in LangSmith.
 5. Include only safe correlation metadata: feature name, environment,
    application version, prompt version, graph route, and outcome.
 
@@ -517,19 +515,18 @@ turn. The shared conversation/session ID groups those traces. The request ID
 identifies one run, while nested spans identify graph nodes and model or
 capability calls.
 
-### DeepEval tracing
+### LangSmith runtime tracing
 
-DeepEval's documented LangGraph integration should be the primary tracing
-mechanism for the graph. Each `graph.invoke(...)` call should receive a
-`deepeval.integrations.langchain.CallbackHandler` in its callbacks config.
-The handler should be created with safe trace defaults such as a graph name,
-tags, metadata, `user_id`, and the conversation/thread correlation value
-supported by the installed DeepEval version.
+LangSmith's native LangChain/LangGraph tracing should be the only runtime
+tracing mechanism. Enable it with `LANGSMITH_TRACING=true` and
+`LANGSMITH_API_KEY`, and select the destination with `LANGSMITH_PROJECT` and,
+when needed, `LANGSMITH_ENDPOINT`. LangChain and LangGraph invocations are
+then traced automatically through their callback system.
 
 The resulting trace should expose the complete ordered trajectory:
 
 ```text
-DeepEval trace: one graph invocation
+LangSmith trace: one graph invocation
 ├── agent: graph run
 ├── node: information extraction / routing
 │   └── llm: structured extraction
@@ -541,63 +538,15 @@ DeepEval trace: one graph invocation
     └── llm: final validation, if needed
 ```
 
-Use DeepEval's native callback for LangGraph nodes and model calls before
-adding manual decorators. Use `@observe(type="agent")`, `@observe(type="llm")`,
-or `@observe(type="tool")` only around application-owned boundaries that the
-callback does not capture. If the capability is represented as an internal
-function rather than an actual tool, it must not be fabricated as a tool call
-solely for tracing or metric scores.
+Pass trace metadata and tags on the `RunnableConfig` for each graph invocation.
+At minimum, include `conversation_id` (as both `session_id` and `thread_id`),
+`user_id`, application environment, feature, and prompt version. LangSmith
+threads use `session_id` or `thread_id` metadata, and the values must be
+inherited by child runs.
 
-DeepEval traces should be sent to Confident AI only when configured and
-authenticated through `CONFIDENT_API_KEY` or the supported `deepeval login`
-flow. Trace payloads must exclude API keys, credentials, and raw sensitive
-user data unless an approved masking policy is added.
-
-### Langfuse tracing
-
-Langfuse should use its current Python SDK and decorator/context-manager
-pattern. The outer application-owned request boundary should be decorated with
-`@langfuse.observe()` (or the current equivalent), and the request should
-propagate the conversation session context to all nested observations:
-
-```python
-from langfuse import observe, propagate_attributes
-
-@observe()
-def run_conversation(user_id, conversation_id, request_id, user_message):
-    with propagate_attributes(
-        user_id=user_id,
-        session_id=conversation_id,
-        metadata={"request_id": request_id, "feature": "linkedin_post"},
-        tags=["signal", "mvp"],
-    ):
-        return run_graph(user_message, conversation_id)
-```
-
-This is a design sketch; the implementation must pin and verify the installed
-Langfuse SDK API before coding. Nested observations should cover the
-application-owned extraction, planning, capability, validation, local memory,
-and guardrail boundaries where they contain AI work or materially explain the
-agent trajectory. Direct LLM calls should be generation/LLM observations with
-prompt version and model metadata. Do not duplicate a native LangGraph
-integration and manual span for the same operation.
-
-If a deterministic trace ID is needed for cross-system correlation, derive it
-from a non-secret request/conversation identifier using Langfuse's documented
-trace-ID helper. Do not use the conversation ID itself as a trace ID unless it
-meets the required format; session IDs and trace IDs are different concepts.
-Use `propagate_attributes(session_id=conversation_id)` to group turns into a
-Langfuse session.
-
-Langfuse configuration must be environment-driven:
-
-- `LANGFUSE_PUBLIC_KEY`;
-- `LANGFUSE_SECRET_KEY`;
-- `LANGFUSE_HOST`;
-- `LANGFUSE_TRACING_ENVIRONMENT`;
-- an enable/disable flag in `config.py`.
-
-When tracing is disabled or credentials are unavailable in development, the
+Trace payloads must exclude API keys, credentials, and raw sensitive user data
+unless an approved masking policy is added. If tracing is disabled or
+credentials are unavailable in development, the
 application should continue locally with a clear warning. In production,
 configuration should make the intended tracing policy explicit and report
 startup errors for required observability settings.
@@ -623,9 +572,9 @@ Do not trace:
 - hidden chain-of-thought or private reasoning;
 - duplicate copies of the same LLM call.
 
-Both systems must be treated as best-effort telemetry. A telemetry outage
-must not corrupt the local conversation or memory write, and an application
-failure must still be logged locally.
+LangSmith must be treated as best-effort telemetry. A telemetry outage must
+not corrupt the local conversation or memory write, and an application failure
+must still be logged locally.
 
 ## 10. User memory
 
@@ -678,9 +627,9 @@ The next implementation phase should proceed in this order:
    helpers.
 2. Add the minimal LangGraph graph and LinkedIn capability.
 3. Add conversation and user-memory JSON persistence.
-4. Add DeepEval's LangGraph callback and verify one trace in Confident AI.
-5. Add Langfuse request/session propagation and verify one trace with nested
-   observations.
+4. Enable LangSmith's LangChain/LangGraph tracing and verify one trace in the
+   LangSmith project.
+5. Add DeepEval's simulator and metric evaluation against the backend output.
 6. Add the DeepEval pytest structure and run the initial conversation
    goldens.
 

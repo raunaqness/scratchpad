@@ -138,7 +138,8 @@ def test_conversation_persists_analysis_and_trajectory(tmp_path, monkeypatch):
     assert second["status"] == "complete"
     assert third["status"] == "complete"
     assert first["assistant_message"].startswith(
-        "I collected the confirmed facts and validated the draft."
+        "I created the draft and validated it against the confirmed product "
+        "facts and requested constraints."
     )
     assert requests[1] == requests[0]
     assert requests[2]["product_description"] == "A compact camera for travel."

@@ -66,10 +66,10 @@
   },
   {
     "name": "goal_accuracy",
-    "scenario": "A user wants a LinkedIn post for Fujifilm X100VI. Signal must collect at least three concrete product facts, optionally confirm tone and length when requested, create the post, and validate it before responding with the final result.",
-    "expected_outcome": "Signal follows an observable plan, completes each required step in order, and returns the final LinkedIn post only after validation succeeds.",
+    "scenario": "A user wants a LinkedIn post for the Fujifilm X100VI and supplies at least three concrete product facts. Signal should use only those confirmed facts, apply any requested tone or length, and create a grounded post.",
+    "expected_outcome": "Signal uses the user-provided product facts, asks only for missing required information, and returns a grounded LinkedIn post. It does not research or verify product facts externally.",
     "persona": {
-      "characteristics": "A test engineer who cooperates with focused clarification questions and checks that the requested workflow is completed."
+      "characteristics": "A cooperative marketer who provides concrete product facts when asked, answers optional preference questions directly, and checks that the final post is grounded in the supplied information."
     },
     "additional_metadata": {
       "category": "planning",

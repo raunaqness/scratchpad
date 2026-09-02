@@ -319,6 +319,12 @@ def _analyze(state: SignalState) -> SignalState:
         )
         analysis = _extract_json(str(response.content))
 
+    if (
+        re.search(r"\b(?:validate|verify|check)\b", state["user_message"], re.I)
+        and re.search(r"\b(?:draft|post)\b", state["user_message"], re.I)
+    ):
+        analysis["intent"] = "validate_draft"
+
     analysis = _merge_analysis(
         _merge_analysis(
             _analysis_from_memory(state.get("memory", {})),
@@ -537,9 +543,9 @@ def _generate(state: SignalState) -> SignalState:
         ],
     }
     validated = _validate_current_draft(validation_state)
-    progress_update = state["analysis"].get("progress_update") or (
-        "I collected the confirmed product information, created a draft, and "
-        "validated it against those facts."
+    progress_update = (
+        "I created the draft and validated it against the confirmed product "
+        "facts and requested constraints."
     )
     return {
         **validated,

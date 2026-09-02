@@ -8,7 +8,8 @@
     },
     "additional_metadata": {
       "category": "tone",
-      "focus_metric": "tone_adherence"
+      "focus_metric": "tone_adherence",
+      "max_user_simulations": 2
     }
   },
   {
@@ -20,7 +21,8 @@
     },
     "additional_metadata": {
       "category": "completion",
-      "focus_metric": "conversation_completeness"
+      "focus_metric": "conversation_completeness",
+      "max_user_simulations": 3
     }
   },
   {
@@ -32,7 +34,8 @@
     },
     "additional_metadata": {
       "category": "role",
-      "focus_metric": "role_adherence"
+      "focus_metric": "role_adherence",
+      "max_user_simulations": 2
     }
   },
   {
@@ -44,7 +47,8 @@
     },
     "additional_metadata": {
       "category": "retention",
-      "focus_metric": "knowledge_retention"
+      "focus_metric": "knowledge_retention",
+      "max_user_simulations": 4
     }
   },
   {
@@ -56,7 +60,8 @@
     },
     "additional_metadata": {
       "category": "relevancy",
-      "focus_metric": "turn_relevancy"
+      "focus_metric": "turn_relevancy",
+      "max_user_simulations": 3
     }
   },
   {
@@ -68,7 +73,8 @@
     },
     "additional_metadata": {
       "category": "grounding",
-      "focus_metric": "unsupported_claim_prevention"
+      "focus_metric": "unsupported_claim_prevention",
+      "max_user_simulations": 2
     }
   },
   {
@@ -80,7 +86,8 @@
     },
     "additional_metadata": {
       "category": "planning",
-      "focus_metric": "goal_accuracy"
+      "focus_metric": "goal_accuracy",
+      "max_user_simulations": 5
     }
   }
 ]

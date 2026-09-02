@@ -14,13 +14,13 @@ from deepeval.metrics import (
     TurnRelevancyMetric,
 )
 from deepeval.simulator import ConversationSimulator
-from deepeval.test_case import Turn
+from deepeval.test_case import MultiTurnParams, Turn
 
 from app import run_conversation
 from tests.conftest import openrouter_eval_model
 from tests.goldens import load_goldens
 
-MAX_USER_SIMULATIONS = int(os.getenv("SIGNAL_MAX_USER_SIMULATIONS", "3"))
+MAX_USER_SIMULATIONS_OVERRIDE = os.getenv("SIGNAL_MAX_USER_SIMULATIONS")
 ROLE = (
     "You are Signal, a constrained LinkedIn marketing assistant. "
     "Use only user-provided product information, do not invent claims, "
@@ -76,6 +76,7 @@ def metric_for(model, golden: ConversationalGolden):
         return ConversationalGEval(
             name=name,
             criteria=criteria,
+            evaluation_params=[MultiTurnParams.CONTENT],
             model=model,
             threshold=0.7,
             async_mode=False,
@@ -84,6 +85,15 @@ def metric_for(model, golden: ConversationalGolden):
     if metric_type is None:
         pytest.skip(f"{metric_name} is reserved until an external tool exists")
     return metric_type(model=model, threshold=0.7, async_mode=False)
+
+
+def max_user_simulations_for(golden: ConversationalGolden) -> int:
+    """Use the golden's turn budget unless a global override is provided."""
+
+    if MAX_USER_SIMULATIONS_OVERRIDE is not None:
+        return max(1, int(MAX_USER_SIMULATIONS_OVERRIDE))
+    metadata = golden.additional_metadata or {}
+    return max(1, int(metadata.get("max_user_simulations", 3)))
 
 
 def test_scenario_dataset_contract():
@@ -96,6 +106,8 @@ def test_scenario_dataset_contract():
         assert golden.scenario
         assert golden.expected_outcome
         assert golden.persona is not None
+        metadata = golden.additional_metadata or {}
+        assert metadata.get("max_user_simulations", 0) > 0
 
 
 @pytest.mark.parametrize("golden", load_goldens(), ids=lambda golden: golden.name)
@@ -110,7 +122,7 @@ def test_signal_conversation(golden: ConversationalGolden):
     )
     test_cases = simulator.simulate(
         conversational_goldens=[golden],
-        max_user_simulations=MAX_USER_SIMULATIONS,
+            max_user_simulations=max_user_simulations_for(golden),
     )
 
     assert len(test_cases) == 1

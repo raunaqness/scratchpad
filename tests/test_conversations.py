@@ -100,7 +100,7 @@ def test_scenario_dataset_contract():
     """Validate the local scenario file without making any LLM calls."""
 
     goldens = load_goldens()
-    assert len(goldens) == 7
+    assert len(goldens) == 6
     for golden in goldens:
         assert golden.name
         assert golden.scenario

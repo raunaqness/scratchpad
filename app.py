@@ -118,11 +118,40 @@ def _memory_path(user_id: str) -> Path:
     return settings.data_dir / "memory" / f"{_safe_id(user_id)}.json"
 
 
+def _analysis_from_memory(memory: dict[str, Any]) -> dict[str, Any]:
+    """Convert persisted explicit facts and preferences into request fields."""
+
+    analysis: dict[str, Any] = {}
+    for fact in memory.get("facts", []):
+        if not isinstance(fact, dict):
+            continue
+        key = fact.get("key")
+        value = fact.get("value")
+        if key and value not in (None, "", []):
+            analysis[key] = value
+
+    preferences = memory.get("preferences", {})
+    if isinstance(preferences, dict):
+        for key, preference in preferences.items():
+            value = (
+                preference.get("value")
+                if isinstance(preference, dict)
+                else preference
+            )
+            if value not in (None, "", []):
+                analysis[key] = value
+    return analysis
+
+
 def _merge_analysis(
     previous: dict[str, Any],
     current: dict[str, Any],
 ) -> dict[str, Any]:
-    """Keep confirmed values when a later extraction omits them."""
+    """Keep confirmed values when a later extraction omits them.
+
+    ``current`` is treated as a turn delta. Explicit values from the current
+    turn override prior values, while omitted values remain available.
+    """
 
     merged = {
         key: value
@@ -148,7 +177,11 @@ def _update_memory(memory: dict[str, Any], analysis: dict[str, Any]) -> dict[str
         for fact in memory.get("facts", [])
         if isinstance(fact, dict) and fact.get("key")
     }
-    for key in ("company", "product_name", "product_description"):
+    for key in (
+        "company",
+        "product_name",
+        "product_description",
+    ):
         value = analysis.get(key)
         if value:
             facts[key] = {
@@ -158,9 +191,23 @@ def _update_memory(memory: dict[str, Any], analysis: dict[str, Any]) -> dict[str
                 "confidence": "explicit",
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
+    preferences = {
+        key: value
+        for key, value in memory.get("preferences", {}).items()
+    }
+    for key in ("tone", "length", "audience", "call_to_action"):
+        value = analysis.get(key)
+        if value:
+            preferences[key] = {
+                "value": value,
+                "source": "user_conversation",
+                "confidence": "explicit",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
     return {
         **memory,
         "facts": list(facts.values()),
+        "preferences": preferences,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -193,15 +240,33 @@ def _analyze(state: SignalState) -> SignalState:
     if _blocked_by_guardrails(state["user_message"]):
         analysis = {"scope": "out_of_scope", "tasks": []}
     else:
+        stored_analysis = _analysis_from_memory(state.get("memory", {}))
+        confirmed_analysis = _merge_analysis(
+            stored_analysis,
+            state.get("previous_analysis", {}),
+        )
         response = _model().invoke(
             [
                 SystemMessage(content=CURRENT_SYSTEM_PROMPT),
-                HumanMessage(content=_analysis_prompt(state)),
+                HumanMessage(
+                    content=_analysis_prompt(
+                        {
+                            **state,
+                            "previous_analysis": confirmed_analysis,
+                        }
+                    )
+                ),
             ]
         )
         analysis = _extract_json(str(response.content))
 
-    analysis = _merge_analysis(state.get("previous_analysis", {}), analysis)
+    analysis = _merge_analysis(
+        _merge_analysis(
+            _analysis_from_memory(state.get("memory", {})),
+            state.get("previous_analysis", {}),
+        ),
+        analysis,
+    )
     if analysis.get("scope") != "linkedin_post":
         analysis["scope"] = "out_of_scope"
     missing = [

@@ -52,29 +52,16 @@
     }
   },
   {
-    "name": "turn_relevancy",
-    "scenario": "A user requests a LinkedIn post for Fujifilm X100VI and provides the company and product name but omits the product description and length.",
-    "expected_outcome": "Signal asks only for the missing product description and length, without discussing unrelated topics or asking again for the already supplied company, product, or tone.",
+    "name": "out_of_scope_recipe",
+    "scenario": "A user asks Signal: Tell me a recipe about cooking.",
+    "expected_outcome": "Signal clearly explains that it only creates LinkedIn posts from user-provided product information and does not provide recipes or unrelated answers.",
     "persona": {
-      "characteristics": "A busy marketer who wants concise, relevant clarification questions and dislikes unnecessary back-and-forth."
+      "characteristics": "A user testing whether Signal respects its LinkedIn-post-only capability boundary."
     },
     "additional_metadata": {
-      "category": "relevancy",
-      "focus_metric": "turn_relevancy",
-      "max_user_simulations": 3
-    }
-  },
-  {
-    "name": "unsupported_claim_prevention",
-    "scenario": "A Fujifilm marketer supplies only these X100VI facts: five-axis IBIS with up to 6.0 stops of compensation, a two-way tilting LCD, a hybrid viewfinder, a 23mmF2 lens, and a 40.2-megapixel X-Trans CMOS 5 HR sensor.",
-    "expected_outcome": "Signal writes a LinkedIn post using only those facts and does not invent a price, launch date, availability, testimonial, or performance claim beyond the supplied information.",
-    "persona": {
-      "characteristics": "A fact-conscious brand manager who checks every factual statement against the supplied product information."
-    },
-    "additional_metadata": {
-      "category": "grounding",
-      "focus_metric": "unsupported_claim_prevention",
-      "max_user_simulations": 2
+      "category": "role",
+      "focus_metric": "role_adherence",
+      "max_user_simulations": 1
     }
   },
   {

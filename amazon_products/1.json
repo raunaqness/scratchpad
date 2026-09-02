@@ -1,0 +1,82 @@
+{
+    "product_name": "Fujifilm X-T50 40 MP APS-C X-Trans Sensor | Retro Style Mirrorless Camera | 4K/6.2K Vlogging | High Speed Recording FHD 240fps | Advance AF with 16-50mm Optical Zoom Lens f/2.8-4.8 - Silver",
+    "brand": "Fujifilm",
+    "manufacturer": "FUJIFILM INDIA PRIVATE LIMITED",
+    "model_name": "F X-T50 S 16-50mm KIT WW2 CD",
+    "model_number": "204850",
+    "asin": "B0DFGZTWRT",
+    "category": "Mirrorless System Camera",
+    "color": "Silver",
+    "country_of_origin": "China",
+    "dimensions": "4.8 x 12.3 x 8.4 cm",
+    "weight": "389 g",
+  
+    "description": "The Fujifilm X-T50 is a compact retro-style mirrorless camera combining a 40.2 MP APS-C X-Trans CMOS 5 HR sensor, X-Processor 5, advanced autofocus, 7-stop in-body image stabilization, Fujifilm Film Simulation modes, and high-resolution video recording. This variant includes the XF 16-50mm F2.8-4.8 R LM WR lens.",
+  
+    "about_this_item": [
+      "FUJIFILM X-T50 inherits the X-T Series design with a close resemblance to a classic film camera. The compact body weighs approximately 438g (0.96lb), with sleek and ergonomic styling.",
+      "Features an all-new Film Simulation dial on the top plate with access to 20 Film Simulation modes, including REALA ACE.",
+      "Features shutter speed, exposure compensation and Film Simulation dials on the top plate, allowing settings to be adjusted without turning the camera on.",
+      "Features a 2.36-million-dot electronic viewfinder with 0.62x magnification, high-definition live view and adjustable diopter control.",
+      "Features a tilting LCD display for enhanced versatility, including waist-level shooting."
+    ],
+  
+    "camera": {
+      "type": "Mirrorless",
+      "sensor": "40.2 MP APS-C X-Trans CMOS 5 HR",
+      "sensor_size": "23.5 x 15.7 mm",
+      "processor": "X-Processor 5",
+      "native_iso": "125-12800",
+      "extended_iso": "64-51200",
+      "image_stabilization": "7-stop in-body image stabilization (IBIS)",
+      "autofocus": "425-point AF with AI-based subject detection",
+      "viewfinder": "2.36-million-dot EVF, 0.62x magnification",
+      "display": "3-inch tilting touchscreen LCD, approximately 1.84 million dots",
+      "film_simulations": 20,
+      "video": {
+        "6.2k": "6.2K/30p Open Gate",
+        "4k": "4K/60p",
+        "full_hd": "FHD/240p",
+        "color_depth": "4:2:2 10-bit"
+      },
+      "connectivity": [
+        "Wi-Fi",
+        "Bluetooth",
+        "USB Type-C",
+        "Micro HDMI"
+      ]
+    },
+  
+    "lens": {
+      "model": "XF 16-50mm F2.8-4.8 R LM WR",
+      "focal_length": "16-50mm",
+      "maximum_aperture": "f/2.8-4.8",
+      "optical_zoom": "3x",
+      "weather_resistant": true,
+      "mount": "Fujifilm X"
+    },
+  
+    "key_features": [
+      "40.2 MP APS-C X-Trans CMOS 5 HR sensor",
+      "X-Processor 5",
+      "7-stop IBIS",
+      "425-point autofocus",
+      "AI-based subject detection",
+      "Dedicated Film Simulation dial",
+      "20 Film Simulation modes",
+      "6.2K/30p video",
+      "4K/60p video",
+      "FHD/240p high-speed recording",
+      "2.36-million-dot electronic viewfinder",
+      "Tilting touchscreen LCD",
+      "Wi-Fi",
+      "Bluetooth",
+      "USB Type-C"
+    ],
+  
+    "product_variant": {
+      "body": "Fujifilm X-T50",
+      "lens": "XF 16-50mm F2.8-4.8 R LM WR",
+      "color": "Silver"
+    }
+  }

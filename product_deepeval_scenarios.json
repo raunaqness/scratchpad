@@ -1,0 +1,55 @@
+[
+  {
+    "name": "xt50_fixed_completeness",
+    "product_file": "amazon_products/1.json",
+    "metric": "conversation_completeness",
+    "scenario": "A marketer requests a grounded LinkedIn post for the Fujifilm X-T50 using supplied product facts.",
+    "expected_outcome": "Signal returns a LinkedIn post using the supplied X-T50 facts without inventing product details.",
+    "user_turns": [
+      "Create a LinkedIn post for the Fujifilm X-T50. Use these facts: it has a 40.2 MP APS-C X-Trans CMOS 5 HR sensor, 7-stop in-body image stabilization, 6.2K/30p video recording, and 20 Film Simulation modes. Use a professional tone."
+    ]
+  },
+  {
+    "name": "sandisk_fixed_retention",
+    "product_file": "amazon_products/2.json",
+    "metric": "knowledge_retention",
+    "scenario": "A marketer provides three SanDisk Extreme SD card facts, then adds more facts and asks Signal to revise the post using all confirmed information.",
+    "expected_outcome": "Signal retains the initial SanDisk facts, incorporates the later facts, and uses all confirmed information in the revised post without repeating clarification questions.",
+    "user_turns": [
+      "Create a LinkedIn post for the SanDisk Extreme SD UHS-I 128GB Card using these three facts: it has 128 GB storage capacity, supports up to 180 MB/s read speeds, and supports up to 90 MB/s write speeds.",
+      "Revise the post using the same confirmed facts and add these facts: it has UHS-I U3 and V30 speed classes and is suitable for 4K UHD video recording."
+    ]
+  },
+  {
+    "name": "marshall_fixed_tone",
+    "product_file": "amazon_products/3.json",
+    "metric": "tone_adherence",
+    "scenario": "A marketer requests a professional LinkedIn post for Marshall Willen II using supplied product facts.",
+    "expected_outcome": "Signal returns a professional LinkedIn post using only the supplied Marshall product facts.",
+    "user_turns": [
+      "Create a professional LinkedIn post for the Marshall Willen II. Use these facts: it provides 17+ hours of portable playtime, has IP67 dust and waterproof protection, includes a built-in microphone for hands-free calls, supports Bluetooth LE Audio, and has a rubber fastening strap."
+    ]
+  },
+  {
+    "name": "xt50_fixed_goal",
+    "product_file": "amazon_products/1.json",
+    "metric": "goal_accuracy",
+    "scenario": "A marketer wants Signal to collect Fujifilm X-T50 facts, confirm a professional tone, draft a post, and validate it.",
+    "expected_outcome": "Signal visibly gathers the supplied facts, applies the professional tone, validates the draft, and returns the final LinkedIn post.",
+    "user_turns": [
+      "I want a LinkedIn post for the Fujifilm X-T50. What information do you need from me?",
+      "The X-T50 has a 40.2 MP APS-C X-Trans CMOS 5 HR sensor, 7-stop in-body image stabilization, and 6.2K/30p video recording. Use a professional tone.",
+      "These are the confirmed facts. Please draft and validate the post."
+    ]
+  },
+  {
+    "name": "sandisk_fixed_grounding",
+    "product_file": "amazon_products/2.json",
+    "metric": "unsupported_claim_prevention",
+    "scenario": "A fact-conscious marketer requests a SanDisk Extreme SD card post using only supplied product facts.",
+    "expected_outcome": "Signal uses only the supplied SanDisk facts and does not add unsupported specifications or performance claims.",
+    "user_turns": [
+      "Write a LinkedIn post for the SanDisk Extreme SD UHS-I 128GB Card using only these facts: 128 GB storage capacity, up to 180 MB/s read speed, up to 90 MB/s write speed, UHS-I U3 and V30 speed classes, and suitability for 4K UHD video recording."
+    ]
+  }
+]

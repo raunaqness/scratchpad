@@ -336,6 +336,9 @@ def _analyze(state: SignalState) -> SignalState:
         analysis["clarification_question"] = " ".join(
             questions[field] for field in missing[:2]
         )
+    elif analysis["scope"] == "linkedin_post":
+        analysis["needs_clarification"] = False
+        analysis["clarification_question"] = None
     status = (
         "out_of_scope"
         if analysis["scope"] == "out_of_scope"

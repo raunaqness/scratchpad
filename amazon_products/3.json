@@ -1,0 +1,91 @@
+{
+    "product_name": "Marshall Willen II Portable Bluetooth Speaker with 17+ Hours of Portable Playtime, Dust & Waterproof (IP67) - Black & Brass",
+    "brand": "Marshall",
+    "manufacturer": "Marshall / Zound Industries International AB",
+    "model_name": "Willen II",
+    "model_number": "1006714",
+    "asin": "B0DD7T8H2Q",
+    "category": "Portable Bluetooth Speaker",
+    "color": "Black & Brass",
+    "country_of_origin": "China",
+    "product_description": "The Marshall Willen II is a compact, lightweight portable Bluetooth speaker delivering Marshall Signature Sound with balanced audio and enhanced bass. It offers 17+ hours of playtime, IP67 dust and waterproof protection, a built-in microphone for hands-free calls, Bluetooth LE Audio support, and a rubber fastening strap for attaching the speaker almost anywhere.",
+  
+    "about_this_item": [
+      "Marshall signature sound: Willen II's slightly larger frame maximises bass, while improved drivers deliver balanced sound across frequencies at any volume.",
+      "17+ hours of portable playtime on a single charge.",
+      "Dust and waterproof with an IP67 rating, allowing the speaker to be submerged in up to 1 metre of water for up to 30 minutes.",
+      "Fastening strap lets you stand it up, lay it down, attach it to an object, or hang it almost anywhere.",
+      "Built-in microphone allows completely hands-free phone calls.",
+      "Bluetooth LE Audio-ready for the latest connectivity possibilities."
+    ],
+  
+    "audio": {
+      "driver_type": "Dynamic",
+      "drivers": "One 2-inch 10W full-range driver + two passive radiators",
+      "amplifier": "38W Class D",
+      "frequency_range": "75-20,000 Hz",
+      "maximum_sound_pressure_level": "88 dB SPL @ 1 m",
+      "audio_output": "Mono",
+      "cabinet_principle": "Sealed with passive radiator"
+    },
+  
+    "connectivity": {
+      "bluetooth": "Bluetooth 5.3 LE",
+      "bluetooth_range": "Up to 100 m in free field",
+      "bluetooth_le_audio": true,
+      "multi_host_functionality": "Auracast",
+      "compatible_app": "Marshall Bluetooth App",
+      "supported_devices": [
+        "Smartphones",
+        "Tablets",
+        "Laptops",
+        "PCs"
+      ]
+    },
+  
+    "battery": {
+      "playtime": "17+ hours",
+      "charging_time": "2.5 hours",
+      "quick_charge": "20 minutes of charging provides 5.5 hours of playtime",
+      "battery_type": "Built-in rechargeable Li-ion",
+      "charging_port": "USB-C"
+    },
+  
+    "durability": {
+      "waterproof_rating": "IP67",
+      "dustproof": true,
+      "waterproof": true,
+      "maximum_submersion": "1 metre for up to 30 minutes"
+    },
+  
+    "physical": {
+      "weight": "0.36 kg / 0.79 lb",
+      "width": "100.5 mm",
+      "height": "100.5 mm",
+      "depth": "43.4 mm",
+      "fastening_strap": true
+    },
+  
+    "controls": [
+      "Multi-directional control knob",
+      "Power button",
+      "Bluetooth pairing button",
+      "Battery indicator"
+    ],
+  
+    "additional_features": [
+      "Built-in microphone",
+      "Fastening strap",
+      "IP67 dust and waterproof protection",
+      "Marshall Signature Sound",
+      "Bluetooth LE Audio-ready",
+      "Auracast support"
+    ],
+  
+    "in_the_box": [
+      "Marshall Willen II speaker",
+      "USB-C to USB-C charging cable",
+      "User manual",
+      "Legal and safety information"
+    ]
+  }

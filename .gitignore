@@ -3,6 +3,7 @@
 __pycache__/
 .pytest_cache/
 .deepeval/
+.deepeval-runs/
 *.py[cod]
 
 data/conversations/*

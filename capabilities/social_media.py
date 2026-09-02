@@ -46,3 +46,36 @@ post text, with no analysis or explanation.
         ]
     )
     return str(response.content).strip()
+
+
+def edit_linkedin_post(
+    request: dict[str, Any],
+    draft: str,
+    instruction: str,
+) -> str:
+    """Revise an existing LinkedIn draft using only confirmed request data."""
+
+    system_prompt = f"""{CURRENT_SYSTEM_PROMPT}
+
+You are the Signal LinkedIn post editing capability. Revise the existing draft
+according to the user's explicit editing request. Use only facts in the
+validated request. Do not invent prices, dates, specifications, availability,
+testimonials, performance claims, benefits, or other details. Preserve
+unchanged requirements and return only the revised post text.
+"""
+    response = _model().invoke(
+        [
+            SystemMessage(content=system_prompt),
+            HumanMessage(
+                content=json.dumps(
+                    {
+                        "request": request,
+                        "existing_draft": draft,
+                        "edit_instruction": instruction,
+                    },
+                    ensure_ascii=False,
+                )
+            ),
+        ]
+    )
+    return str(response.content).strip()

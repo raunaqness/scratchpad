@@ -14,7 +14,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
 
-from capabilities.social_media import create_linkedin_post
+from capabilities.social_media import create_linkedin_post, edit_linkedin_post
 from config import settings
 from prompts import CURRENT_PROMPT_VERSION, CURRENT_SYSTEM_PROMPT
 
@@ -29,6 +29,10 @@ class SignalState(TypedDict, total=False):
     previous_analysis: dict[str, Any]
     analysis: dict[str, Any]
     assistant_message: str
+    draft: str
+    draft_version: int
+    draft_history: list[dict[str, Any]]
+    validation: dict[str, Any]
     status: str
     tasks: list[str]
     completed_tasks: list[str]
@@ -254,12 +258,13 @@ def _analysis_prompt(state: SignalState) -> str:
 Return JSON only with these keys:
 scope (one of "linkedin_post" or "out_of_scope"),
 intent (one of "request_post", "provide_facts", "ask_requirements",
-"select_preferences", "validate_draft", "external_fact_request", or
-"out_of_scope"),
+"select_preferences", "edit_draft", "validate_draft", "external_fact_request",
+or "out_of_scope"),
 company, product_name, product_description, tone, length, audience,
 product_facts (array of distinct concrete product facts),
 call_to_action (strings or null), needs_clarification (boolean),
 clarification_question (string or null), progress_update (string or null),
+edit_instruction (string or null),
 tasks (array of strings).
 
 Signal's complete LinkedIn workflow includes collecting facts, clarifying
@@ -275,7 +280,9 @@ Keep questions focused.
 
 Set progress_update to one short, user-safe sentence describing only confirmed
 work or the next required input. Never claim that drafting or validation is
-complete unless it actually is.
+complete unless it actually is. Classify a request to modify an existing draft
+as edit_draft and capture the requested change in edit_instruction. Classify a
+request to check an existing draft as validate_draft.
 
 Memory:
 {json.dumps(state.get("memory", {}), ensure_ascii=False)}
@@ -373,7 +380,13 @@ def _analyze(state: SignalState) -> SignalState:
 
 
 def _route(state: SignalState) -> str:
-    return "respond" if state["status"] != "in_progress" else "generate"
+    if state["status"] != "in_progress":
+        return "respond"
+    if state["analysis"].get("intent") == "validate_draft" and state.get("draft"):
+        return "validate"
+    if state["analysis"].get("intent") == "edit_draft" and state.get("draft"):
+        return "edit"
+    return "generate"
 
 
 def _has_minimum_product_facts(analysis: dict[str, Any]) -> bool:
@@ -412,7 +425,9 @@ def _draft_is_grounded(post: str, request: dict[str, Any]) -> bool:
     return all(token in draft_tokens for token in product_tokens)
 
 
-def _generate(state: SignalState) -> SignalState:
+def _request_from_analysis(analysis: dict[str, Any]) -> dict[str, Any]:
+    """Select the confirmed fields passed to a writing capability."""
+
     allowed = {
         "company",
         "product_name",
@@ -423,11 +438,62 @@ def _generate(state: SignalState) -> SignalState:
         "audience",
         "call_to_action",
     }
-    request = {
+    return {
         key: value
-        for key, value in state["analysis"].items()
+        for key, value in analysis.items()
         if key in allowed and value
     }
+
+
+def _validate_current_draft(state: SignalState) -> SignalState:
+    """Validate the persisted draft against current request constraints."""
+
+    draft = state.get("draft", "")
+    request = _request_from_analysis(state["analysis"])
+    maximum_words = _maximum_words(request.get("length"))
+    word_count_valid = (
+        maximum_words is None or len(draft.split()) <= maximum_words
+    )
+    valid = _draft_is_grounded(draft, request) and word_count_valid
+    validation = {
+        "status": "passed" if valid else "failed",
+        "product_anchor": _draft_is_grounded(draft, request),
+        "word_count": len(draft.split()),
+        "maximum_words": maximum_words,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if valid:
+        message = (
+            "I validated the current draft against the confirmed product "
+            "facts and requested constraints.\n\n"
+            f"{draft}"
+        )
+        status = "complete"
+    else:
+        message = (
+            "I could not validate the current draft against the confirmed "
+            "product facts and requested constraints. Please provide any "
+            "missing product facts or constraints before we finalize it."
+        )
+        status = "needs_clarification"
+    return {
+        **state,
+        "assistant_message": message,
+        "status": status,
+        "validation": validation,
+        "trajectory": [
+            *state.get("trajectory", []),
+            {
+                "step": "validate_constraints",
+                "status": validation["status"],
+                "word_count": validation["word_count"],
+            },
+        ],
+    }
+
+
+def _generate(state: SignalState) -> SignalState:
+    request = _request_from_analysis(state["analysis"])
     post = create_linkedin_post(request)
     maximum_words = _maximum_words(request.get("length"))
     if maximum_words is not None:
@@ -455,28 +521,84 @@ def _generate(state: SignalState) -> SignalState:
                 },
             ],
         }
+    version = state.get("draft_version", 0) + 1
+    validation_state = {
+        **state,
+        "draft": post,
+        "draft_version": version,
+        "draft_history": [
+            *state.get("draft_history", []),
+            {
+                "version": version,
+                "draft": post,
+                "source": "create",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+        ],
+    }
+    validated = _validate_current_draft(validation_state)
     progress_update = state["analysis"].get("progress_update") or (
-        "I collected the confirmed product information, applied your selected "
-        "preferences, and validated the draft against those facts."
+        "I collected the confirmed product information, created a draft, and "
+        "validated it against those facts."
     )
     return {
-        **state,
-        "assistant_message": f"{progress_update}\n\n{post}",
-        "status": "complete",
-        "completed_tasks": state.get("tasks", []),
+        **validated,
+        "assistant_message": f"{progress_update}\n\n{post}"
+        if validated["status"] == "complete"
+        else validated["assistant_message"],
+        "completed_tasks": state.get("tasks", [])
+        if validated["status"] == "complete"
+        else state.get("completed_tasks", []),
         "trajectory": [
-            *state.get("trajectory", []),
+            *validated.get("trajectory", []),
             {
                 "step": "capability",
                 "capability": "linkedin_post",
-                "status": "complete",
-            },
-            {
-                "step": "validate_constraints",
-                "status": "complete",
-                "word_count": len(post.split()),
+                "status": "complete"
+                if validated["status"] == "complete"
+                else "blocked",
             },
         ],
+    }
+
+
+def _edit(state: SignalState) -> SignalState:
+    request = _request_from_analysis(state["analysis"])
+    draft = edit_linkedin_post(
+        request,
+        state.get("draft", ""),
+        state["analysis"].get("edit_instruction", ""),
+    )
+    maximum_words = _maximum_words(request.get("length"))
+    if maximum_words is not None:
+        draft = " ".join(draft.split()[:maximum_words])
+    version = state.get("draft_version", 0) + 1
+    edited_state = {
+        **state,
+        "draft": draft,
+        "draft_version": version,
+        "draft_history": [
+            *state.get("draft_history", []),
+            {
+                "version": version,
+                "draft": draft,
+                "source": "edit",
+                "instruction": state["analysis"].get("edit_instruction", ""),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+        ],
+    }
+    validated = _validate_current_draft(edited_state)
+    if validated["status"] != "complete":
+        return validated
+    return {
+        **validated,
+        "assistant_message": (
+            "I revised the draft according to your request and validated "
+            "the new version against the confirmed facts and constraints.\n\n"
+            f"{draft}"
+        ),
+        "completed_tasks": state.get("tasks", []),
     }
 
 
@@ -513,14 +635,23 @@ def _build_graph():
     graph = StateGraph(SignalState)
     graph.add_node("analyze", _analyze)
     graph.add_node("generate", _generate)
+    graph.add_node("edit", _edit)
+    graph.add_node("validate", _validate_current_draft)
     graph.add_node("respond", _respond)
     graph.add_edge(START, "analyze")
     graph.add_conditional_edges(
         "analyze",
         _route,
-        {"generate": "generate", "respond": "respond"},
+        {
+            "generate": "generate",
+            "edit": "edit",
+            "validate": "validate",
+            "respond": "respond",
+        },
     )
     graph.add_edge("generate", END)
+    graph.add_edge("edit", END)
+    graph.add_edge("validate", END)
     graph.add_edge("respond", END)
     return graph.compile()
 
@@ -557,6 +688,10 @@ def run_conversation(
         ],
         "memory": memory,
         "previous_analysis": conversation.get("analysis", {}),
+        "draft": conversation.get("draft", ""),
+        "draft_version": conversation.get("draft_version", 0),
+        "draft_history": conversation.get("draft_history", []),
+        "validation": conversation.get("validation", {}),
         "trajectory": conversation.get("trajectory", []),
     }
     result = GRAPH.invoke(
@@ -587,6 +722,10 @@ def run_conversation(
             "analysis": result.get("analysis", {}),
             "tasks": result.get("tasks", []),
             "completed_tasks": result.get("completed_tasks", []),
+            "draft": result.get("draft", ""),
+            "draft_version": result.get("draft_version", 0),
+            "draft_history": result.get("draft_history", []),
+            "validation": result.get("validation", {}),
             "trajectory": result.get("trajectory", []),
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "prompt_version": CURRENT_PROMPT_VERSION,
@@ -604,5 +743,8 @@ def run_conversation(
         ),
         "tasks": result.get("tasks", []),
         "completed_tasks": result.get("completed_tasks", []),
+        "draft": result.get("draft", ""),
+        "draft_version": result.get("draft_version", 0),
+        "validation": result.get("validation", {}),
         "trajectory": result.get("trajectory", []),
     }

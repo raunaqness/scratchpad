@@ -25,6 +25,38 @@ def test_maximum_words_is_extracted():
     assert app._maximum_words("medium") is None
 
 
+def test_three_product_facts_are_required():
+    assert not app._has_minimum_product_facts(
+        {"product_facts": ["compact", "40.2 megapixels"]}
+    )
+    assert app._has_minimum_product_facts(
+        {"product_facts": ["compact", "40.2 megapixels", "hybrid viewfinder"]}
+    )
+
+
+def test_draft_grounding_allows_supplied_facts_and_neutral_copy():
+    request = {
+        "company": "Fujifilm",
+        "product_name": "X100",
+        "product_description": "A compact camera for street photography.",
+    }
+    assert app._draft_is_grounded(
+        "Introducing the Fujifilm X100, a compact camera for street photography.",
+        request,
+    )
+
+
+def test_draft_grounding_requires_product_name():
+    request = {
+        "company": "Fujifilm",
+        "product_description": "A compact camera for street photography.",
+    }
+    assert not app._draft_is_grounded(
+        "A compact camera for street photography.",
+        request,
+    )
+
+
 def test_confirmed_fields_survive_later_extraction():
     merged = app._merge_analysis(
         {"company": "Fujifilm", "product_name": "X100"},
@@ -46,9 +78,17 @@ def test_conversation_persists_analysis_and_trajectory(tmp_path, monkeypatch):
                 "company": "Fujifilm",
                 "product_name": "X100",
                 "product_description": "A compact camera for street photography.",
+                "product_facts": [
+                    "compact camera",
+                    "street photography",
+                    "designed for photography",
+                ],
                 "tone": "confident",
                 "length": "under 10 words",
                 "needs_clarification": False,
+                "progress_update": (
+                    "I collected the confirmed facts and validated the draft."
+                ),
             },
             {"scope": "linkedin_post"},
             {
@@ -68,7 +108,10 @@ def test_conversation_persists_analysis_and_trajectory(tmp_path, monkeypatch):
         "create_linkedin_post",
         lambda request: (
             requests.append(request)
-            or "Fujifilm X100: compact street photography camera."
+            or (
+                f"{request['company']} {request['product_name']}: "
+                f"{request['product_description']}"
+            )
         ),
     )
 
@@ -94,6 +137,9 @@ def test_conversation_persists_analysis_and_trajectory(tmp_path, monkeypatch):
     assert first["status"] == "complete"
     assert second["status"] == "complete"
     assert third["status"] == "complete"
+    assert first["assistant_message"].startswith(
+        "I collected the confirmed facts and validated the draft."
+    )
     assert requests[1] == requests[0]
     assert requests[2]["product_description"] == "A compact camera for travel."
     assert requests[2]["tone"] == "professional"

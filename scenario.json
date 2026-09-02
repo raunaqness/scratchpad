@@ -1,8 +1,8 @@
 [
   {
     "name": "tone_adherence",
-    "scenario": "A Fujifilm marketer provides the company Fujifilm, product Fujifilm X100VI, the fact that it is a compact camera for street photography, and asks for a confident, professional LinkedIn post under 80 words.",
-    "expected_outcome": "Signal returns one LinkedIn post under 80 words that uses a confident and professional tone and only the supplied product fact.",
+    "scenario": "A Fujifilm marketer provides the company Fujifilm, product Fujifilm X100VI, and three concrete product facts: it is a compact camera, it has a hybrid viewfinder, and it has a 23mmF2 lens. They ask for a confident, professional LinkedIn post under 80 words.",
+    "expected_outcome": "Signal returns one LinkedIn post under 80 words that uses a confident and professional tone and only the supplied product facts.",
     "persona": {
       "characteristics": "A precise marketer who has supplied all required information and evaluates only whether the requested tone is followed."
     },
@@ -66,7 +66,7 @@
   },
   {
     "name": "goal_accuracy",
-    "scenario": "A user wants a LinkedIn post for Fujifilm X100VI. Signal must collect missing product information, confirm the requested tone and length, create the post, and validate it before responding with the final result.",
+    "scenario": "A user wants a LinkedIn post for Fujifilm X100VI. Signal must collect at least three concrete product facts, optionally confirm tone and length when requested, create the post, and validate it before responding with the final result.",
     "expected_outcome": "Signal follows an observable plan, completes each required step in order, and returns the final LinkedIn post only after validation succeeds.",
     "persona": {
       "characteristics": "A test engineer who cooperates with focused clarification questions and checks that the requested workflow is completed."
@@ -74,7 +74,7 @@
     "additional_metadata": {
       "category": "planning",
       "focus_metric": "goal_accuracy",
-      "max_user_simulations": 5
+      "max_user_simulations": 10
     }
   }
 ]

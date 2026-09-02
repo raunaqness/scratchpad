@@ -1,6 +1,9 @@
 """DeepEval end-to-end tests for Signal's conversational scenarios."""
 
+import json
 import os
+from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 from deepeval import assert_test
@@ -21,6 +24,7 @@ from tests.conftest import openrouter_eval_model
 from tests.goldens import load_goldens
 
 MAX_USER_SIMULATIONS_OVERRIDE = os.getenv("SIGNAL_MAX_USER_SIMULATIONS")
+RUN_LOG_PATH = Path(__file__).resolve().parents[1] / "data" / "logs" / "deepeval-runs.jsonl"
 ROLE = (
     "You are Signal, a constrained LinkedIn marketing assistant. "
     "Use only user-provided product information, do not invent claims, "
@@ -96,6 +100,31 @@ def max_user_simulations_for(golden: ConversationalGolden) -> int:
     return max(1, int(metadata.get("max_user_simulations", 3)))
 
 
+def write_run_log(
+    golden: ConversationalGolden,
+    test_case,
+    metric,
+    status: str,
+    error: str | None = None,
+) -> None:
+    """Persist the complete simulated conversation and evaluation outcome."""
+
+    RUN_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        "run_at": datetime.now(timezone.utc).isoformat(),
+        "scenario_name": golden.name,
+        "metric": getattr(metric, "name", type(metric).__name__),
+        "status": status,
+        "error": error,
+        "turns": [
+            {"role": turn.role, "content": turn.content}
+            for turn in test_case.turns
+        ],
+    }
+    with RUN_LOG_PATH.open("a", encoding="utf-8") as log_file:
+        log_file.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
 def test_scenario_dataset_contract():
     """Validate the local scenario file without making any LLM calls."""
 
@@ -132,8 +161,14 @@ def test_signal_conversation(golden: ConversationalGolden):
         **(test_case.metadata or {}),
         "scenario_name": golden.name,
     }
-    assert_test(
-        test_case=test_case,
-        metrics=[metric_for(model, golden)],
-        run_async=False,
-    )
+    metric = metric_for(model, golden)
+    try:
+        assert_test(
+            test_case=test_case,
+            metrics=[metric],
+            run_async=False,
+        )
+    except Exception as exc:
+        write_run_log(golden, test_case, metric, "failed", str(exc))
+        raise
+    write_run_log(golden, test_case, metric, "passed")

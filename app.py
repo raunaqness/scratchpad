@@ -20,8 +20,6 @@ from prompts import CURRENT_PROMPT_VERSION, CURRENT_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 GUARDRAILS_PATH = Path(__file__).resolve().parent / "guardrails.json"
-
-
 class SignalState(TypedDict, total=False):
     user_id: str
     conversation_id: str
@@ -130,6 +128,14 @@ def _analysis_from_memory(memory: dict[str, Any]) -> dict[str, Any]:
         if key and value not in (None, "", []):
             analysis[key] = value
 
+    product_facts = memory.get("product_facts", [])
+    if isinstance(product_facts, list):
+        analysis["product_facts"] = [
+            fact
+            for fact in product_facts
+            if isinstance(fact, str) and fact.strip()
+        ]
+
     preferences = memory.get("preferences", {})
     if isinstance(preferences, dict):
         for key, preference in preferences.items():
@@ -165,6 +171,18 @@ def _merge_analysis(
             if value not in (None, "", [])
         }
     )
+    prior_product_facts = previous.get("product_facts", [])
+    current_product_facts = current.get("product_facts", [])
+    if isinstance(prior_product_facts, list) or isinstance(current_product_facts, list):
+        merged["product_facts"] = list(
+            dict.fromkeys(
+                [
+                    fact.strip()
+                    for fact in [*prior_product_facts, *current_product_facts]
+                    if isinstance(fact, str) and fact.strip()
+                ]
+            )
+        )
     merged["scope"] = current.get("scope", "linkedin_post")
     return merged
 
@@ -191,6 +209,24 @@ def _update_memory(memory: dict[str, Any], analysis: dict[str, Any]) -> dict[str
                 "confidence": "explicit",
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
+    product_facts = analysis.get("product_facts", [])
+    stored_product_facts = memory.get("product_facts", [])
+    if not isinstance(product_facts, list):
+        product_facts = []
+    if not isinstance(stored_product_facts, list):
+        stored_product_facts = []
+    merged_product_facts = list(
+        dict.fromkeys(
+            [
+                *stored_product_facts,
+                *[
+                    fact.strip()
+                    for fact in product_facts
+                    if isinstance(fact, str) and fact.strip()
+                ],
+            ]
+        )
+    )
     preferences = {
         key: value
         for key, value in memory.get("preferences", {}).items()
@@ -207,6 +243,7 @@ def _update_memory(memory: dict[str, Any], analysis: dict[str, Any]) -> dict[str
     return {
         **memory,
         "facts": list(facts.values()),
+        "product_facts": merged_product_facts,
         "preferences": preferences,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -216,14 +253,29 @@ def _analysis_prompt(state: SignalState) -> str:
     return f"""Analyze the latest user request for Signal.
 Return JSON only with these keys:
 scope (one of "linkedin_post" or "out_of_scope"),
+intent (one of "request_post", "provide_facts", "ask_requirements",
+"select_preferences", "validate_draft", "external_fact_request", or
+"out_of_scope"),
 company, product_name, product_description, tone, length, audience,
+product_facts (array of distinct concrete product facts),
 call_to_action (strings or null), needs_clarification (boolean),
-clarification_question (string or null), tasks (array of strings).
+clarification_question (string or null), progress_update (string or null),
+tasks (array of strings).
 
-Signal can only create a LinkedIn post. Extract only facts explicitly stated
+Signal's complete LinkedIn workflow includes collecting facts, clarifying
+preferences, validating drafts, and creating a post. Questions about what
+information Signal needs are in scope. Extract only facts explicitly stated
 in the conversation or memory. Do not infer missing values. A product name and
-product description are required before drafting. Tone and length must be
-clarified if the user has not selected them. Keep questions focused.
+at least three distinct concrete product facts are required before drafting.
+Tone, audience, call to action, and length are optional unless the user has
+selected them. If the user asks Signal to suggest or verify product facts, do
+not answer from outside knowledge; ask the user to provide the facts. Do not
+turn generic descriptions into technical features, benefits, or use cases.
+Keep questions focused.
+
+Set progress_update to one short, user-safe sentence describing only confirmed
+work or the next required input. Never claim that drafting or validation is
+complete unless it actually is.
 
 Memory:
 {json.dumps(state.get("memory", {}), ensure_ascii=False)}
@@ -269,19 +321,17 @@ def _analyze(state: SignalState) -> SignalState:
     )
     if analysis.get("scope") != "linkedin_post":
         analysis["scope"] = "out_of_scope"
-    missing = [
-        field
-        for field in ("company", "product_name", "product_description", "tone", "length")
-        if not analysis.get(field)
-    ]
+    missing = ["product_name"] if not analysis.get("product_name") else []
+    if not _has_minimum_product_facts(analysis):
+        missing.append("product_facts")
     if analysis["scope"] == "linkedin_post" and missing:
         analysis["needs_clarification"] = True
         questions = {
-            "company": "Which company is promoting the product?",
             "product_name": "What is the product name?",
-            "product_description": "What does the product do?",
-            "tone": "What tone should the post use, such as professional or confident?",
-            "length": "How long should the post be?",
+            "product_facts": (
+                "Please provide at least three concrete product facts that may "
+                "be included in the post."
+            ),
         }
         analysis["clarification_question"] = " ".join(
             questions[field] for field in missing[:2]
@@ -323,6 +373,20 @@ def _route(state: SignalState) -> str:
     return "respond" if state["status"] != "in_progress" else "generate"
 
 
+def _has_minimum_product_facts(analysis: dict[str, Any]) -> bool:
+    """Return whether the request contains three distinct product facts."""
+
+    product_facts = analysis.get("product_facts", [])
+    if not isinstance(product_facts, list):
+        return False
+    facts = {
+        fact.strip().casefold()
+        for fact in product_facts
+        if isinstance(fact, str) and fact.strip()
+    }
+    return len(facts) >= 3
+
+
 def _maximum_words(length: Any) -> int | None:
     """Extract a deterministic maximum from a user length constraint."""
 
@@ -335,11 +399,22 @@ def _maximum_words(length: Any) -> int | None:
     return int(match.group(1)) if match else None
 
 
+def _draft_is_grounded(post: str, request: dict[str, Any]) -> bool:
+    """Ensure a non-empty draft is anchored to the requested product."""
+
+    if not post.strip() or not isinstance(request.get("product_name"), str):
+        return False
+    product_tokens = re.findall(r"[A-Za-z0-9]+", request["product_name"].lower())
+    draft_tokens = set(re.findall(r"[A-Za-z0-9]+", post.lower()))
+    return all(token in draft_tokens for token in product_tokens)
+
+
 def _generate(state: SignalState) -> SignalState:
     allowed = {
         "company",
         "product_name",
         "product_description",
+        "product_facts",
         "tone",
         "length",
         "audience",
@@ -354,9 +429,36 @@ def _generate(state: SignalState) -> SignalState:
     maximum_words = _maximum_words(request.get("length"))
     if maximum_words is not None:
         post = " ".join(post.split()[:maximum_words])
+    if not _draft_is_grounded(post, request):
+        state["analysis"]["needs_clarification"] = True
+        state["analysis"]["clarification_question"] = (
+            "Please provide concrete product facts that may be included in the "
+            "post; I will not add unspecified features or benefits."
+        )
+        return {
+            **state,
+            "assistant_message": (
+                "I could not safely validate the draft against the confirmed "
+                "facts.\n\n"
+                f"{state['analysis']['clarification_question']}"
+            ),
+            "status": "needs_clarification",
+            "trajectory": [
+                *state.get("trajectory", []),
+                {
+                    "step": "validate_constraints",
+                    "status": "failed",
+                    "reason": "draft_missing_product_anchor",
+                },
+            ],
+        }
+    progress_update = state["analysis"].get("progress_update") or (
+        "I collected the confirmed product information, applied your selected "
+        "preferences, and validated the draft against those facts."
+    )
     return {
         **state,
-        "assistant_message": post,
+        "assistant_message": f"{progress_update}\n\n{post}",
         "status": "complete",
         "completed_tasks": state.get("tasks", []),
         "trajectory": [
@@ -383,10 +485,14 @@ def _respond(state: SignalState) -> SignalState:
             "content, or handle unrelated requests."
         )
     else:
-        message = state["analysis"].get("clarification_question") or (
+        question = state["analysis"].get("clarification_question") or (
             "What product should the LinkedIn post promote, and what is its "
             "short description?"
         )
+        progress_update = state["analysis"].get("progress_update") or (
+            "To create the post safely, I still need the following information:"
+        )
+        message = f"{progress_update}\n\n{question}"
     return {
         **state,
         "assistant_message": message,

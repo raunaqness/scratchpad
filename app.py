@@ -28,11 +28,13 @@ class SignalState(TypedDict, total=False):
     user_message: str
     turns: list[dict[str, str]]
     memory: dict[str, Any]
+    previous_analysis: dict[str, Any]
     analysis: dict[str, Any]
     assistant_message: str
     status: str
     tasks: list[str]
     completed_tasks: list[str]
+    trajectory: list[dict[str, Any]]
 
 
 def _safe_id(value: str) -> str:
@@ -116,6 +118,28 @@ def _memory_path(user_id: str) -> Path:
     return settings.data_dir / "memory" / f"{_safe_id(user_id)}.json"
 
 
+def _merge_analysis(
+    previous: dict[str, Any],
+    current: dict[str, Any],
+) -> dict[str, Any]:
+    """Keep confirmed values when a later extraction omits them."""
+
+    merged = {
+        key: value
+        for key, value in previous.items()
+        if value not in (None, "", [])
+    }
+    merged.update(
+        {
+            key: value
+            for key, value in current.items()
+            if value not in (None, "", [])
+        }
+    )
+    merged["scope"] = current.get("scope", "linkedin_post")
+    return merged
+
+
 def _update_memory(memory: dict[str, Any], analysis: dict[str, Any]) -> dict[str, Any]:
     """Persist only explicit fields extracted from the current conversation."""
 
@@ -159,6 +183,9 @@ Memory:
 
 Conversation:
 {json.dumps(state.get("turns", []), ensure_ascii=False)}
+
+Previously confirmed request fields:
+{json.dumps(state.get("previous_analysis", {}), ensure_ascii=False)}
 """
 
 
@@ -174,6 +201,7 @@ def _analyze(state: SignalState) -> SignalState:
         )
         analysis = _extract_json(str(response.content))
 
+    analysis = _merge_analysis(state.get("previous_analysis", {}), analysis)
     if analysis.get("scope") != "linkedin_post":
         analysis["scope"] = "out_of_scope"
     missing = [
@@ -200,16 +228,46 @@ def _analyze(state: SignalState) -> SignalState:
         if analysis.get("needs_clarification")
         else "in_progress"
     )
+    if analysis["scope"] == "linkedin_post":
+        tasks = [
+            "collect_product_facts",
+            "confirm_preferences",
+            "draft_linkedin_post",
+            "validate_constraints",
+        ]
+    else:
+        tasks = []
+    trajectory = [
+        *state.get("trajectory", []),
+        {
+            "step": "analyze",
+            "status": status,
+            "missing_fields": missing,
+        },
+    ]
     return {
         **state,
         "analysis": analysis,
-        "tasks": analysis.get("tasks", []),
+        "tasks": tasks,
         "status": status,
+        "trajectory": trajectory,
     }
 
 
 def _route(state: SignalState) -> str:
     return "respond" if state["status"] != "in_progress" else "generate"
+
+
+def _maximum_words(length: Any) -> int | None:
+    """Extract a deterministic maximum from a user length constraint."""
+
+    if not isinstance(length, str):
+        return None
+    match = re.search(r"\b(?:under|less than|max(?:imum)?(?: of)?|up to)\s*(\d+)", length.lower())
+    if match:
+        return max(1, int(match.group(1)))
+    match = re.search(r"\b(\d+)\s*words?\b", length.lower())
+    return int(match.group(1)) if match else None
 
 
 def _generate(state: SignalState) -> SignalState:
@@ -228,11 +286,27 @@ def _generate(state: SignalState) -> SignalState:
         if key in allowed and value
     }
     post = create_linkedin_post(request)
+    maximum_words = _maximum_words(request.get("length"))
+    if maximum_words is not None:
+        post = " ".join(post.split()[:maximum_words])
     return {
         **state,
         "assistant_message": post,
         "status": "complete",
         "completed_tasks": state.get("tasks", []),
+        "trajectory": [
+            *state.get("trajectory", []),
+            {
+                "step": "capability",
+                "capability": "linkedin_post",
+                "status": "complete",
+            },
+            {
+                "step": "validate_constraints",
+                "status": "complete",
+                "word_count": len(post.split()),
+            },
+        ],
     }
 
 
@@ -248,7 +322,17 @@ def _respond(state: SignalState) -> SignalState:
             "What product should the LinkedIn post promote, and what is its "
             "short description?"
         )
-    return {**state, "assistant_message": message}
+    return {
+        **state,
+        "assistant_message": message,
+        "trajectory": [
+            *state.get("trajectory", []),
+            {
+                "step": "respond",
+                "status": state["status"],
+            },
+        ],
+    }
 
 
 def _build_graph():
@@ -298,6 +382,8 @@ def run_conversation(
             {"role": "user", "content": user_message},
         ],
         "memory": memory,
+        "previous_analysis": conversation.get("analysis", {}),
+        "trajectory": conversation.get("trajectory", []),
     }
     result = GRAPH.invoke(
         state,
@@ -324,6 +410,10 @@ def run_conversation(
             "user_id": user_id,
             "turns": turns,
             "status": result["status"],
+            "analysis": result.get("analysis", {}),
+            "tasks": result.get("tasks", []),
+            "completed_tasks": result.get("completed_tasks", []),
+            "trajectory": result.get("trajectory", []),
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "prompt_version": CURRENT_PROMPT_VERSION,
         }
@@ -340,4 +430,5 @@ def run_conversation(
         ),
         "tasks": result.get("tasks", []),
         "completed_tasks": result.get("completed_tasks", []),
+        "trajectory": result.get("trajectory", []),
     }

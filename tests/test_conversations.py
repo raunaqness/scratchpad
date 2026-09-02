@@ -7,6 +7,7 @@ from deepeval import assert_test
 from deepeval.dataset import ConversationalGolden
 from deepeval.metrics import (
     ConversationCompletenessMetric,
+    ConversationalGEval,
     GoalAccuracyMetric,
     KnowledgeRetentionMetric,
     RoleAdherenceMetric,
@@ -51,12 +52,34 @@ METRIC_TYPES = {
     "goal_accuracy": GoalAccuracyMetric,
 }
 
+CUSTOM_METRICS = {
+    "tone_adherence": (
+        "Tone Adherence",
+        "The assistant's final LinkedIn post uses the tone explicitly requested "
+        "by the user, without changing the requested style.",
+    ),
+    "unsupported_claim_prevention": (
+        "Unsupported Claim Prevention",
+        "The assistant uses only facts provided by the user and does not invent "
+        "prices, dates, specifications, availability, testimonials, or claims.",
+    ),
+}
+
 
 def metric_for(model, golden: ConversationalGolden):
     """Build one focused metric for the scenario under test."""
 
     metadata = golden.additional_metadata or {}
-    metric_name = (metadata.get("metrics") or ["conversation_completeness"])[0]
+    metric_name = metadata.get("focus_metric", "conversation_completeness")
+    if metric_name in CUSTOM_METRICS:
+        name, criteria = CUSTOM_METRICS[metric_name]
+        return ConversationalGEval(
+            name=name,
+            criteria=criteria,
+            model=model,
+            threshold=0.7,
+            async_mode=False,
+        )
     metric_type = METRIC_TYPES.get(metric_name)
     if metric_type is None:
         pytest.skip(f"{metric_name} is reserved until an external tool exists")

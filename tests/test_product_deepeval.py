@@ -32,17 +32,19 @@ def load_scenarios() -> list[dict]:
     return json.loads(SCENARIOS_PATH.read_text(encoding="utf-8"))
 
 
-def metric_for(model, metric_name: str):
+def metric_for(model, metric_name: str, threshold: float = 0.7):
     if metric_name == "conversation_completeness":
         return ConversationCompletenessMetric(
-            model=model, threshold=0.7, async_mode=False
+            model=model, threshold=threshold, async_mode=False
         )
     if metric_name == "knowledge_retention":
         return KnowledgeRetentionMetric(
-            model=model, threshold=0.7, async_mode=False
+            model=model, threshold=threshold, async_mode=False
         )
     if metric_name == "goal_accuracy":
-        return GoalAccuracyMetric(model=model, threshold=0.7, async_mode=False)
+        return GoalAccuracyMetric(
+            model=model, threshold=threshold, async_mode=False
+        )
     if metric_name == "tone_adherence":
         return ConversationalGEval(
             name="Tone Adherence",
@@ -52,7 +54,7 @@ def metric_for(model, metric_name: str):
             ),
             evaluation_params=[MultiTurnParams.CONTENT],
             model=model,
-            threshold=0.7,
+            threshold=threshold,
             async_mode=False,
         )
     if metric_name == "unsupported_claim_prevention":
@@ -64,7 +66,7 @@ def metric_for(model, metric_name: str):
             ),
             evaluation_params=[MultiTurnParams.CONTENT],
             model=model,
-            threshold=0.7,
+            threshold=threshold,
             async_mode=False,
         )
     raise ValueError(f"Unsupported metric: {metric_name}")
@@ -127,7 +129,11 @@ def test_fixed_product_scenario_with_deepeval_metric(
 ):
     model = openrouter_eval_model()
     test_case = build_fixed_test_case(scenario)
-    metric = metric_for(model, scenario["metric"])
+    metric = metric_for(
+        model,
+        scenario["metric"],
+        threshold=float(scenario.get("threshold", 0.7)),
+    )
     try:
         assert_test(
             test_case=test_case,

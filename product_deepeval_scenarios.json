@@ -34,6 +34,7 @@
     "name": "xt50_fixed_goal",
     "product_file": "amazon_products/1.json",
     "metric": "goal_accuracy",
+    "threshold": 0.5,
     "scenario": "A marketer wants Signal to create a grounded LinkedIn post for the Fujifilm X-T50. Signal may generate an initial draft as soon as the required facts are available, then continue refining or validating that draft as the conversation progresses.",
     "expected_outcome": "Signal uses the supplied X-T50 facts and ultimately returns a grounded LinkedIn post with an explicit confirmation that the final draft was validated. Generating an earlier draft is acceptable and should not count against goal completion.",
     "user_turns": [

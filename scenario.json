@@ -14,10 +14,10 @@
   },
   {
     "name": "conversation_completeness",
-    "scenario": "A campaign manager asks for a LinkedIn post for Fujifilm X100VI and specifies the target audience, tone, maximum length, call to action, and product facts.",
-    "expected_outcome": "Signal completes the LinkedIn post while satisfying every requested audience, tone, length, call-to-action, and factual constraint.",
+    "scenario": "A campaign manager asks for a LinkedIn post for the Fujifilm X100VI and supplies the target audience, tone, maximum length, call to action, and at least three concrete product facts.",
+    "expected_outcome": "Signal completes the LinkedIn post while satisfying the supplied audience, tone, length, call-to-action, and factual constraints. It does not require or invent additional product facts.",
     "persona": {
-      "characteristics": "A demanding campaign manager who checks that every requested deliverable and constraint is addressed."
+      "characteristics": "A precise campaign manager who supplies all required product facts up front and checks that each stated deliverable and constraint is addressed."
     },
     "additional_metadata": {
       "category": "completion",

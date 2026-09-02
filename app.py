@@ -28,6 +28,7 @@ class SignalState(TypedDict, total=False):
     memory: dict[str, Any]
     previous_analysis: dict[str, Any]
     analysis: dict[str, Any]
+    requirements: dict[str, Any]
     assistant_message: str
     draft: str
     draft_version: int
@@ -334,8 +335,12 @@ def _analyze(state: SignalState) -> SignalState:
     )
     if analysis.get("scope") != "linkedin_post":
         analysis["scope"] = "out_of_scope"
-    missing = ["product_name"] if not analysis.get("product_name") else []
-    if not _has_minimum_product_facts(analysis):
+    requirements = _requirements_from_analysis(analysis)
+    required = requirements["required"]
+    missing = (
+        ["product_name"] if not required["product_name"] else []
+    )
+    if required["product_fact_count"] < required["minimum_product_facts"]:
         missing.append("product_facts")
     if analysis["scope"] == "linkedin_post" and missing:
         analysis["needs_clarification"] = True
@@ -379,6 +384,7 @@ def _analyze(state: SignalState) -> SignalState:
     return {
         **state,
         "analysis": analysis,
+        "requirements": requirements,
         "tasks": tasks,
         "status": status,
         "trajectory": trajectory,
@@ -393,6 +399,49 @@ def _route(state: SignalState) -> str:
     if state["analysis"].get("intent") == "edit_draft" and state.get("draft"):
         return "edit"
     return "generate"
+
+
+def _requirements_from_analysis(analysis: dict[str, Any]) -> dict[str, Any]:
+    """Build deterministic required and optional request parameters."""
+
+    maximum_words = _maximum_words(analysis.get("length"))
+    product_facts = analysis.get("product_facts", [])
+    fact_count = (
+        len(
+            {
+                fact.strip().casefold()
+                for fact in product_facts
+                if isinstance(fact, str) and fact.strip()
+            }
+        )
+        if isinstance(product_facts, list)
+        else 0
+    )
+    return {
+        "required": {
+            "product_name": bool(analysis.get("product_name")),
+            "minimum_product_facts": 3,
+            "product_fact_count": fact_count,
+            "maximum_words": maximum_words,
+        },
+        "optional": {
+            "tone": analysis.get("tone"),
+            "audience": analysis.get("audience"),
+            "call_to_action": analysis.get("call_to_action"),
+        },
+    }
+
+
+def _requirements_satisfied(state: SignalState) -> bool:
+    """Return whether the confirmed state is ready for draft generation."""
+
+    requirements = state.get("requirements", {})
+    required = requirements.get("required", {})
+    return (
+        required.get("product_name", False)
+        and required.get("product_fact_count", 0)
+        >= required.get("minimum_product_facts", 3)
+    )
 
 
 def _has_minimum_product_facts(analysis: dict[str, Any]) -> bool:
@@ -431,6 +480,28 @@ def _draft_is_grounded(post: str, request: dict[str, Any]) -> bool:
     return all(token in draft_tokens for token in product_tokens)
 
 
+def _normalize_text(value: Any) -> str:
+    """Normalize text for conservative, deterministic fact matching."""
+
+    return re.sub(r"[^a-z0-9]+", " ", str(value).casefold()).strip()
+
+
+def _draft_contains_required_facts(
+    post: str, request: dict[str, Any]
+) -> bool:
+    """Return whether every confirmed product fact appears in the draft."""
+
+    facts = request.get("product_facts", [])
+    if not isinstance(facts, list) or not facts:
+        return False
+    normalized_post = _normalize_text(post)
+    return all(
+        _normalize_text(fact) in normalized_post
+        for fact in facts
+        if isinstance(fact, str) and fact.strip()
+    )
+
+
 def _request_from_analysis(analysis: dict[str, Any]) -> dict[str, Any]:
     """Select the confirmed fields passed to a writing capability."""
 
@@ -456,14 +527,30 @@ def _validate_current_draft(state: SignalState) -> SignalState:
 
     draft = state.get("draft", "")
     request = _request_from_analysis(state["analysis"])
-    maximum_words = _maximum_words(request.get("length"))
+    requirements = state.get("requirements") or _requirements_from_analysis(
+        state["analysis"]
+    )
+    required = requirements.get("required", {})
+    maximum_words = required.get("maximum_words")
+    request_complete = _requirements_satisfied(
+        {**state, "requirements": requirements}
+    )
+    draft_fact_coverage = _draft_contains_required_facts(draft, request)
     word_count_valid = (
         maximum_words is None or len(draft.split()) <= maximum_words
     )
-    valid = _draft_is_grounded(draft, request) and word_count_valid
+    valid = (
+        request_complete
+        and bool(draft.strip())
+        and _draft_is_grounded(draft, request)
+        and word_count_valid
+    )
     validation = {
         "status": "passed" if valid else "failed",
+        "request_complete": request_complete,
         "product_anchor": _draft_is_grounded(draft, request),
+        "required_facts_present": request_complete,
+        "draft_fact_coverage": draft_fact_coverage,
         "word_count": len(draft.split()),
         "maximum_words": maximum_words,
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -698,6 +785,7 @@ def run_conversation(
         "draft_version": conversation.get("draft_version", 0),
         "draft_history": conversation.get("draft_history", []),
         "validation": conversation.get("validation", {}),
+        "requirements": conversation.get("requirements", {}),
         "trajectory": conversation.get("trajectory", []),
     }
     result = GRAPH.invoke(
@@ -732,6 +820,7 @@ def run_conversation(
             "draft_version": result.get("draft_version", 0),
             "draft_history": result.get("draft_history", []),
             "validation": result.get("validation", {}),
+            "requirements": result.get("requirements", {}),
             "trajectory": result.get("trajectory", []),
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "prompt_version": CURRENT_PROMPT_VERSION,
@@ -752,5 +841,6 @@ def run_conversation(
         "draft": result.get("draft", ""),
         "draft_version": result.get("draft_version", 0),
         "validation": result.get("validation", {}),
+        "requirements": result.get("requirements", {}),
         "trajectory": result.get("trajectory", []),
     }

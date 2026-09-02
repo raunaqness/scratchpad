@@ -1,0 +1,7 @@
+deepeval
+langchain-openai
+langfuse
+langgraph
+pydantic
+python-dotenv
+pytest

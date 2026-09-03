@@ -10,12 +10,20 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
 
 from capabilities.social_media import create_linkedin_post, edit_linkedin_post
 from config import settings
+from deep_agent_runner import (
+    analyze_with_deep_agent,
+    create_post_with_deep_agent,
+    edit_post_with_deep_agent,
+)
+from policy import check_output, preflight
 from prompts import CURRENT_PROMPT_VERSION, CURRENT_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -37,6 +45,7 @@ class SignalState(TypedDict, total=False):
     status: str
     tasks: list[str]
     completed_tasks: list[str]
+    planned_capabilities: list[str]
     trajectory: list[dict[str, Any]]
 
 
@@ -101,16 +110,31 @@ def _extract_json(text: str) -> dict[str, Any]:
 
 
 def _blocked_by_guardrails(message: str) -> bool:
-    rules = _read_json(GUARDRAILS_PATH, {}).get("blocked_capabilities", [])
-    lowered = message.lower()
-    blocked_terms = {
-        "write a blog": "blog_post",
-        "blog post": "blog_post",
-        "email campaign": "email_campaign",
-        "publish to linkedin": "publish_content",
-        "post this to linkedin": "publish_content",
-    }
-    return any(term in lowered and capability in rules for term, capability in blocked_terms.items())
+    return not preflight(message).allowed
+
+
+def _is_greeting(message: str) -> bool:
+    """Recognize lightweight conversational availability checks."""
+
+    return bool(
+        re.search(
+            r"^\s*(?:hey|hi|hello|is this thing on|are you there)\b",
+            message,
+            re.IGNORECASE,
+        )
+    )
+
+
+def _is_planned_content_request(message: str) -> bool:
+    """Recognize future content types that should receive a helpful roadmap."""
+
+    return bool(
+        re.search(
+            r"\b(?:blog|article|email campaign)\b",
+            message,
+            re.IGNORECASE,
+        )
+    )
 
 
 def _conversation_path(conversation_id: str) -> Path:
@@ -121,7 +145,10 @@ def _memory_path(user_id: str) -> Path:
     return settings.data_dir / "memory" / f"{_safe_id(user_id)}.json"
 
 
-def _analysis_from_memory(memory: dict[str, Any]) -> dict[str, Any]:
+def _analysis_from_memory(
+    memory: dict[str, Any],
+    conversation_id: str | None = None,
+) -> dict[str, Any]:
     """Convert persisted explicit facts and preferences into request fields."""
 
     analysis: dict[str, Any] = {}
@@ -133,7 +160,10 @@ def _analysis_from_memory(memory: dict[str, Any]) -> dict[str, Any]:
         if key and value not in (None, "", []):
             analysis[key] = value
 
-    product_facts = memory.get("product_facts", [])
+    campaign = memory.get("campaigns", {}).get(conversation_id, {})
+    product_facts = campaign.get("product_facts", []) if isinstance(campaign, dict) else []
+    if not product_facts:
+        product_facts = memory.get("product_facts", [])
     if isinstance(product_facts, list):
         analysis["product_facts"] = [
             fact
@@ -192,7 +222,11 @@ def _merge_analysis(
     return merged
 
 
-def _update_memory(memory: dict[str, Any], analysis: dict[str, Any]) -> dict[str, Any]:
+def _update_memory(
+    memory: dict[str, Any],
+    analysis: dict[str, Any],
+    conversation_id: str | None = None,
+) -> dict[str, Any]:
     """Persist only explicit fields extracted from the current conversation."""
 
     facts = {
@@ -245,13 +279,25 @@ def _update_memory(memory: dict[str, Any], analysis: dict[str, Any]) -> dict[str
                 "confidence": "explicit",
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
-    return {
+    updated = {
         **memory,
         "facts": list(facts.values()),
-        "product_facts": merged_product_facts,
         "preferences": preferences,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
+    if conversation_id:
+        campaigns = {
+            key: value
+            for key, value in memory.get("campaigns", {}).items()
+            if isinstance(value, dict)
+        }
+        campaigns[conversation_id] = {
+            "product_name": analysis.get("product_name"),
+            "product_facts": merged_product_facts,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        updated["campaigns"] = campaigns
+    return updated
 
 
 def _analysis_prompt(state: SignalState) -> str:
@@ -297,28 +343,58 @@ Previously confirmed request fields:
 
 
 def _analyze(state: SignalState) -> SignalState:
+    analysis_model_is_live = False
     if _blocked_by_guardrails(state["user_message"]):
-        analysis = {"scope": "out_of_scope", "tasks": []}
+        analysis = {
+            "scope": "out_of_scope",
+            "intent": (
+                "planned_capability"
+                if _is_planned_content_request(state["user_message"])
+                else "out_of_scope"
+            ),
+            "tasks": [],
+        }
+        state["planned_capabilities"] = ["linkedin_post"]
+        if _is_planned_content_request(state["user_message"]):
+            state["planned_capabilities"].append("blog_post")
+    elif _is_greeting(state["user_message"]):
+        analysis = {
+            "scope": "linkedin_post",
+            "intent": "greeting",
+            "needs_clarification": False,
+            "tasks": [],
+        }
     else:
-        stored_analysis = _analysis_from_memory(state.get("memory", {}))
+        stored_analysis = _analysis_from_memory(
+            state.get("memory", {}),
+            state.get("conversation_id"),
+        )
         confirmed_analysis = _merge_analysis(
             stored_analysis,
             state.get("previous_analysis", {}),
         )
-        response = _model().invoke(
-            [
-                SystemMessage(content=CURRENT_SYSTEM_PROMPT),
-                HumanMessage(
-                    content=_analysis_prompt(
-                        {
-                            **state,
-                            "previous_analysis": confirmed_analysis,
-                        }
-                    )
-                ),
-            ]
+        analysis_model = _model()
+        analysis_model_is_live = isinstance(analysis_model, BaseChatModel)
+        prompt = _analysis_prompt(
+            {
+                **state,
+                "previous_analysis": confirmed_analysis,
+            }
         )
-        analysis = _extract_json(str(response.content))
+        if analysis_model_is_live:
+            analysis = analyze_with_deep_agent(
+                analysis_model,
+                CURRENT_SYSTEM_PROMPT,
+                prompt,
+            )
+        else:
+            response = analysis_model.invoke(
+                [
+                    SystemMessage(content=CURRENT_SYSTEM_PROMPT),
+                    HumanMessage(content=prompt),
+                ]
+            )
+            analysis = _extract_json(str(response.content))
 
     if (
         re.search(r"\b(?:validate|verify|check)\b", state["user_message"], re.I)
@@ -328,11 +404,31 @@ def _analyze(state: SignalState) -> SignalState:
 
     analysis = _merge_analysis(
         _merge_analysis(
-            _analysis_from_memory(state.get("memory", {})),
+            _analysis_from_memory(
+                state.get("memory", {}),
+                state.get("conversation_id"),
+            ),
             state.get("previous_analysis", {}),
         ),
         analysis,
     )
+    if analysis_model_is_live and _maximum_words(analysis.get("length")) is None:
+        explicit_length = _length_from_turns(state.get("turns", []))
+        if explicit_length is not None:
+            analysis["length"] = explicit_length
+    known_product = analysis.get("product_name")
+    discussing_known_product = (
+        isinstance(known_product, str)
+        and bool(known_product.strip())
+        and known_product.casefold() in state["user_message"].casefold()
+    )
+    if (
+        analysis.get("scope") == "out_of_scope"
+        and discussing_known_product
+        and not _blocked_by_guardrails(state["user_message"])
+    ):
+        analysis["scope"] = "linkedin_post"
+        analysis["intent"] = "external_fact_request"
     if analysis.get("scope") != "linkedin_post":
         analysis["scope"] = "out_of_scope"
     requirements = _requirements_from_analysis(analysis)
@@ -351,12 +447,36 @@ def _analyze(state: SignalState) -> SignalState:
                 "be included in the post."
             ),
         }
+        known_facts = analysis.get("product_facts", [])
+        if (
+            "product_facts" in missing
+            and isinstance(known_facts, list)
+            and known_facts
+        ):
+            retained = ", ".join(
+                fact for fact in known_facts if isinstance(fact, str)
+            )
+            questions["product_facts"] = (
+                f"I have retained these confirmed product facts: {retained}. "
+                "Please provide at least three concrete product facts in total "
+                "before drafting."
+            )
         analysis["clarification_question"] = " ".join(
             questions[field] for field in missing[:2]
         )
     elif analysis["scope"] == "linkedin_post":
         analysis["needs_clarification"] = False
         analysis["clarification_question"] = None
+    if (
+        analysis.get("intent") == "external_fact_request"
+        and not re.search(r"\b(?:create|draft|write|make)\b.*\bpost\b", state["user_message"], re.I)
+    ):
+        analysis["needs_clarification"] = True
+        analysis["clarification_question"] = (
+            "I can use product facts you provide, but I cannot verify or "
+            "research specifications. Please provide the facts you want in "
+            "the LinkedIn post."
+        )
     status = (
         "out_of_scope"
         if analysis["scope"] == "out_of_scope"
@@ -392,6 +512,8 @@ def _analyze(state: SignalState) -> SignalState:
 
 
 def _route(state: SignalState) -> str:
+    if state["analysis"].get("intent") in {"greeting", "planned_capability"}:
+        return "respond"
     if state["status"] != "in_progress":
         return "respond"
     if state["analysis"].get("intent") == "validate_draft" and state.get("draft"):
@@ -470,6 +592,18 @@ def _maximum_words(length: Any) -> int | None:
     return int(match.group(1)) if match else None
 
 
+def _length_from_turns(turns: list[dict[str, str]]) -> str | None:
+    """Return the latest user wording containing an explicit word limit."""
+
+    for turn in reversed(turns):
+        if turn.get("role") != "user":
+            continue
+        content = turn.get("content", "")
+        if _maximum_words(content) is not None:
+            return content
+    return None
+
+
 def _draft_is_grounded(post: str, request: dict[str, Any]) -> bool:
     """Ensure a non-empty draft is anchored to the requested product."""
 
@@ -522,6 +656,38 @@ def _request_from_analysis(analysis: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _create_post(request: dict[str, Any]) -> str:
+    """Create a post through DeepAgents for live models.
+
+    Deterministic tests inject lightweight fake models that are intentionally
+    not chat-model instances; those tests retain the direct capability seam.
+    """
+
+    model = _model()
+    if isinstance(model, BaseChatModel):
+        return create_post_with_deep_agent(model, request, create_linkedin_post)
+    return create_linkedin_post(request)
+
+
+def _edit_post(
+    request: dict[str, Any],
+    draft: str,
+    instruction: str,
+) -> str:
+    """Edit a post through DeepAgents for live models."""
+
+    model = _model()
+    if isinstance(model, BaseChatModel):
+        return edit_post_with_deep_agent(
+            model,
+            request,
+            draft,
+            instruction,
+            edit_linkedin_post,
+        )
+    return edit_linkedin_post(request, draft, instruction)
+
+
 def _validate_current_draft(state: SignalState) -> SignalState:
     """Validate the persisted draft against current request constraints."""
 
@@ -545,6 +711,12 @@ def _validate_current_draft(state: SignalState) -> SignalState:
         and _draft_is_grounded(draft, request)
         and word_count_valid
     )
+    policy_decision = check_output(
+        draft,
+        request,
+        grounded=_draft_is_grounded(draft, request),
+    )
+    valid = valid and policy_decision.allowed
     validation = {
         "status": "passed" if valid else "failed",
         "request_complete": request_complete,
@@ -587,7 +759,7 @@ def _validate_current_draft(state: SignalState) -> SignalState:
 
 def _generate(state: SignalState) -> SignalState:
     request = _request_from_analysis(state["analysis"])
-    post = create_linkedin_post(request)
+    post = _create_post(request)
     maximum_words = _maximum_words(request.get("length"))
     if maximum_words is not None:
         post = " ".join(post.split()[:maximum_words])
@@ -614,6 +786,17 @@ def _generate(state: SignalState) -> SignalState:
                 },
             ],
         }
+    progress_update = (
+        "I created the draft and validated it against the confirmed product "
+        "facts and requested constraints."
+    )
+    if (
+        isinstance(_model(), BaseChatModel)
+        and maximum_words is not None
+        and len(f"{progress_update}\n\n{post}".split()) > maximum_words
+    ):
+        available_words = max(1, maximum_words - len(progress_update.split()))
+        post = " ".join(post.split()[:available_words])
     version = state.get("draft_version", 0) + 1
     validation_state = {
         **state,
@@ -630,10 +813,6 @@ def _generate(state: SignalState) -> SignalState:
         ],
     }
     validated = _validate_current_draft(validation_state)
-    progress_update = (
-        "I created the draft and validated it against the confirmed product "
-        "facts and requested constraints."
-    )
     return {
         **validated,
         "assistant_message": f"{progress_update}\n\n{post}"
@@ -657,7 +836,7 @@ def _generate(state: SignalState) -> SignalState:
 
 def _edit(state: SignalState) -> SignalState:
     request = _request_from_analysis(state["analysis"])
-    draft = edit_linkedin_post(
+    draft = _edit_post(
         request,
         state.get("draft", ""),
         state["analysis"].get("edit_instruction", ""),
@@ -696,12 +875,40 @@ def _edit(state: SignalState) -> SignalState:
 
 
 def _respond(state: SignalState) -> SignalState:
-    if state["status"] == "out_of_scope":
+    if state["analysis"].get("intent") == "greeting":
         message = (
-            "I can currently help create LinkedIn posts from product "
-            "information you provide. I can't write blog posts, publish "
-            "content, or handle unrelated requests."
+            "Yes, I’m here and ready to help. I can create a LinkedIn post "
+            "from product information you provide."
         )
+    elif state["analysis"].get("intent") == "planned_capability":
+        message = (
+            "I understand—you’re planning content for your product. Blog "
+            "posts are part of the broader content workflow we can add later; "
+            "right now I can create the LinkedIn version. Please share the "
+            "product name and three key product features, and I’ll help you "
+            "get started."
+        )
+    elif state["status"] == "out_of_scope":
+        message = (
+            "I’m happy to help with product content. Right now I can create "
+            "LinkedIn posts from information you provide, but I can’t handle "
+            "that request yet."
+        )
+    elif state["analysis"].get("intent") == "external_fact_request":
+        facts = state["analysis"].get("product_facts", [])
+        retained = (
+            "\n".join(f"- {fact}" for fact in facts if isinstance(fact, str))
+            if isinstance(facts, list)
+            else ""
+        )
+        message = (
+            "I understand this is the product information you’ve shared. "
+            "I can use these confirmed facts, but I can’t verify or research "
+            "additional specifications. Please share any new facts you want "
+            "included in the LinkedIn post."
+        )
+        if retained:
+            message = f"{message}\n\n{retained}"
     else:
         question = state["analysis"].get("clarification_question") or (
             "What product should the LinkedIn post promote, and what is its "
@@ -746,7 +953,7 @@ def _build_graph():
     graph.add_edge("edit", END)
     graph.add_edge("validate", END)
     graph.add_edge("respond", END)
-    return graph.compile()
+    return graph.compile(checkpointer=MemorySaver())
 
 
 GRAPH = _build_graph()
@@ -791,6 +998,7 @@ def run_conversation(
     result = GRAPH.invoke(
         state,
         config={
+            "configurable": {"thread_id": conversation_id},
             "tags": ["signal", "linkedin_post"],
             "metadata": {
                 "user_id": user_id,
@@ -802,7 +1010,11 @@ def run_conversation(
     )
 
     assistant_message = result["assistant_message"]
-    memory = _update_memory(memory, result.get("analysis", {}))
+    memory = _update_memory(
+        memory,
+        result.get("analysis", {}),
+        conversation_id,
+    )
     turns = [
         *state["turns"],
         {"role": "assistant", "content": assistant_message},
@@ -816,6 +1028,7 @@ def run_conversation(
             "analysis": result.get("analysis", {}),
             "tasks": result.get("tasks", []),
             "completed_tasks": result.get("completed_tasks", []),
+            "planned_capabilities": result.get("planned_capabilities", []),
             "draft": result.get("draft", ""),
             "draft_version": result.get("draft_version", 0),
             "draft_history": result.get("draft_history", []),
@@ -838,6 +1051,7 @@ def run_conversation(
         ),
         "tasks": result.get("tasks", []),
         "completed_tasks": result.get("completed_tasks", []),
+        "planned_capabilities": result.get("planned_capabilities", []),
         "draft": result.get("draft", ""),
         "draft_version": result.get("draft_version", 0),
         "validation": result.get("validation", {}),

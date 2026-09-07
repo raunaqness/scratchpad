@@ -17,6 +17,11 @@ from langchain_core.language_models import BaseChatModel
 
 from backend.signal_models import SignalAnalysis
 from backend.signal_tools import create_tools
+from backend.prompts import (
+    EDITOR_AGENT_SYSTEM_PROMPT,
+    WRITER_AGENT_SYSTEM_PROMPT,
+    analyzer_system_prompt,
+)
 
 _SIGNAL_PROFILE_REGISTERED = False
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -85,12 +90,7 @@ def analyze_with_deep_agent(
         tools=[],
         backend=FilesystemBackend(root_dir=_PROJECT_ROOT),
         skills=[_SKILLS_PATH],
-        system_prompt=(
-            f"{system_prompt}\n\n"
-            "You are Signal's structured turn analyzer. Return only the "
-            "requested typed analysis. Never research, write a post, or use "
-            "filesystem, shell, task, or unrelated tools."
-        ),
+        system_prompt=analyzer_system_prompt(system_prompt),
         response_format=SignalAnalysis,
         name="signal-turn-analyzer",
     )
@@ -134,13 +134,7 @@ def create_post_with_deep_agent(
         tools=[create_tool],
         backend=FilesystemBackend(root_dir=_PROJECT_ROOT),
         skills=[_SKILLS_PATH],
-        system_prompt=(
-            "You are Signal's LinkedIn writing execution agent. "
-            "Use the create_linkedin_post_tool exactly once with the supplied "
-            "confirmed request. Return the tool result exactly, without "
-            "adding, removing, or rewriting any claims. Never use filesystem, "
-            "shell, task, or unrelated tools."
-        ),
+        system_prompt=WRITER_AGENT_SYSTEM_PROMPT,
         name="signal-linkedin-writer",
     )
     result = agent.invoke(
@@ -188,13 +182,7 @@ def edit_post_with_deep_agent(
         tools=[edit_tool],
         backend=FilesystemBackend(root_dir=_PROJECT_ROOT),
         skills=[_SKILLS_PATH],
-        system_prompt=(
-            "You are Signal's LinkedIn editing execution agent. "
-            "Use the edit_linkedin_post_tool exactly once with the supplied "
-            "payload. Return the tool result exactly, without adding, "
-            "removing, or rewriting claims. Never use filesystem, shell, "
-            "task, or unrelated tools."
-        ),
+        system_prompt=EDITOR_AGENT_SYSTEM_PROMPT,
         name="signal-linkedin-editor",
     )
     result = agent.invoke(

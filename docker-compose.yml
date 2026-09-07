@@ -7,6 +7,8 @@ services:
       - .env
     environment:
       SIGNAL_DATA_DIR: /app/data
+    networks:
+      - signal-network
     ports:
       - "8001:8001"
     volumes:
@@ -23,17 +25,26 @@ services:
       timeout: 5s
       retries: 5
 
-  frontend:
+  signal-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_AGUI_AGENT_URL: http://localhost:8001/agent
+        NEXT_PUBLIC_AGUI_AGENT_URL: /agent
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      - signal-network
+      - tvbox_default
     ports:
-      - "3000:3000"
+      - "5173:5173"
 
 volumes:
   signal-data:
+
+networks:
+  signal-network:
+    name: signal-network
+  tvbox_default:
+    external: true

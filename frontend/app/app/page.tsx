@@ -199,8 +199,8 @@ function ArtifactPanel() {
             <p>{artifact.progress.label}</p>
             {artifact.progress.completed_steps?.length ? (
               <ol>
-                {artifact.progress.completed_steps.map((step) => (
-                  <li key={step}>{step}</li>
+                {artifact.progress.completed_steps.map((step, index) => (
+                  <li key={`${step}-${index}`}>{step}</li>
                 ))}
               </ol>
             ) : (

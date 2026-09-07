@@ -86,7 +86,21 @@ cd frontend && npm run dev
 
 The landing page is at `http://localhost:3000`; the writing room is at
 `http://localhost:3000/app`. For a containerized run, use
-`docker compose up --build`.
+`docker compose up --build`; the containerized frontend is available on
+`http://localhost:5173`.
+
+To run an isolated development stack alongside production, use:
+
+```bash
+docker compose -p signal-test -f docker-compose.test.yml up -d --build
+```
+
+The development frontend is available locally on `http://localhost:5174` and
+the backend on `http://localhost:8002`. Its frontend service is
+`signal-test-frontend:5173` on the shared Cloudflare network. To expose it
+through the existing tunnel, add a `/dev` ingress route targeting
+`http://signal-test-frontend:5173`; production continues targeting
+`http://signal-frontend:5173`.
 
 ## Environment
 

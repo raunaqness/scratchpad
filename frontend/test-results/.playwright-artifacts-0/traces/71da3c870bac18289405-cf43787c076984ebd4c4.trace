@@ -1,0 +1,638 @@
+{"version":9,"type":"context-options","origin":"library","browserName":"chromium","playwrightVersion":"1.63.0","options":{"noDefaultViewport":false,"viewport":{"width":1280,"height":720},"ignoreHTTPSErrors":false,"javaScriptEnabled":true,"bypassCSP":false,"userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36","locale":"en-US","offline":false,"deviceScaleFactor":1,"isMobile":false,"hasTouch":false,"colorScheme":"light","reducedMotion":"no-preference","forcedColors":"none","acceptDownloads":"accept","contrast":"no-preference","baseURL":"http://127.0.0.1:3001","recordVideo":{"dir":"/home/raunaq/signal_v2/frontend/test-results/.playwright-artifacts-0"},"serviceWorkers":"allow","selectorEngines":[],"testIdAttributeName":"data-testid"},"platform":"linux","wallTime":1788786902988,"monotonicTime":3511.437,"sdkLanguage":"javascript","testIdAttributeName":"data-testid","channel":"chrome","title":"linkedin-draft.spec.ts:3 › creates a LinkedIn draft through the tone choice"}
+{"type":"before","callId":"call@9","startTime":3549.617,"class":"BrowserContext","method":"newPage","params":{},"stepId":"pw:api@36"}
+{"type":"event","time":4013.134,"class":"BrowserContext","method":"page","params":{"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}}
+{"type":"after","callId":"call@9","endTime":4013.45,"result":{"page":"<Page>"}}
+{"type":"before","callId":"call@11","startTime":4058.503,"class":"Frame","method":"goto","params":{"url":"/app","waitUntil":"load"},"stepId":"pw:api@37"}
+{"type":"frame-snapshot","snapshot":{"callId":"call@11","phase":"before","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","frameId":"frame@d9d10f90dda574b1e61e05f12536d3b2","frameUrl":"about:blank","html":["HTML",{},["HEAD",{},["BASE",{"href":"about:blank"}]],["BODY"]],"viewport":{"width":1280,"height":720},"timestamp":4074.616,"wallTime":1788786903548,"collectionTime":7.800000190734863,"resourceOverrides":[],"isMainFrame":true}}
+{"type":"log","callId":"call@11","time":4086.524,"message":"navigating to \"http://127.0.0.1:3001/app\", waiting until \"load\""}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786903853.jpeg","width":1280,"height":720,"timestamp":4376.248,"frameSwapWallTime":1788786903779.8618}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786904493.jpeg","width":1280,"height":720,"timestamp":5016.866,"frameSwapWallTime":1788786904448.0679}
+{"type":"console","messageType":"info","text":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold","args":[{"preview":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","value":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools"},{"preview":"font-weight:bold","value":"font-weight:bold"}],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js","lineNumber":776,"columnNumber":27},"time":5502.611,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786905121.jpeg","width":1280,"height":720,"timestamp":5644.118,"frameSwapWallTime":1788786905115.101}
+{"type":"after","callId":"call@11","endTime":5926.437,"result":{"response":"<Response>"}}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786905465.jpeg","width":1280,"height":720,"timestamp":5988.012,"frameSwapWallTime":1788786905454.704}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786905590.jpeg","width":1280,"height":720,"timestamp":6112.968,"frameSwapWallTime":1788786905565.655}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786905742.jpeg","width":1280,"height":720,"timestamp":6265.577,"frameSwapWallTime":1788786905721.7751}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":6513.137,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"frame-snapshot","snapshot":{"callId":"call@11","phase":"after","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","frameId":"frame@d9d10f90dda574b1e61e05f12536d3b2","frameUrl":"http://127.0.0.1:3001/app","doctype":"html","html":["HTML",{"lang":"en","class":"h-dvh"},["HEAD",{},["BASE",{"href":"http://127.0.0.1:3001/app"}],["META",{"charset":"utf-8"}],["META",{"name":"viewport","content":"width=device-width, initial-scale=1"}],["LINK",{"rel":"stylesheet","href":"/_next/static/chunks/app_globals_0yg4wg8.css","data-precedence":"next_static/chunks/app_globals_0yg4wg8.css"}],["LINK",{"rel":"stylesheet","href":"/_next/static/chunks/node_modules_%40assistant-ui_react-markdown_styles_dot_1vmgjrz.css","data-precedence":"next_static/chunks/node_modules_@assistant-ui_react-markdown_styles_dot_1vmgjrz.css"}],["TITLE",{},"Signal"],["META",{"name":"description","content":"A grounded LinkedIn post assistant"}],["LINK",{"rel":"icon","href":"/favicon.ico?favicon.2vob68tjqpejf.ico","sizes":"256x256","type":"image/x-icon"}],["STYLE",{},"@font-face{font-family:'__nextjs-Geist';font-style:normal;font-weight:400 600;font-display:swap;src:url(/__nextjs_font/geist-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:'__nextjs-Geist Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url(/__nextjs_font/geist-mono-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:'__nextjs-Geist';font-style:normal;font-weight:400 600;font-display:swap;src:url(/__nextjs_font/geist-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:'__nextjs-Geist Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url(/__nextjs_font/geist-mono-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}"]],["BODY",{"class":"h-dvh font-sans"},["DIV",{"hidden":""}],["NAV",{"class":"site-nav"},["A",{"class":"site-brand","aria-label":"Signal home","href":"/"},["SPAN",{"class":"site-brand-mark"},"S"],["SPAN",{},"Signal"]],["DIV",{"class":"site-nav-actions"},["A",{"class":"site-nav-link","href":"/about"},"About"],["BUTTON",{"type":"button","class":"theme-toggle","aria-label":"Switch to dark mode","title":"Switch to dark mode"},["svg",{"xmlns":"http://www.w3.org/2000/svg","width":"17","height":"17","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","stroke-width":"2","stroke-linecap":"round","stroke-linejoin":"round","class":"lucide lucide-moon","aria-hidden":"true"},["path",{"d":"M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"}]]]]],["DIV",{"class":"site-page"},["MAIN",{"class":"app-workspace"},["SECTION",{"class":"app-chat"},["BUTTON",{"type":"button","class":"bg-background hover:bg-accent absolute top-4 right-4 z-10 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors"},["svg",{"xmlns":"http://www.w3.org/2000/svg","width":"24","height":"24","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","stroke-width":"2","stroke-linecap":"round","stroke-linejoin":"round","class":"lucide lucide-plus size-4","aria-hidden":"true"},["path",{"d":"M5 12h14"}],["path",{"d":"M12 5v14"}]],"New Thread"],["DIV",{"class":"aui-root aui-thread-root bg-background @container flex h-full flex-col","style":"--thread-max-width:44rem;--composer-bg:var(--color-card);--composer-radius:1.5rem;--composer-padding:8px"},["DIV",{"data-slot":"aui_thread-viewport","class":"relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"},["DIV",{"class":"mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4 justify-center"},["DIV",{"class":"aui-thread-welcome-root mb-6 flex flex-col items-center px-4 text-center"},["H1",{"class":"aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-2xl font-medium tracking-tight duration-200"},"How can I help you today?"]],["DIV",{"data-slot":"aui_message-group","class":"mb-14 flex flex-col gap-y-6 empty:hidden"}],["DIV",{"class":"aui-thread-viewport-footer bg-background flex flex-col gap-4 overflow-visible pb-4 md:pb-6"},["BUTTON",{"data-slot":"tooltip-trigger","data-variant":"outline","data-size":"icon","class":"inline-flex shrink-0 items-center justify-center gap-2 text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground aui-button-icon size-6 active:scale-90 aui-thread-scroll-to-bottom dark:border-border dark:bg-background dark:hover:bg-accent absolute -top-12 z-10 self-center rounded-full p-4 disabled:invisible","type":"button","disabled":"","data-state":"closed"},["svg",{"xmlns":"http://www.w3.org/2000/svg","width":"24","height":"24","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","stroke-width":"2","stroke-linecap":"round","stroke-linejoin":"round","class":"lucide lucide-arrow-down","aria-hidden":"true"},["path",{"d":"M12 5v14"}],["path",{"d":"m19 12-7 7-7-7"}]],["SPAN",{"class":"aui-sr-only sr-only"},"Scroll to bottom"]],["FORM",{"class":"aui-composer-root relative flex w-full flex-col"},["DIV",{"data-slot":"aui_composer-shell","class":"border-border/60 data-[dragging=true]:border-ring focus-within:border-border dark:border-muted-foreground/15 dark:focus-within:border-muted-foreground/30 flex w-full cursor-text flex-col gap-2 rounded-(--composer-radius) border bg-(--composer-bg) p-(--composer-padding) transition-[border-color] data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))]"},["DIV",{"class":"aui-composer-attachments flex w-full flex-row items-center gap-2 overflow-x-auto empty:hidden"}],["TEXTAREA",{"__playwright_value_":"","name":"input","placeholder":"Send a message...","class":"aui-composer-input caret-primary placeholder:text-muted-foreground/60 max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base leading-6 outline-none","rows":"1","enterkeyhint":"send","aria-label":"Message input"}],["DIV",{"class":"aui-composer-action-wrapper relative flex items-center justify-between"},["BUTTON",{"data-slot":"tooltip-trigger","data-variant":"ghost","data-size":"icon","class":"inline-flex shrink-0 items-center justify-center gap-2 text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 aui-button-icon p-1 aui-composer-add-attachment text-muted-foreground hover:text-foreground hover:bg-muted-foreground/15 dark:border-muted-foreground/15 dark:hover:bg-muted-foreground/30 size-7 rounded-full active:scale-[0.96] motion-reduce:transition-none","aria-label":"Add Attachment","type":"button","data-state":"closed"},["svg",{"xmlns":"http://www.w3.org/2000/svg","width":"24","height":"24","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","stroke-width":"2","stroke-linecap":"round","stroke-linejoin":"round","class":"lucide lucide-plus aui-attachment-add-icon size-4","aria-hidden":"true"},["path",{"d":"M5 12h14"}],["path",{"d":"M12 5v14"}]],["SPAN",{"class":"aui-sr-only sr-only"},"Add Attachment"]],["DIV",{"class":"flex items-center gap-1.5"},["BUTTON",{"data-slot":"tooltip-trigger","data-variant":"default","data-size":"icon","class":"inline-flex shrink-0 items-center justify-center gap-2 text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 bg-primary text-primary-foreground hover:bg-primary/90 aui-button-icon p-1 active:scale-90 aui-composer-send size-7 rounded-full","type":"button","aria-label":"Send message","disabled":"","data-state":"closed"},["svg",{"xmlns":"http://www.w3.org/2000/svg","width":"24","height":"24","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","stroke-width":"2","stroke-linecap":"round","stroke-linejoin":"round","class":"lucide lucide-arrow-up aui-composer-send-icon size-4","aria-hidden":"true"},["path",{"d":"m5 12 7-7 7 7"}],["path",{"d":"M12 19V5"}]],["SPAN",{"class":"aui-sr-only sr-only"},"Send message"]]]]]],["DIV",{"class":"aui-thread-welcome-suggestions flex w-full flex-wrap items-center justify-center gap-2 px-4"},["DIV",{"class":"aui-thread-welcome-suggestion-display fade-in slide-in-from-bottom-2 animate-in fill-mode-both duration-200"},["BUTTON",{"data-slot":"button","data-variant":"ghost","data-size":"default","class":"inline-flex shrink-0 items-center justify-center outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 hover:text-accent-foreground dark:hover:bg-accent/50 has-[>svg]:px-3 aui-thread-welcome-suggestion text-foreground hover:bg-muted border-border/60 h-auto gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-normal whitespace-nowrap transition-colors","type":"button"},["SPAN",{"class":"aui-thread-welcome-suggestion-text-1"},"Draft a LinkedIn post"],["SPAN",{"class":"aui-thread-welcome-suggestion-text-2 empty:hidden"},"from three product facts"]]],["DIV",{"class":"aui-thread-welcome-suggestion-display fade-in slide-in-from-bottom-2 animate-in fill-mode-both duration-200"},["BUTTON",{"data-slot":"button","data-variant":"ghost","data-size":"default","class":"inline-flex shrink-0 items-center justify-center outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 hover:text-accent-foreground dark:hover:bg-accent/50 has-[>svg]:px-3 aui-thread-welcome-suggestion text-foreground hover:bg-muted border-border/60 h-auto gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-normal whitespace-nowrap transition-colors","type":"button"},["SPAN",{"class":"aui-thread-welcome-suggestion-text-1"},"Learn what Signal needs"],["SPAN",{"class":"aui-thread-welcome-suggestion-text-2 empty:hidden"},"before drafting"]]]]]]]]]]]]],"viewport":{"width":1280,"height":720},"timestamp":6513.781,"wallTime":1788786905888,"collectionTime":3.3000001907348633,"resourceOverrides":[],"isMainFrame":true}}
+{"type":"before","callId":"call@13","startTime":6519.777,"class":"Frame","method":"fill","params":{"selector":"internal:attr=[placeholder=\"Send a message...\"i]","strict":true,"value":"I want to draft a LinkedIn post for my upcoming product Fujifilm X-T20."},"stepId":"pw:api@38"}
+{"type":"frame-snapshot","snapshot":{"callId":"call@13","phase":"before","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","frameId":"frame@d9d10f90dda574b1e61e05f12536d3b2","frameUrl":"http://127.0.0.1:3001/app","doctype":"html","html":[[1,79]],"viewport":{"width":1280,"height":720},"timestamp":6530.362,"wallTime":1788786906006,"collectionTime":7.600000381469727,"resourceOverrides":[],"isMainFrame":true}}
+{"type":"log","callId":"call@13","time":6531.939,"message":"waiting for getByPlaceholder('Send a message...')"}
+{"type":"log","callId":"call@13","time":6592.766,"message":"  locator resolved to <textarea rows=\"1\" name=\"input\" enterkeyhint=\"send\" aria-label=\"Message input\" placeholder=\"Send a message...\" class=\"aui-composer-input caret-primary placeholder:text-muted-foreground/60 max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base leading-6 outline-none\"></textarea>"}
+{"type":"log","callId":"call@13","time":6601.762,"message":"  fill(\"I want to draft a LinkedIn post for my upcoming product Fujifilm X-T20.\")"}
+{"type":"log","callId":"call@13","time":6601.988,"message":"attempting fill action"}
+{"type":"input","callId":"call@13","box":{"x":25,"y":332,"width":525,"height":40}}
+{"type":"frame-snapshot","snapshot":{"callId":"call@13","phase":"action","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","frameId":"frame@d9d10f90dda574b1e61e05f12536d3b2","frameUrl":"http://127.0.0.1:3001/app","doctype":"html","html":["HTML",{"lang":"en","class":"h-dvh"},[[2,11]],["BODY",{"class":"h-dvh font-sans"},[[2,12]],[[2,24]],["DIV",{"class":"site-page"},["MAIN",{"class":"app-workspace"},["SECTION",{"class":"app-chat"},[[2,29]],["DIV",{"class":"aui-root aui-thread-root bg-background @container flex h-full flex-col","style":"--thread-max-width:44rem;--composer-bg:var(--color-card);--composer-radius:1.5rem;--composer-padding:8px"},["DIV",{"data-slot":"aui_thread-viewport","class":"relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"},["DIV",{"class":"mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4 justify-center"},[[2,32]],[[2,33]],["DIV",{"class":"aui-thread-viewport-footer bg-background flex flex-col gap-4 overflow-visible pb-4 md:pb-6"},[[2,39]],["FORM",{"class":"aui-composer-root relative flex w-full flex-col"},["DIV",{"data-slot":"aui_composer-shell","class":"border-border/60 data-[dragging=true]:border-ring focus-within:border-border dark:border-muted-foreground/15 dark:focus-within:border-muted-foreground/30 flex w-full cursor-text flex-col gap-2 rounded-(--composer-radius) border bg-(--composer-bg) p-(--composer-padding) transition-[border-color] data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))]"},[[2,40]],["TEXTAREA",{"__playwright_value_":"","__playwright_target__":"","name":"input","placeholder":"Send a message...","class":"aui-composer-input caret-primary placeholder:text-muted-foreground/60 max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base leading-6 outline-none","rows":"1","enterkeyhint":"send","aria-label":"Message input"}],[[2,55]]]],[[2,70]]]]]]]]]]],"viewport":{"width":1280,"height":720},"timestamp":6604.984,"wallTime":1788786906081,"collectionTime":0.8000001907348633,"resourceOverrides":[],"isMainFrame":true}}
+{"type":"log","callId":"call@13","time":6605.666,"message":"  waiting for element to be visible, enabled and editable"}
+{"type":"after","callId":"call@13","endTime":6630.238}
+{"type":"frame-snapshot","snapshot":{"callId":"call@13","phase":"after","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","frameId":"frame@d9d10f90dda574b1e61e05f12536d3b2","frameUrl":"http://127.0.0.1:3001/app","doctype":"html","html":["HTML",{"lang":"en","class":"h-dvh"},[[3,11]],["BODY",{"class":"h-dvh font-sans"},[[3,12]],[[3,24]],["DIV",{"class":"site-page"},["MAIN",{"class":"app-workspace"},["SECTION",{"class":"app-chat"},[[3,29]],["DIV",{"class":"aui-root aui-thread-root bg-background @container flex h-full flex-col","style":"--thread-max-width:44rem;--composer-bg:var(--color-card);--composer-radius:1.5rem;--composer-padding:8px"},["DIV",{"data-slot":"aui_thread-viewport","class":"relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"},["DIV",{"class":"mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4 justify-center"},[[3,32]],[[3,33]],["DIV",{"class":"aui-thread-viewport-footer bg-background flex flex-col gap-4 overflow-visible pb-4 md:pb-6"},[[3,39]],["FORM",{"class":"aui-composer-root relative flex w-full flex-col"},["DIV",{"data-slot":"aui_composer-shell","class":"border-border/60 data-[dragging=true]:border-ring focus-within:border-border dark:border-muted-foreground/15 dark:focus-within:border-muted-foreground/30 flex w-full cursor-text flex-col gap-2 rounded-(--composer-radius) border bg-(--composer-bg) p-(--composer-padding) transition-[border-color] data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))]"},[[3,40]],["TEXTAREA",{"__playwright_value_":"I want to draft a LinkedIn post for my upcoming product Fujifilm X-T20.","__playwright_target__":"","name":"input","placeholder":"Send a message...","class":"aui-composer-input caret-primary placeholder:text-muted-foreground/60 max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base leading-6 outline-none","rows":"1","enterkeyhint":"send","aria-label":"Message input"}],[[3,55]]]],[[3,70]]]]]]]]]]],"viewport":{"width":1280,"height":720},"timestamp":6638.092,"wallTime":1788786906110,"collectionTime":1.0999994277954102,"resourceOverrides":[],"isMainFrame":true}}
+{"type":"before","callId":"call@15","startTime":6642.591,"class":"Frame","method":"click","params":{"selector":"internal:role=button[name=\"Send message\"i]","strict":true},"stepId":"pw:api@39"}
+{"type":"frame-snapshot","snapshot":{"callId":"call@15","phase":"before","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","frameId":"frame@d9d10f90dda574b1e61e05f12536d3b2","frameUrl":"http://127.0.0.1:3001/app","doctype":"html","html":["HTML",{"lang":"en","class":"h-dvh"},[[4,11]],["BODY",{"class":"h-dvh font-sans"},[[4,12]],[[4,24]],["DIV",{"class":"site-page"},["MAIN",{"class":"app-workspace"},["SECTION",{"class":"app-chat"},[[4,29]],["DIV",{"class":"aui-root aui-thread-root bg-background @container flex h-full flex-col","style":"--thread-max-width:44rem;--composer-bg:var(--color-card);--composer-radius:1.5rem;--composer-padding:8px"},["DIV",{"data-slot":"aui_thread-viewport","class":"relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"},["DIV",{"class":"mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4 justify-center"},[[4,32]],[[4,33]],["DIV",{"class":"aui-thread-viewport-footer bg-background flex flex-col gap-4 overflow-visible pb-4 md:pb-6"},[[4,39]],["FORM",{"class":"aui-composer-root relative flex w-full flex-col"},["DIV",{"data-slot":"aui_composer-shell","class":"border-border/60 data-[dragging=true]:border-ring focus-within:border-border dark:border-muted-foreground/15 dark:focus-within:border-muted-foreground/30 flex w-full cursor-text flex-col gap-2 rounded-(--composer-radius) border bg-(--composer-bg) p-(--composer-padding) transition-[border-color] data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))]"},[[4,40]],["TEXTAREA",{"__playwright_value_":"I want to draft a LinkedIn post for my upcoming product Fujifilm X-T20.","name":"input","placeholder":"Send a message...","class":"aui-composer-input caret-primary placeholder:text-muted-foreground/60 max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base leading-6 outline-none","rows":"1","enterkeyhint":"send","aria-label":"Message input"}],[[4,55]]]],[[4,70]]]]]]]]]]],"viewport":{"width":1280,"height":720},"timestamp":6645.453,"wallTime":1788786906121,"collectionTime":1,"resourceOverrides":[],"isMainFrame":true}}
+{"type":"log","callId":"call@15","time":6646.052,"message":"waiting for getByRole('button', { name: 'Send message' })"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786906133.jpeg","width":1280,"height":720,"timestamp":6656.78,"frameSwapWallTime":1788786906122.9949}
+{"type":"log","callId":"call@15","time":6667.965,"message":"  locator resolved to <button disabled type=\"button\" data-size=\"icon\" data-state=\"closed\" data-variant=\"default\" aria-label=\"Send message\" data-slot=\"tooltip-trigger\" class=\"inline-flex shrink-0 items-center justify-center gap-2 text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_…>…</button>"}
+{"type":"log","callId":"call@15","time":6672.414,"message":"attempting click action"}
+{"type":"log","callId":"call@15","time":6672.92,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786906168.jpeg","width":1280,"height":720,"timestamp":6691.081,"frameSwapWallTime":1788786906161.235}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786906203.jpeg","width":1280,"height":720,"timestamp":6726.142,"frameSwapWallTime":1788786906194.906}
+{"type":"log","callId":"call@15","time":6728.72,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":6728.736,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":6728.809,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786906233.jpeg","width":1280,"height":720,"timestamp":6756.93,"frameSwapWallTime":1788786906226.887}
+{"type":"log","callId":"call@15","time":6782.358,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":6782.401,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":6782.423,"message":"  waiting 20ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786906263.jpeg","width":1280,"height":720,"timestamp":6786.859,"frameSwapWallTime":1788786906253.644}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786906281.jpeg","width":1280,"height":720,"timestamp":6804.8,"frameSwapWallTime":1788786906275.325}
+{"type":"log","callId":"call@15","time":6807.239,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":6815.048,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":6815.082,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":6815.086,"message":"  waiting 100ms"}
+{"type":"log","callId":"call@15","time":6917.72,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":6931.444,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":6931.478,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":6931.484,"message":"  waiting 100ms"}
+{"type":"log","callId":"call@15","time":7035.095,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":7048.088,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":7048.123,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":7048.129,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786906662.jpeg","width":1280,"height":720,"timestamp":7185.145,"frameSwapWallTime":1788786906651.4958}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":7419.872,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"log","callId":"call@15","time":7551.973,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":7564.828,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":7564.875,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":7564.88,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786907157.jpeg","width":1280,"height":720,"timestamp":7680.626,"frameSwapWallTime":1788786907150.45}
+{"type":"log","callId":"call@15","time":8068.272,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":8081.431,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":8081.469,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":8081.472,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786907665.jpeg","width":1280,"height":720,"timestamp":8188.371,"frameSwapWallTime":1788786907658.219}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":8426.924,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"log","callId":"call@15","time":8586.183,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":8598.206,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":8598.247,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":8598.256,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786908167.jpeg","width":1280,"height":720,"timestamp":8690.816,"frameSwapWallTime":1788786908159.107}
+{"type":"log","callId":"call@15","time":9101.63,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":9115.19,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":9115.231,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":9115.239,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786908675.jpeg","width":1280,"height":720,"timestamp":9198.406,"frameSwapWallTime":1788786908670.825}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":9434.473,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"log","callId":"call@15","time":9619.857,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":9636.631,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":9636.776,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":9636.781,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786909168.jpeg","width":1280,"height":720,"timestamp":9691.033,"frameSwapWallTime":1788786909160.802}
+{"type":"log","callId":"call@15","time":10141.389,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":10147.091,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":10147.119,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":10147.124,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786909658.jpeg","width":1280,"height":720,"timestamp":10181.616,"frameSwapWallTime":1788786909654.436}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":10449.489,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"log","callId":"call@15","time":10651.967,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":10690.203,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":10690.243,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":10690.248,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786910169.jpeg","width":1280,"height":720,"timestamp":10692.796,"frameSwapWallTime":1788786910162.215}
+{"type":"log","callId":"call@15","time":11195.817,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786910706.jpeg","width":1280,"height":720,"timestamp":11229.55,"frameSwapWallTime":1788786910698.899}
+{"type":"log","callId":"call@15","time":11240.707,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":11240.756,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":11240.827,"message":"  waiting 500ms"}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":11457.95,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786911153.jpeg","width":1280,"height":720,"timestamp":11676.653,"frameSwapWallTime":1788786911144.867}
+{"type":"log","callId":"call@15","time":11750.601,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":11786.617,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":11786.74,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":11786.744,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786911666.jpeg","width":1280,"height":720,"timestamp":12189.365,"frameSwapWallTime":1788786911657.26}
+{"type":"log","callId":"call@15","time":12303.116,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":12316.575,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":12316.611,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":12316.614,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786912158.jpeg","width":1280,"height":720,"timestamp":12681.761,"frameSwapWallTime":1788786912151.4832}
+{"type":"log","callId":"call@15","time":12820.959,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":12847.815,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":12847.846,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":12847.849,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786912659.jpeg","width":1280,"height":720,"timestamp":13182.042,"frameSwapWallTime":1788786912648.322}
+{"type":"log","callId":"call@15","time":13351.069,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":13364.569,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":13364.598,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":13364.602,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786913161.jpeg","width":1280,"height":720,"timestamp":13684.269,"frameSwapWallTime":1788786913156.28}
+{"type":"log","callId":"call@15","time":13866.859,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":13881.624,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":13881.673,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":13881.677,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786913663.jpeg","width":1280,"height":720,"timestamp":14185.973,"frameSwapWallTime":1788786913657.768}
+{"type":"log","callId":"call@15","time":14385.655,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":14402.489,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":14402.536,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":14402.54,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786914157.jpeg","width":1280,"height":720,"timestamp":14680.881,"frameSwapWallTime":1788786914151.891}
+{"type":"log","callId":"call@15","time":14914.895,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":14933.046,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":14933.09,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":14933.094,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786914671.jpeg","width":1280,"height":720,"timestamp":15194.249,"frameSwapWallTime":1788786914662.523}
+{"type":"log","callId":"call@15","time":15445.736,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":15466.239,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":15466.275,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":15466.278,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786915193.jpeg","width":1280,"height":720,"timestamp":15716.056,"frameSwapWallTime":1788786915176.83}
+{"type":"log","callId":"call@15","time":15968.934,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":15980.636,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":15980.675,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":15980.68,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786915657.jpeg","width":1280,"height":720,"timestamp":16180.033,"frameSwapWallTime":1788786915652.663}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":16477.91,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"log","callId":"call@15","time":16483.488,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":16531.931,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":16531.975,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":16531.98,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786916162.jpeg","width":1280,"height":720,"timestamp":16685.279,"frameSwapWallTime":1788786916157.1802}
+{"type":"log","callId":"call@15","time":17040.251,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":17048.444,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":17048.473,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":17048.476,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786916670.jpeg","width":1280,"height":720,"timestamp":17193.894,"frameSwapWallTime":1788786916655.996}
+{"type":"log","callId":"call@15","time":17554.029,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":17563.818,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":17563.849,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":17563.852,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786917236.jpeg","width":1280,"height":720,"timestamp":17759.155,"frameSwapWallTime":1788786917225.035}
+{"type":"log","callId":"call@15","time":18066.883,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":18080.846,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":18080.882,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":18080.887,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786917651.jpeg","width":1280,"height":720,"timestamp":18174.493,"frameSwapWallTime":1788786917645.3718}
+{"type":"log","callId":"call@15","time":18586.802,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":18596.772,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":18596.802,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":18596.813,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786918156.jpeg","width":1280,"height":720,"timestamp":18679.794,"frameSwapWallTime":1788786918149.958}
+{"type":"log","callId":"call@15","time":19102.049,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":19113.76,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":19113.863,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":19113.869,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786918668.jpeg","width":1280,"height":720,"timestamp":19191.003,"frameSwapWallTime":1788786918661.132}
+{"type":"log","callId":"call@15","time":19616.396,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":19630.402,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":19630.434,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":19630.439,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786919153.jpeg","width":1280,"height":720,"timestamp":19676.842,"frameSwapWallTime":1788786919150.2139}
+{"type":"log","callId":"call@15","time":20134.734,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":20147.815,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":20147.845,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":20147.849,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786919668.jpeg","width":1280,"height":720,"timestamp":20191.803,"frameSwapWallTime":1788786919665.256}
+{"type":"log","callId":"call@15","time":20650.965,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":20676.539,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":20676.567,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":20676.57,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786920155.jpeg","width":1280,"height":720,"timestamp":20678.437,"frameSwapWallTime":1788786920149.852}
+{"type":"log","callId":"call@15","time":21182.304,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786920666.jpeg","width":1280,"height":720,"timestamp":21189.476,"frameSwapWallTime":1788786920653.327}
+{"type":"log","callId":"call@15","time":21218.092,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":21218.134,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":21218.139,"message":"  waiting 500ms"}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":21496.27,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786921157.jpeg","width":1280,"height":720,"timestamp":21680.081,"frameSwapWallTime":1788786921150.74}
+{"type":"log","callId":"call@15","time":21723.004,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":21731.795,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":21731.827,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":21731.83,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786921670.jpeg","width":1280,"height":720,"timestamp":22192.962,"frameSwapWallTime":1788786921655.578}
+{"type":"log","callId":"call@15","time":22238.089,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":22249.29,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":22249.323,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":22249.344,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786922184.jpeg","width":1280,"height":720,"timestamp":22707.914,"frameSwapWallTime":1788786922173.6519}
+{"type":"log","callId":"call@15","time":22757.82,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":22782.097,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":22782.13,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":22782.133,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786922653.jpeg","width":1280,"height":720,"timestamp":23176.589,"frameSwapWallTime":1788786922649.768}
+{"type":"log","callId":"call@15","time":23293.81,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":23313.793,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":23313.825,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":23313.828,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786923160.jpeg","width":1280,"height":720,"timestamp":23683.81,"frameSwapWallTime":1788786923155.4028}
+{"type":"log","callId":"call@15","time":23818.585,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":23830.557,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":23830.588,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":23830.591,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786923653.jpeg","width":1280,"height":720,"timestamp":24175.966,"frameSwapWallTime":1788786923646.996}
+{"type":"log","callId":"call@15","time":24333.839,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":24346.809,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":24346.836,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":24346.839,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786924150.jpeg","width":1280,"height":720,"timestamp":24673.118,"frameSwapWallTime":1788786924146.2222}
+{"type":"log","callId":"call@15","time":24850.603,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":24864.067,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":24864.101,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":24864.104,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786924660.jpeg","width":1280,"height":720,"timestamp":25182.988,"frameSwapWallTime":1788786924653.969}
+{"type":"log","callId":"call@15","time":25367.832,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":25380.17,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":25380.2,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":25380.203,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786925161.jpeg","width":1280,"height":720,"timestamp":25684.816,"frameSwapWallTime":1788786925155.2131}
+{"type":"log","callId":"call@15","time":25895.496,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":25921.449,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":25921.481,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":25921.485,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786925654.jpeg","width":1280,"height":720,"timestamp":26177.793,"frameSwapWallTime":1788786925650.5388}
+{"type":"log","callId":"call@15","time":26429.671,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":26450.449,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":26450.482,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":26450.485,"message":"  waiting 500ms"}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":26529.684,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786926183.jpeg","width":1280,"height":720,"timestamp":26706.185,"frameSwapWallTime":1788786926173.959}
+{"type":"log","callId":"call@15","time":26955.482,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":26963.957,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":26963.989,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":26964,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786926652.jpeg","width":1280,"height":720,"timestamp":27175.841,"frameSwapWallTime":1788786926648.907}
+{"type":"log","callId":"call@15","time":27467.185,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":27480.62,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":27480.653,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":27480.657,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786927155.jpeg","width":1280,"height":720,"timestamp":27678.003,"frameSwapWallTime":1788786927149.38}
+{"type":"log","callId":"call@15","time":27983.008,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":27996.973,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":27997.005,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":27997.008,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786927652.jpeg","width":1280,"height":720,"timestamp":28175.54,"frameSwapWallTime":1788786927648.53}
+{"type":"log","callId":"call@15","time":28503.766,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":28531.255,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":28531.3,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":28531.303,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786928150.jpeg","width":1280,"height":720,"timestamp":28673.23,"frameSwapWallTime":1788786928145.3508}
+{"type":"log","callId":"call@15","time":29035.053,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":29048.06,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":29048.103,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":29048.109,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786928668.jpeg","width":1280,"height":720,"timestamp":29190.951,"frameSwapWallTime":1788786928662.933}
+{"type":"log","callId":"call@15","time":29550.632,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":29563.673,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":29563.703,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":29563.707,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786929150.jpeg","width":1280,"height":720,"timestamp":29672.949,"frameSwapWallTime":1788786929145.9229}
+{"type":"log","callId":"call@15","time":30067.708,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":30079.967,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":30079.993,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":30079.996,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786929652.jpeg","width":1280,"height":720,"timestamp":30175.715,"frameSwapWallTime":1788786929648.184}
+{"type":"log","callId":"call@15","time":30586.167,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":30596.903,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":30596.945,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":30596.949,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786930151.jpeg","width":1280,"height":720,"timestamp":30674.238,"frameSwapWallTime":1788786930146.833}
+{"type":"log","callId":"call@15","time":31101.291,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":31116.122,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":31116.16,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":31116.165,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786930659.jpeg","width":1280,"height":720,"timestamp":31182.291,"frameSwapWallTime":1788786930653.1018}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":31569.785,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"log","callId":"call@15","time":31623.611,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":31648.683,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":31648.721,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":31648.726,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786931173.jpeg","width":1280,"height":720,"timestamp":31696.454,"frameSwapWallTime":1788786931165.1821}
+{"type":"log","callId":"call@15","time":32153.689,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786931670.jpeg","width":1280,"height":720,"timestamp":32193.114,"frameSwapWallTime":1788786931664.167}
+{"type":"log","callId":"call@15","time":32198.702,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":32198.73,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":32198.734,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786932162.jpeg","width":1280,"height":720,"timestamp":32685.114,"frameSwapWallTime":1788786932152.821}
+{"type":"log","callId":"call@15","time":32704.546,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":32730.817,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":32730.928,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":32730.934,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786932658.jpeg","width":1280,"height":720,"timestamp":33181.811,"frameSwapWallTime":1788786932653.6318}
+{"type":"log","callId":"call@15","time":33238.865,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":33247.034,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":33247.065,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":33247.068,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":33785.551,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786933288.jpeg","width":1280,"height":720,"timestamp":33811.627,"frameSwapWallTime":1788786933244.497}
+{"type":"log","callId":"call@15","time":33834.258,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":33834.299,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":33834.303,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786933651.jpeg","width":1280,"height":720,"timestamp":34174.845,"frameSwapWallTime":1788786933645.712}
+{"type":"log","callId":"call@15","time":34343.942,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":34364.692,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":34364.723,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":34364.726,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786934162.jpeg","width":1280,"height":720,"timestamp":34685.774,"frameSwapWallTime":1788786934156.32}
+{"type":"log","callId":"call@15","time":34868.083,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":34881.041,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":34881.079,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":34881.083,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786934660.jpeg","width":1280,"height":720,"timestamp":35183.021,"frameSwapWallTime":1788786934653.837}
+{"type":"log","callId":"call@15","time":35383.868,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":35398.638,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":35398.675,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":35398.679,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786935155.jpeg","width":1280,"height":720,"timestamp":35677.978,"frameSwapWallTime":1788786935147.95}
+{"type":"log","callId":"call@15","time":35901.634,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":35920.321,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":35920.381,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":35920.383,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786935655.jpeg","width":1280,"height":720,"timestamp":36178.207,"frameSwapWallTime":1788786935646.2969}
+{"type":"log","callId":"call@15","time":36424.036,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":36429.053,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":36429.069,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":36429.238,"message":"  waiting 500ms"}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":36614.532,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786936151.jpeg","width":1280,"height":720,"timestamp":36674.695,"frameSwapWallTime":1788786936146.946}
+{"type":"log","callId":"call@15","time":36933.817,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":36949.776,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":36949.814,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":36949.823,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786936656.jpeg","width":1280,"height":720,"timestamp":37179.028,"frameSwapWallTime":1788786936647.006}
+{"type":"log","callId":"call@15","time":37452.423,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":37464.357,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":37464.387,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":37464.39,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786937156.jpeg","width":1280,"height":720,"timestamp":37679.1,"frameSwapWallTime":1788786937151.4238}
+{"type":"log","callId":"call@15","time":37968.685,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":37983.759,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":37983.792,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":37983.795,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786937659.jpeg","width":1280,"height":720,"timestamp":38182.041,"frameSwapWallTime":1788786937654.97}
+{"type":"log","callId":"call@15","time":38487.047,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":38496.715,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":38496.75,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":38496.754,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786938152.jpeg","width":1280,"height":720,"timestamp":38675.883,"frameSwapWallTime":1788786938147.94}
+{"type":"log","callId":"call@15","time":38999.004,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":39013.768,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":39013.798,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":39013.801,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786938659.jpeg","width":1280,"height":720,"timestamp":39182.93,"frameSwapWallTime":1788786938650.321}
+{"type":"log","callId":"call@15","time":39516.257,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":39530.47,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":39530.499,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":39530.503,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786939151.jpeg","width":1280,"height":720,"timestamp":39674.042,"frameSwapWallTime":1788786939146.7012}
+{"type":"log","callId":"call@15","time":40034.896,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":40047.427,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":40047.461,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":40047.465,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786939654.jpeg","width":1280,"height":720,"timestamp":40177.534,"frameSwapWallTime":1788786939646.2021}
+{"type":"log","callId":"call@15","time":40550.296,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":40565.333,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":40565.368,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":40565.371,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786940149.jpeg","width":1280,"height":720,"timestamp":40672.94,"frameSwapWallTime":1788786940146.147}
+{"type":"log","callId":"call@15","time":41068.969,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":41080.796,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":41080.834,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":41080.838,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786940657.jpeg","width":1280,"height":720,"timestamp":41180.912,"frameSwapWallTime":1788786940652.51}
+{"type":"log","callId":"call@15","time":41585.96,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":41596.297,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":41596.326,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":41596.329,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786941156.jpeg","width":1280,"height":720,"timestamp":41679.169,"frameSwapWallTime":1788786941150.922}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":41814.211,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"log","callId":"call@15","time":42098.834,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":42113.547,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":42113.772,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":42113.777,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786941675.jpeg","width":1280,"height":720,"timestamp":42198.732,"frameSwapWallTime":1788786941670.722}
+{"type":"log","callId":"call@15","time":42616.778,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":42631.377,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":42631.412,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":42631.417,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786942153.jpeg","width":1280,"height":720,"timestamp":42676.747,"frameSwapWallTime":1788786942149.553}
+{"type":"log","callId":"call@15","time":43148.178,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":43165.915,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":43165.946,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":43165.949,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786942689.jpeg","width":1280,"height":720,"timestamp":43212.595,"frameSwapWallTime":1788786942678.0889}
+{"type":"log","callId":"call@15","time":43677.741,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786943156.jpeg","width":1280,"height":720,"timestamp":43679.914,"frameSwapWallTime":1788786943150.2869}
+{"type":"log","callId":"call@15","time":43713.359,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":43713.396,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":43713.401,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786943662.jpeg","width":1280,"height":720,"timestamp":44185.703,"frameSwapWallTime":1788786943658.001}
+{"type":"log","callId":"call@15","time":44231.084,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":44249.086,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":44249.121,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":44249.125,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786944157.jpeg","width":1280,"height":720,"timestamp":44680.446,"frameSwapWallTime":1788786944151.387}
+{"type":"log","callId":"call@15","time":44752.76,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":44763.278,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":44763.308,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":44763.311,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786944654.jpeg","width":1280,"height":720,"timestamp":45177.21,"frameSwapWallTime":1788786944647.668}
+{"type":"log","callId":"call@15","time":45266.09,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":45280.01,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":45280.046,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":45280.05,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786945162.jpeg","width":1280,"height":720,"timestamp":45685.839,"frameSwapWallTime":1788786945157.5}
+{"type":"log","callId":"call@15","time":45783.807,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":45798.489,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":45798.543,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":45798.548,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786945659.jpeg","width":1280,"height":720,"timestamp":46182.009,"frameSwapWallTime":1788786945646.819}
+{"type":"log","callId":"call@15","time":46302.402,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":46313.913,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":46313.95,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":46313.955,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786946180.jpeg","width":1280,"height":720,"timestamp":46703.166,"frameSwapWallTime":1788786946171.1472}
+{"type":"log","callId":"call@15","time":46818.261,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":46829.703,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":46829.733,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":46829.736,"message":"  waiting 500ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786946676.jpeg","width":1280,"height":720,"timestamp":47199.058,"frameSwapWallTime":1788786946655.913}
+{"type":"log","callId":"call@15","time":47332.909,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":47346.945,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":47346.996,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":47346.999,"message":"  waiting 500ms"}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=oJgjEPKiACCzw2fN9zFuT' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":47369.457,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786946936.jpeg","width":1280,"height":720,"timestamp":47459.131,"frameSwapWallTime":1788786946915.617}
+{"type":"log","callId":"call@15","time":47671.554,"message":"element was detached from the DOM, retrying"}
+{"type":"log","callId":"call@15","time":47693.93,"message":"  waiting for \"http://127.0.0.1:3001/app\" navigation to finish..."}
+{"type":"log","callId":"call@15","time":47707.997,"message":"  navigated to \"http://127.0.0.1:3001/app\""}
+{"type":"log","callId":"call@15","time":48077.573,"message":"  locator resolved to <button disabled type=\"button\" data-size=\"icon\" data-state=\"closed\" data-variant=\"default\" aria-label=\"Send message\" data-slot=\"tooltip-trigger\" class=\"inline-flex shrink-0 items-center justify-center gap-2 text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_…>…</button>"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786947591.jpeg","width":1280,"height":720,"timestamp":48114.891,"frameSwapWallTime":1788786947566.062}
+{"type":"log","callId":"call@15","time":48505.661,"message":"attempting click action"}
+{"type":"log","callId":"call@15","time":48505.731,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786948029.jpeg","width":1280,"height":720,"timestamp":48552.868,"frameSwapWallTime":1788786948011.498}
+{"type":"console","messageType":"info","text":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold","args":[{"preview":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","value":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools"},{"preview":"font-weight:bold","value":"font-weight:bold"}],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js","lineNumber":776,"columnNumber":27},"time":48714.718,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"log","callId":"call@15","time":49036.484,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":49036.52,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":49036.585,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":49919.455,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":49919.473,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":49919.477,"message":"  waiting 20ms"}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=wsCozMiWRbPplbFhoICgZ' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":49920.084,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786949406.jpeg","width":1280,"height":720,"timestamp":49929.103,"frameSwapWallTime":1788786949399.328}
+{"type":"log","callId":"call@15","time":49946.806,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":49963.085,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":49963.128,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":49963.138,"message":"  waiting 100ms"}
+{"type":"log","callId":"call@15","time":50067.232,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":50079.555,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":50079.588,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":50079.591,"message":"  waiting 100ms"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786949622.jpeg","width":1280,"height":720,"timestamp":50145.938,"frameSwapWallTime":1788786949619.152}
+{"type":"log","callId":"call@15","time":50183.323,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":50212.506,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":50212.535,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":50212.538,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":50717.508,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":50729.725,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":50729.763,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":50729.768,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":51232.165,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":51251.593,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":51251.63,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":51251.634,"message":"  waiting 500ms"}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=wsCozMiWRbPplbFhoICgZ' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":51605.396,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"screencast-frame","pageId":"page@4aa84c1117ec0bba6abe21b2b816919d","file":"screencast/page@4aa84c1117ec0bba6abe21b2b816919d-1788786951202.jpeg","width":1280,"height":720,"timestamp":51725.128,"frameSwapWallTime":1788786951198.451}
+{"type":"log","callId":"call@15","time":51759.45,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":51780.98,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":51781.007,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":51781.01,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":52288.738,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":52296.161,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":52296.197,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":52296.201,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":52798.322,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":52812.878,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":52812.917,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":52812.921,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":53323.476,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":53351.603,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":53351.64,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":53351.645,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":53862.252,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":53879.656,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":53880.112,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":53880.177,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":54384.748,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":54398.153,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":54398.193,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":54398.198,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":54902.464,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":54912.219,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":54912.261,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":54912.266,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":55414.627,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=wsCozMiWRbPplbFhoICgZ' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":55425.499,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"log","callId":"call@15","time":55429.127,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":55429.152,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":55429.156,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":55931.534,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":55946.052,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":55946.094,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":55946.099,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":56448.611,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":56466.536,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":56466.582,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":56466.587,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":56975.795,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":57018.164,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":57018.215,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":57018.219,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":57529.7,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":57546.052,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":57546.101,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":57546.106,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":58049.065,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":58062.556,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":58062.597,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":58062.6,"message":"  waiting 500ms"}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=wsCozMiWRbPplbFhoICgZ' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":58132.498,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"log","callId":"call@15","time":58567.241,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":58580.864,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":58580.917,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":58580.922,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":59084.866,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":59096.269,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":59096.32,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":59096.325,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":59600.47,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":59615.971,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":59616.025,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":59616.029,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":60127.572,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":60167.846,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":60167.893,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":60167.897,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":60686.037,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":60696.357,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":60696.429,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":60696.434,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":61212.219,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":61230.669,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":61230.717,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":61230.721,"message":"  waiting 500ms"}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=wsCozMiWRbPplbFhoICgZ' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":61586.977,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"log","callId":"call@15","time":61734.038,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":61747.64,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":61747.689,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":61747.692,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":62253.795,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":62262.351,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":62262.431,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":62262.435,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":62766.162,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":62779.094,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":62779.151,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":62779.155,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":63285.093,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":63295.549,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":63295.6,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":63295.603,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":63798.483,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":63813.702,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":63813.764,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":63813.769,"message":"  waiting 500ms"}
+{"type":"console","messageType":"error","text":"WebSocket connection to 'ws://127.0.0.1:3001/_next/hmr?id=wsCozMiWRbPplbFhoICgZ' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE","args":[],"location":{"url":"http://127.0.0.1:3001/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js","lineNumber":16348,"columnNumber":0},"time":63921.087,"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}
+{"type":"log","callId":"call@15","time":64318.153,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":64329.951,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":64330.016,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":64330.023,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":64833.826,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":64845.4,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":64845.465,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":64845.47,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":65349.882,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":65363.893,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":65363.977,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":65363.983,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":65867.425,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":65878.993,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":65879.476,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":65879.48,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":66385.641,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":66398.618,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":66398.683,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":66398.687,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":66903.914,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":66931.343,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":66931.427,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":66931.433,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":67435.542,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":67445.223,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":67445.291,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":67445.295,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":67947.948,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":67963.558,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":67963.632,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":67963.643,"message":"  waiting 500ms"}
+{"type":"log","callId":"call@15","time":68469.595,"message":"  waiting for element to be visible, enabled and stable"}
+{"type":"log","callId":"call@15","time":68479.888,"message":"  element is not enabled"}
+{"type":"log","callId":"call@15","time":68479.949,"message":"retrying click action"}
+{"type":"log","callId":"call@15","time":68479.953,"message":"  waiting 500ms"}
+{"type":"event","time":69027.316,"class":"BrowserContext","method":"pageClosed","params":{"pageId":"page@4aa84c1117ec0bba6abe21b2b816919d"}}
+{"type":"after","callId":"call@15","endTime":69027.975,"error":{"message":"Target page, context or browser has been closed","stack":"TargetClosedError: Target page, context or browser has been closed\n    at DispatcherConnection.dispatch (/home/raunaq/signal_v2/frontend/node_modules/playwright-core/lib/coreBundle.js:19146:19)","name":"TargetClosedError"}}

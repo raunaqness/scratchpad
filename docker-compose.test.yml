@@ -1,0 +1,51 @@
+services:
+  signal-test-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      SIGNAL_DATA_DIR: /app/data
+    networks:
+      - signal-test-network
+    ports:
+      - "8002:8001"
+    volumes:
+      - signal-test-data:/app/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  signal-test-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_AGUI_AGENT_URL: /agent
+        SIGNAL_BACKEND_URL: http://signal-test-backend:8001
+    depends_on:
+      signal-test-backend:
+        condition: service_healthy
+    networks:
+      - signal-test-network
+      - tvbox_default
+    ports:
+      - "5174:5173"
+
+volumes:
+  signal-test-data:
+
+networks:
+  signal-test-network:
+    name: signal-test-network
+  tvbox_default:
+    external: true

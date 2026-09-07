@@ -9,7 +9,10 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 from backend.config import settings
-from backend.prompts import CURRENT_SYSTEM_PROMPT
+from backend.prompts import (
+    CREATE_CAPABILITY_SYSTEM_PROMPT,
+    EDIT_CAPABILITY_SYSTEM_PROMPT,
+)
 
 
 def _model() -> ChatOpenAI:
@@ -31,17 +34,9 @@ def _model() -> ChatOpenAI:
 def create_linkedin_post(request: dict[str, Any]) -> str:
     """Create a LinkedIn post from a validated structured request."""
 
-    system_prompt = f"""{CURRENT_SYSTEM_PROMPT}
-
-You are the Signal LinkedIn post capability. Create exactly one LinkedIn post
-from the validated request below. Use only facts in the request. Do not invent
-prices, dates, specifications, availability, testimonials, performance
-claims, or other details. Follow every explicit constraint. Return only the
-post text, with no analysis or explanation.
-"""
     response = _model().invoke(
         [
-            SystemMessage(content=system_prompt),
+            SystemMessage(content=CREATE_CAPABILITY_SYSTEM_PROMPT),
             HumanMessage(content=json.dumps(request, ensure_ascii=False)),
         ]
     )
@@ -55,17 +50,9 @@ def edit_linkedin_post(
 ) -> str:
     """Revise an existing LinkedIn draft using only confirmed request data."""
 
-    system_prompt = f"""{CURRENT_SYSTEM_PROMPT}
-
-You are the Signal LinkedIn post editing capability. Revise the existing draft
-according to the user's explicit editing request. Use only facts in the
-validated request. Do not invent prices, dates, specifications, availability,
-testimonials, performance claims, benefits, or other details. Preserve
-unchanged requirements and return only the revised post text.
-"""
     response = _model().invoke(
         [
-            SystemMessage(content=system_prompt),
+            SystemMessage(content=EDIT_CAPABILITY_SYSTEM_PROMPT),
             HumanMessage(
                 content=json.dumps(
                     {

@@ -25,7 +25,11 @@ from backend.deep_agent_runner import (
     edit_post_with_deep_agent,
 )
 from backend.policy import check_output, preflight
-from backend.prompts import CURRENT_PROMPT_VERSION, CURRENT_SYSTEM_PROMPT
+from backend.prompts import (
+    CURRENT_PROMPT_VERSION,
+    CURRENT_SYSTEM_PROMPT,
+    analysis_prompt,
+)
 
 logger = logging.getLogger(__name__)
 GUARDRAILS_PATH = Path(__file__).resolve().parent / "guardrails.json"
@@ -318,48 +322,6 @@ def _update_memory(
     return updated
 
 
-def _analysis_prompt(state: SignalState) -> str:
-    return f"""Analyze the latest user request for Signal.
-Return JSON only with these keys:
-scope (one of "linkedin_post" or "out_of_scope"),
-intent (one of "request_post", "provide_facts", "ask_requirements",
-"select_preferences", "edit_draft", "validate_draft", "external_fact_request",
-or "out_of_scope"),
-company, product_name, product_description, tone, length, audience,
-product_facts (array of distinct concrete product facts),
-call_to_action (strings or null), needs_clarification (boolean),
-clarification_question (string or null), progress_update (string or null),
-edit_instruction (string or null),
-tasks (array of strings).
-
-Signal's complete LinkedIn workflow includes collecting facts, clarifying
-preferences, validating drafts, and creating a post. Questions about what
-information Signal needs are in scope. Extract only facts explicitly stated
-in the conversation or memory. Do not infer missing values. A product name and
-at least three distinct concrete product facts are required before drafting.
-Tone, audience, call to action, and length are optional unless the user has
-selected them. If the user asks Signal to suggest or verify product facts, do
-not answer from outside knowledge; ask the user to provide the facts. Do not
-turn generic descriptions into technical features, benefits, or use cases.
-Keep questions focused.
-
-Set progress_update to one short, user-safe sentence describing only confirmed
-work or the next required input. Never claim that drafting or validation is
-complete unless it actually is. Classify a request to modify an existing draft
-as edit_draft and capture the requested change in edit_instruction. Classify a
-request to check an existing draft as validate_draft.
-
-Memory:
-{json.dumps(state.get("memory", {}), ensure_ascii=False)}
-
-Conversation:
-{json.dumps(state.get("turns", []), ensure_ascii=False)}
-
-Previously confirmed request fields:
-{json.dumps(state.get("previous_analysis", {}), ensure_ascii=False)}
-"""
-
-
 def _analyze(state: SignalState) -> SignalState:
     analysis_model_is_live = False
     if _blocked_by_guardrails(state["user_message"]):
@@ -393,7 +355,7 @@ def _analyze(state: SignalState) -> SignalState:
         )
         analysis_model = _model()
         analysis_model_is_live = isinstance(analysis_model, BaseChatModel)
-        prompt = _analysis_prompt(
+        prompt = analysis_prompt(
             {
                 **state,
                 "previous_analysis": confirmed_analysis,

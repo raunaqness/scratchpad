@@ -9,3 +9,4 @@ pytest
 fastapi
 uvicorn
 openai
+ag-ui-protocol

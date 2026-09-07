@@ -1,7 +1,8 @@
 # Signal AG-UI frontend
 
 This frontend connects assistant-ui to Signal's existing Python/LangGraph
-workflow through an AG-UI adapter.
+workflow through an AG-UI adapter. The adapter accepts the standard typed
+AG-UI request used by CopilotKit and other AG-UI clients.
 
 ## Quick Start
 
@@ -32,6 +33,7 @@ points the frontend at the AG-UI adapter on port 8001.
 ## Features
 
 - AG-UI protocol integration via `@assistant-ui/react-ag-ui`
+- CopilotKit-compatible typed AG-UI server in `../backend/agent.py`
 - Multi-thread support with "New Thread" button
 - Custom browser alert tool demonstration
 - Client-side tool execution

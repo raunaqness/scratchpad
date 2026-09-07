@@ -1,38 +1,37 @@
-"""
-Simple AG-UI Protocol Agent for testing assistant-ui integration.
+"""CopilotKit-compatible AG-UI endpoint for Signal."""
 
-Usage:
-    pip install fastapi uvicorn openai python-dotenv
-    python -m backend.agent
-
-Set the OpenRouter variables in .env or the environment.
-"""
+from __future__ import annotations
 
 import asyncio
-import json
-import os
 import re
 import sys
 import uuid
 from pathlib import Path
 from typing import AsyncGenerator
 
+from ag_ui.core import (
+    EventType,
+    RunAgentInput,
+    RunErrorEvent,
+    RunFinishedEvent,
+    RunStartedEvent,
+    StateSnapshotEvent,
+    TextMessageContentEvent,
+    TextMessageEndEvent,
+    TextMessageStartEvent,
+)
+from ag_ui.encoder import EventEncoder
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-# Load environment variables from .env.local
-load_dotenv(".env.local")
-load_dotenv(".env")
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
-
 SIGNAL_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(SIGNAL_ROOT / ".env")
 if str(SIGNAL_ROOT) not in sys.path:
     sys.path.insert(0, str(SIGNAL_ROOT))
 
-app = FastAPI(title="AG-UI Example Agent")
-
+app = FastAPI(title="Signal AG-UI Agent")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -42,152 +41,112 @@ app.add_middleware(
 )
 
 
-def create_event(event_type: str, **kwargs) -> str:
-    """Create an SSE event in AG-UI format."""
-    data = {"type": event_type, **kwargs}
-    return f"data: {json.dumps(data)}\n\n"
-
-
-async def echo_agent(messages: list, run_id: str, thread_id: str) -> AsyncGenerator[str, None]:
-    """Simple echo agent that responds to user messages."""
-    yield create_event("RUN_STARTED", runId=run_id, threadId=thread_id)
-
-    # Get the last user message
-    last_message = ""
-    for msg in reversed(messages):
-        if msg.get("role") == "user":
-            content = msg.get("content", "")
-            if isinstance(content, str):
-                last_message = content
-            elif isinstance(content, list):
-                for part in content:
-                    if part.get("type") == "text":
-                        last_message = part.get("text", "")
-                        break
-            break
-
-    message_id = str(uuid.uuid4())
-    yield create_event("TEXT_MESSAGE_START", messageId=message_id)
-
-    # Generate response
-    response = f"You said: {last_message}\n\nThis is a simple echo agent. To use a real LLM, set OPENAI_API_KEY in your environment."
-
-    # Stream the response character by character for demo
-    for char in response:
-        yield create_event("TEXT_MESSAGE_CONTENT", messageId=message_id, delta=char)
-        await asyncio.sleep(0.01)
-
-    yield create_event("TEXT_MESSAGE_END", messageId=message_id)
-    yield create_event("RUN_FINISHED", runId=run_id, threadId=thread_id)
-
-
-async def openai_agent(messages: list, run_id: str, thread_id: str) -> AsyncGenerator[str, None]:
-    """OpenAI-powered agent with streaming."""
-    from openai import AsyncOpenAI
-
-    client = AsyncOpenAI()
-
-    yield create_event("RUN_STARTED", runId=run_id, threadId=thread_id)
-
-    # Convert AG-UI messages to OpenAI format
-    openai_messages = []
-    for msg in messages:
-        role = msg.get("role", "user")
-        content = msg.get("content", "")
-
-        if isinstance(content, list):
-            # Handle multimodal content
-            text_parts = [p.get("text", "") for p in content if p.get("type") == "text"]
-            content = " ".join(text_parts)
-
-        if role in ("user", "assistant", "system"):
-            openai_messages.append({"role": role, "content": content})
-
-    if not openai_messages:
-        openai_messages = [{"role": "user", "content": "Hello"}]
-
-    message_id = str(uuid.uuid4())
-    yield create_event("TEXT_MESSAGE_START", messageId=message_id)
-
-    try:
-        stream = await client.chat.completions.create(
-            model="gpt-5.6-luna",
-            messages=openai_messages,
-            stream=True,
+def _message_text(message: object) -> str:
+    """Extract text from an AG-UI message's supported content shapes."""
+    content = getattr(message, "content", "")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return " ".join(
+            str(getattr(part, "text", ""))
+            for part in content
+            if getattr(part, "type", "") == "text"
         )
-
-        async for chunk in stream:
-            if chunk.choices and chunk.choices[0].delta.content:
-                delta = chunk.choices[0].delta.content
-                yield create_event("TEXT_MESSAGE_CONTENT", messageId=message_id, delta=delta)
-
-        yield create_event("TEXT_MESSAGE_END", messageId=message_id)
-        yield create_event("RUN_FINISHED", runId=run_id, threadId=thread_id)
-
-    except Exception as e:
-        yield create_event("TEXT_MESSAGE_CONTENT", messageId=message_id, delta=f"Error: {e}")
-        yield create_event("TEXT_MESSAGE_END", messageId=message_id)
-        yield create_event("RUN_ERROR", message=str(e), threadId=thread_id)
+    return str(content or "")
 
 
-async def signal_agent(
-    messages: list, run_id: str, thread_id: str
+def _last_user_message(input_data: RunAgentInput) -> str:
+    """Return the latest user message from a typed AG-UI request."""
+    for message in reversed(input_data.messages):
+        if getattr(message, "role", "") == "user":
+            return _message_text(message)
+    return ""
+
+
+def _state_snapshot(result: dict[str, object]) -> dict[str, object]:
+    """Expose Signal's useful workflow state through AG-UI."""
+    return {
+        "status": result.get("status"),
+        "draft": result.get("draft", ""),
+        "draft_version": result.get("draft_version", 0),
+        "validation": result.get("validation", {}),
+        "requirements": result.get("requirements", {}),
+    }
+
+
+async def _signal_events(
+    input_data: RunAgentInput, encoder: EventEncoder
 ) -> AsyncGenerator[str, None]:
-    """Adapt Signal's synchronous workflow to an AG-UI text stream."""
-    yield create_event("RUN_STARTED", runId=run_id, threadId=thread_id)
-
-    last_message = next(
-        (
-            message.get("content", "")
-            for message in reversed(messages)
-            if message.get("role") == "user"
-        ),
-        "",
-    )
-    if isinstance(last_message, list):
-        last_message = " ".join(
-            part.get("text", "")
-            for part in last_message
-            if part.get("type") == "text"
-        )
-
+    """Run Signal and encode its result as CopilotKit-compatible events."""
     try:
+        yield encoder.encode(
+            RunStartedEvent(
+                type=EventType.RUN_STARTED,
+                threadId=input_data.thread_id,
+                runId=input_data.run_id,
+                parentRunId=input_data.parent_run_id,
+                input=input_data,
+            )
+        )
         from backend.app import run_conversation
 
         result = await asyncio.to_thread(
             run_conversation,
-            user_id=f"agui-{thread_id}",
-            conversation_id=thread_id,
-            user_message=str(last_message),
+            user_id=f"agui-{input_data.thread_id}",
+            conversation_id=input_data.thread_id,
+            user_message=_last_user_message(input_data),
         )
-        response = result["assistant_message"]
         message_id = str(uuid.uuid4())
-        yield create_event("TEXT_MESSAGE_START", messageId=message_id)
+        yield encoder.encode(
+            TextMessageStartEvent(
+                type=EventType.TEXT_MESSAGE_START,
+                messageId=message_id,
+                role="assistant",
+            )
+        )
+        response = str(result["assistant_message"])
         for chunk in re.findall(r"\S+\s*|\n+", response):
-            yield create_event("TEXT_MESSAGE_CONTENT", messageId=message_id, delta=chunk)
+            yield encoder.encode(
+                TextMessageContentEvent(
+                    type=EventType.TEXT_MESSAGE_CONTENT,
+                    messageId=message_id,
+                    delta=chunk,
+                )
+            )
             await asyncio.sleep(0)
-        yield create_event("TEXT_MESSAGE_END", messageId=message_id)
-        yield create_event("RUN_FINISHED", runId=run_id, threadId=thread_id)
+        yield encoder.encode(
+            TextMessageEndEvent(
+                type=EventType.TEXT_MESSAGE_END,
+                messageId=message_id,
+            )
+        )
+        yield encoder.encode(
+            StateSnapshotEvent(
+                type=EventType.STATE_SNAPSHOT,
+                snapshot=_state_snapshot(result),
+            )
+        )
+        yield encoder.encode(
+            RunFinishedEvent(
+                type=EventType.RUN_FINISHED,
+                threadId=input_data.thread_id,
+                runId=input_data.run_id,
+                result={"status": result.get("status")},
+            )
+        )
     except Exception as error:
-        yield create_event("RUN_ERROR", message=str(error), threadId=thread_id)
+        yield encoder.encode(
+            RunErrorEvent(type=EventType.RUN_ERROR, message=str(error))
+        )
 
 
 @app.post("/agent")
-async def agent_endpoint(request: Request):
-    """AG-UI agent endpoint."""
-    body = await request.json()
-
-    run_id = body.get("runId", str(uuid.uuid4()))
-    messages = body.get("messages", [])
-    thread_id = body.get("threadId", "default")
-
-    print(f"[agent] threadId={thread_id}, runId={run_id}, messages={len(messages)}")
-
-    generator = signal_agent(messages, run_id, thread_id)
-
+async def agent_endpoint(input_data: RunAgentInput, request: Request) -> StreamingResponse:
+    """Accept a typed AG-UI run and stream Signal events."""
+    encoder = EventEncoder(accept=request.headers.get("accept"))
     return StreamingResponse(
-        generator,
-        media_type="text/event-stream",
+        _signal_events(input_data, encoder),
+        media_type=encoder.get_content_type(),
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
@@ -197,21 +156,17 @@ async def agent_endpoint(request: Request):
 
 
 @app.get("/health")
-async def health():
-    """Health check endpoint."""
+async def health() -> dict[str, object]:
+    """Report adapter health and provider configuration."""
+    from backend.config import settings
+
     return {
         "status": "ok",
-        "openrouter_configured": bool(os.getenv("OPENROUTER_API_KEY")),
+        "openrouter_configured": bool(settings.openrouter_api_key),
     }
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    print("Starting AG-UI Agent on http://localhost:8001")
-    print(f"OpenAI API Key: {'configured' if os.getenv('OPENAI_API_KEY') else 'not set (using echo mode)'}")
-    print("\nEndpoints:")
-    print("  POST /agent  - AG-UI agent endpoint")
-    print("  GET  /health - Health check")
-
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run("backend.agent:app", host="0.0.0.0", port=8001)

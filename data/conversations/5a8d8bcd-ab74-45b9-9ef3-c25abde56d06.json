@@ -1,0 +1,93 @@
+{
+  "conversation_id": "5a8d8bcd-ab74-45b9-9ef3-c25abde56d06",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need to create a LinkedIn post for the Fujifilm X100VI. Here are some key facts: it has a 26.1MP sensor, a fixed 23mm f/2 lens, and it’s compact and lightweight. Can you help me draft something based on that?"
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, a compact and lightweight camera featuring a 26.1MP sensor and a fixed 23mm f/2 lens. Perfect for capturing stunning images on the go!"
+    }
+  ],
+  "user_id": "deepeval-5a8d8bcd-ab74-45b9-9ef3-c25abde56d06",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "26.1MP sensor",
+      "fixed 23mm f/2 lens",
+      "compact and lightweight"
+    ],
+    "needs_clarification": false,
+    "progress_update": "I have the product facts needed for drafting.",
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI, a compact and lightweight camera featuring a 26.1MP sensor and a fixed 23mm f/2 lens. Perfect for capturing stunning images on the go!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, a compact and lightweight camera featuring a 26.1MP sensor and a fixed 23mm f/2 lens. Perfect for capturing stunning images on the go!",
+      "source": "create",
+      "created_at": "2026-09-03T08:59:50.942733+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 27,
+    "maximum_words": null,
+    "updated_at": "2026-09-03T08:59:50.942793+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 27
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T08:59:50.944750+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

@@ -1,0 +1,39 @@
+{
+  "conversation_id": "f9e85bfe-8a8d-476b-808f-e4f08a5c515c",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Can you write a blog post for me and publish it directly to LinkedIn? Also, what's the capital of France while you're at it?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-f9e85bfe-8a8d-476b-808f-e4f08a5c515c",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope"
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "company",
+        "product_name",
+        "product_description",
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-02T09:25:17.175692+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

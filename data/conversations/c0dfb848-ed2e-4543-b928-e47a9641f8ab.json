@@ -1,0 +1,46 @@
+{
+  "conversation_id": "c0dfb848-ed2e-4543-b928-e47a9641f8ab",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need to discuss a new campaign for Fujifilm, specifically focusing on the Fujifilm X100. Let's start with its compact street-photography capabilities."
+    },
+    {
+      "role": "assistant",
+      "content": "What tone should the post use, such as professional or confident? How long should the post be?"
+    }
+  ],
+  "user_id": "deepeval-c0dfb848-ed2e-4543-b928-e47a9641f8ab",
+  "status": "needs_clarification",
+  "analysis": {
+    "scope": "linkedin_post",
+    "company": "Fujifilm",
+    "product_name": "Fujifilm X100",
+    "product_description": "compact street-photography capabilities",
+    "needs_clarification": true,
+    "clarification_question": "What tone should the post use, such as professional or confident? How long should the post be?"
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    }
+  ],
+  "updated_at": "2026-09-02T09:25:10.954004+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

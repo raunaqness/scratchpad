@@ -1,0 +1,98 @@
+{
+  "conversation_id": "b4b4ed7a-2382-450b-9f25-f6e704877970",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI aimed at professional photographers. The tone should be informative, with a maximum length of 150 words. Make sure to highlight its 26.1 MP sensor, hybrid viewfinder, and 4K video capabilities, and include a strong call to action to check out our website for more details."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, a powerful tool for professional photographers. This camera features a 26.1 MP sensor, delivering stunning image quality and detail for your photography projects. The innovative hybrid viewfinder allows you to switch between optical and electronic viewing, providing versatility to suit your shooting style. Additionally, the X100VI offers 4K video capabilities, enabling you to capture high-resolution videos alongside your still photography. Whether you're shooting in the studio or on location, the X100VI is designed to meet the demands of professional work. For more details, check out our website!"
+    }
+  ],
+  "user_id": "deepeval-b4b4ed7a-2382-450b-9f25-f6e704877970",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "validate_draft",
+    "product_name": "Fujifilm X100VI",
+    "tone": "informative",
+    "length": "150 words",
+    "audience": "professional photographers",
+    "call_to_action": "check out our website for more details.",
+    "product_facts": [
+      "26.1 MP sensor",
+      "hybrid viewfinder",
+      "4K video capabilities"
+    ],
+    "needs_clarification": false,
+    "tasks": [
+      "create LinkedIn post"
+    ],
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI, a powerful tool for professional photographers. This camera features a 26.1 MP sensor, delivering stunning image quality and detail for your photography projects. The innovative hybrid viewfinder allows you to switch between optical and electronic viewing, providing versatility to suit your shooting style. Additionally, the X100VI offers 4K video capabilities, enabling you to capture high-resolution videos alongside your still photography. Whether you're shooting in the studio or on location, the X100VI is designed to meet the demands of professional work. For more details, check out our website!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, a powerful tool for professional photographers. This camera features a 26.1 MP sensor, delivering stunning image quality and detail for your photography projects. The innovative hybrid viewfinder allows you to switch between optical and electronic viewing, providing versatility to suit your shooting style. Additionally, the X100VI offers 4K video capabilities, enabling you to capture high-resolution videos alongside your still photography. Whether you're shooting in the studio or on location, the X100VI is designed to meet the demands of professional work. For more details, check out our website!",
+      "source": "create",
+      "created_at": "2026-09-03T10:26:18.761312+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 91,
+    "maximum_words": 150,
+    "updated_at": "2026-09-03T10:26:18.761498+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": 150
+    },
+    "optional": {
+      "tone": "informative",
+      "audience": "professional photographers",
+      "call_to_action": "check out our website for more details."
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 91
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T10:26:18.764500+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

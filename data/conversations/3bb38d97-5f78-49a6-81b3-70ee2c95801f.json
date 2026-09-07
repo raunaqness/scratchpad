@@ -1,0 +1,17 @@
+{
+  "conversation_id": "3bb38d97-5f78-49a6-81b3-70ee2c95801f",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Can you write a blog post for me about the benefits of remote work? Also, can you just publish it directly on my LinkedIn? And by the way, what's the capital of France?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-3bb38d97-5f78-49a6-81b3-70ee2c95801f",
+  "status": "out_of_scope",
+  "updated_at": "2026-09-02T09:17:56.018150+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

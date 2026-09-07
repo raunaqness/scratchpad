@@ -1,0 +1,99 @@
+{
+  "conversation_id": "b1a8d785-9f95-4ab0-9060-6efe1c01a311",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI targeting photography enthusiasts. The tone should be professional yet engaging, max length 150 words. Include a call to action to visit our website, and make sure to highlight its 26.1MP sensor, 4K video capabilities, and retro design."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, a remarkable camera designed for photography enthusiasts. With its impressive 26.1MP sensor, you can capture stunning images with incredible detail. The X100VI also features 4K video capabilities, allowing you to create high-quality videos that truly bring your vision to life. Its retro design not only enhances its aesthetic appeal but also offers a tactile shooting experience that many photographers cherish. Elevate your photography with the Fujifilm X100VI and experience the perfect blend of modern technology and classic design. Visit our website to learn more!"
+    }
+  ],
+  "user_id": "deepeval-b1a8d785-9f95-4ab0-9060-6efe1c01a311",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "product_name": "Fujifilm X100VI",
+    "tone": "professional yet engaging",
+    "length": "max length 150 words",
+    "audience": "photography enthusiasts",
+    "call_to_action": "visit our website",
+    "product_facts": [
+      "26.1MP sensor",
+      "4K video capabilities",
+      "retro design"
+    ],
+    "needs_clarification": false,
+    "tasks": [
+      "create LinkedIn post"
+    ],
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "planned_capabilities": [],
+  "draft": "Introducing the Fujifilm X100VI, a remarkable camera designed for photography enthusiasts. With its impressive 26.1MP sensor, you can capture stunning images with incredible detail. The X100VI also features 4K video capabilities, allowing you to create high-quality videos that truly bring your vision to life. Its retro design not only enhances its aesthetic appeal but also offers a tactile shooting experience that many photographers cherish. Elevate your photography with the Fujifilm X100VI and experience the perfect blend of modern technology and classic design. Visit our website to learn more!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, a remarkable camera designed for photography enthusiasts. With its impressive 26.1MP sensor, you can capture stunning images with incredible detail. The X100VI also features 4K video capabilities, allowing you to create high-quality videos that truly bring your vision to life. Its retro design not only enhances its aesthetic appeal but also offers a tactile shooting experience that many photographers cherish. Elevate your photography with the Fujifilm X100VI and experience the perfect blend of modern technology and classic design. Visit our website to learn more!",
+      "source": "create",
+      "created_at": "2026-09-03T10:58:51.246606+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 88,
+    "maximum_words": 150,
+    "updated_at": "2026-09-03T10:58:51.246953+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": 150
+    },
+    "optional": {
+      "tone": "professional yet engaging",
+      "audience": "photography enthusiasts",
+      "call_to_action": "visit our website"
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 88
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T10:58:51.250823+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

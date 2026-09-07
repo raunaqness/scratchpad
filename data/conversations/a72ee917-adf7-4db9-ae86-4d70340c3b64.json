@@ -1,0 +1,46 @@
+{
+  "conversation_id": "a72ee917-adf7-4db9-ae86-4d70340c3b64",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for a new product, but I forgot to mention the target audience. Can you help me draft it, and I’ll provide the details you need?"
+    },
+    {
+      "role": "assistant",
+      "content": "Which company is promoting the product? What is the product name?"
+    }
+  ],
+  "user_id": "deepeval-a72ee917-adf7-4db9-ae86-4d70340c3b64",
+  "status": "needs_clarification",
+  "analysis": {
+    "scope": "linkedin_post",
+    "needs_clarification": true,
+    "clarification_question": "Which company is promoting the product? What is the product name?"
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "company",
+        "product_name",
+        "product_description",
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    }
+  ],
+  "updated_at": "2026-09-02T09:25:25.097653+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

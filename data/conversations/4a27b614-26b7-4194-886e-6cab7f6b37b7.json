@@ -1,0 +1,57 @@
+{
+  "conversation_id": "4a27b614-26b7-4194-886e-6cab7f6b37b7",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hey, can you tell me a recipe for cooking something? Just checking if you're only about LinkedIn posts."
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-4a27b614-26b7-4194-886e-6cab7f6b37b7",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope",
+    "intent": "out_of_scope",
+    "needs_clarification": false,
+    "progress_update": "This request is outside the LinkedIn post workflow.",
+    "product_facts": []
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "draft": "",
+  "draft_version": 0,
+  "draft_history": [],
+  "validation": {},
+  "requirements": {
+    "required": {
+      "product_name": false,
+      "minimum_product_facts": 3,
+      "product_fact_count": 0,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "product_name",
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-02T13:13:29.183662+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

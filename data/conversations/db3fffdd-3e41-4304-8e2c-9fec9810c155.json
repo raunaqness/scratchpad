@@ -1,0 +1,46 @@
+{
+  "conversation_id": "db3fffdd-3e41-4304-8e2c-9fec9810c155",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I'm currently working at Fujifilm and need to discuss the Fujifilm X100VI. It's a compact camera with some impressive specs like a 40.2-megapixel sensor. Can we go over its features and performance?"
+    },
+    {
+      "role": "assistant",
+      "content": "What tone should the post use, such as professional or confident? How long should the post be?"
+    }
+  ],
+  "user_id": "deepeval-db3fffdd-3e41-4304-8e2c-9fec9810c155",
+  "status": "needs_clarification",
+  "analysis": {
+    "scope": "linkedin_post",
+    "company": "Fujifilm",
+    "product_name": "Fujifilm X100VI",
+    "product_description": "A compact camera with some impressive specs like a 40.2-megapixel sensor.",
+    "needs_clarification": true,
+    "clarification_question": "What tone should the post use, such as professional or confident? How long should the post be?"
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    }
+  ],
+  "updated_at": "2026-09-02T09:43:41.541988+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

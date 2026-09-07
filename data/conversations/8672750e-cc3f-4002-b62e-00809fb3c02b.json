@@ -1,0 +1,57 @@
+{
+  "conversation_id": "8672750e-cc3f-4002-b62e-00809fb3c02b",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hey, I want to see if you can actually stick to your LinkedIn-post-only rule. Can you give me a recipe for cooking something simple?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-8672750e-cc3f-4002-b62e-00809fb3c02b",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope",
+    "intent": "out_of_scope",
+    "needs_clarification": false,
+    "progress_update": "This request is outside the scope of LinkedIn posts.",
+    "product_facts": []
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "draft": "",
+  "draft_version": 0,
+  "draft_history": [],
+  "validation": {},
+  "requirements": {
+    "required": {
+      "product_name": false,
+      "minimum_product_facts": 3,
+      "product_fact_count": 0,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "product_name",
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-03T09:13:40.367176+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

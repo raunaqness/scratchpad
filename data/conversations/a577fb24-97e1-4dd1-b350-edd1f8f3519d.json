@@ -1,0 +1,99 @@
+{
+  "conversation_id": "a577fb24-97e1-4dd1-b350-edd1f8f3519d",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI targeting professional photographers. It should be concise, no more than 150 words, maintain a professional tone, and include a call to action to visit our website. Key facts to include: it has a 23mm f/2 lens, 26.1MP sensor, and advanced autofocus. Please confirm you've addressed all these points."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, designed for professional photographers seeking excellence in every shot. Equipped with a 23mm f/2 lens, the X100VI captures stunning images with exceptional clarity and detail. Its 26.1MP sensor ensures high-resolution photographs, making it ideal for both portraits and landscapes. The advanced autofocus system enhances your shooting experience, allowing for quick and precise focus on your subject, even in challenging conditions. Whether you're capturing fleeting moments or meticulously planned compositions, the X100VI delivers outstanding performance and versatility. Elevate your photography with the Fujifilm X100VI. To learn more about this exceptional camera, visit our website."
+    }
+  ],
+  "user_id": "deepeval-a577fb24-97e1-4dd1-b350-edd1f8f3519d",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "product_name": "Fujifilm X100VI",
+    "tone": "professional",
+    "length": "150 words",
+    "audience": "professional photographers",
+    "call_to_action": "visit our website",
+    "product_facts": [
+      "23mm f/2 lens",
+      "26.1MP sensor",
+      "advanced autofocus"
+    ],
+    "needs_clarification": false,
+    "tasks": [
+      "create a LinkedIn post"
+    ],
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "planned_capabilities": [],
+  "draft": "Introducing the Fujifilm X100VI, designed for professional photographers seeking excellence in every shot. Equipped with a 23mm f/2 lens, the X100VI captures stunning images with exceptional clarity and detail. Its 26.1MP sensor ensures high-resolution photographs, making it ideal for both portraits and landscapes. The advanced autofocus system enhances your shooting experience, allowing for quick and precise focus on your subject, even in challenging conditions. Whether you're capturing fleeting moments or meticulously planned compositions, the X100VI delivers outstanding performance and versatility. Elevate your photography with the Fujifilm X100VI. To learn more about this exceptional camera, visit our website.",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, designed for professional photographers seeking excellence in every shot. Equipped with a 23mm f/2 lens, the X100VI captures stunning images with exceptional clarity and detail. Its 26.1MP sensor ensures high-resolution photographs, making it ideal for both portraits and landscapes. The advanced autofocus system enhances your shooting experience, allowing for quick and precise focus on your subject, even in challenging conditions. Whether you're capturing fleeting moments or meticulously planned compositions, the X100VI delivers outstanding performance and versatility. Elevate your photography with the Fujifilm X100VI. To learn more about this exceptional camera, visit our website.",
+      "source": "create",
+      "created_at": "2026-09-03T10:47:45.442723+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 97,
+    "maximum_words": 150,
+    "updated_at": "2026-09-03T10:47:45.443014+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": 150
+    },
+    "optional": {
+      "tone": "professional",
+      "audience": "professional photographers",
+      "call_to_action": "visit our website"
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 97
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T10:47:45.452386+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

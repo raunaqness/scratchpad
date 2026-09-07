@@ -1,0 +1,97 @@
+{
+  "conversation_id": "e0cb0f6d-071a-4887-9b62-931ce804a919",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI targeting professional photographers. It should be informative, no more than 150 words, and include a call to action for the latest features. Make sure to highlight its 26.1MP sensor, advanced autofocus, and compact design."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, a powerful tool for professional photographers. This camera boasts a 26.1MP sensor, ensuring high-resolution images with stunning detail. The advanced autofocus system provides precise focusing, making it easier to capture the perfect shot in any situation. Its compact design allows for easy portability without sacrificing performance. Explore the latest features that make the X100VI a must-have in your photography arsenal!"
+    }
+  ],
+  "user_id": "deepeval-e0cb0f6d-071a-4887-9b62-931ce804a919",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "tone": "informative",
+    "length": 150,
+    "audience": "professional photographers",
+    "product_facts": [
+      "26.1MP sensor",
+      "advanced autofocus",
+      "compact design"
+    ],
+    "call_to_action": "latest features",
+    "needs_clarification": false,
+    "progress_update": "Ready to draft the LinkedIn post.",
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI, a powerful tool for professional photographers. This camera boasts a 26.1MP sensor, ensuring high-resolution images with stunning detail. The advanced autofocus system provides precise focusing, making it easier to capture the perfect shot in any situation. Its compact design allows for easy portability without sacrificing performance. Explore the latest features that make the X100VI a must-have in your photography arsenal!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, a powerful tool for professional photographers. This camera boasts a 26.1MP sensor, ensuring high-resolution images with stunning detail. The advanced autofocus system provides precise focusing, making it easier to capture the perfect shot in any situation. Its compact design allows for easy portability without sacrificing performance. Explore the latest features that make the X100VI a must-have in your photography arsenal!",
+      "source": "create",
+      "created_at": "2026-09-02T13:12:51.911016+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 64,
+    "maximum_words": null,
+    "updated_at": "2026-09-02T13:12:51.911119+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": "informative",
+      "audience": "professional photographers",
+      "call_to_action": "latest features"
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 64
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-02T13:12:51.914869+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

@@ -1,0 +1,17 @@
+{
+  "conversation_id": "a71b0988-687b-40c3-acf0-2e4cb778b1cd",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a polished LinkedIn post to launch the Fujifilm X100. It’s a compact camera perfect for street photography, and I want it to sound confident and engaging. Keep it under 100 words, please."
+    },
+    {
+      "role": "assistant",
+      "content": "📸 Discover the Fujifilm X100, a compact camera perfect for street photography! With its sleek design and exceptional image quality, the X100 empowers photographers to capture stunning moments on the go. Whether you're exploring bustling city streets or intimate corners, this camera is your ideal companion. Embrace the art of storytelling through your lens and elevate your photography game with Fujifilm. Get ready to make every shot count! #Fujifilm #X100 #StreetPhotography #PhotographyLovers"
+    }
+  ],
+  "user_id": "deepeval-a71b0988-687b-40c3-acf0-2e4cb778b1cd",
+  "status": "complete",
+  "updated_at": "2026-09-02T09:15:35.732179+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

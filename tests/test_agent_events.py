@@ -99,6 +99,72 @@ def test_final_without_streamed_reply_still_emits_one_message(monkeypatch):
     assert kinds[-1] == "RUN_FINISHED"
 
 
+def test_ui_choice_becomes_a_request_choice_tool_call(monkeypatch):
+    events = _drain(
+        monkeypatch,
+        [
+            {"type": "status", "status": "exploring", "node": "brainstorm"},
+            {"type": "artifact", "artifact": {"angles": ["a", "b"], "version": 1}},
+            {"type": "reply", "delta": "Put 2 angles on the board."},
+            {
+                "type": "ui_choice",
+                "id": "angle-v1",
+                "question": "Which angle?",
+                "options": [{"id": "0", "label": "a"}, {"id": "1", "label": "b"}],
+            },
+            {
+                "type": "final",
+                "assistant_message": "Put 2 angles on the board.",
+                "artifact": {"angles": ["a", "b"], "version": 1},
+                "status": "exploring",
+                "plan": {"mode": "brainstorm"},
+            },
+        ],
+    )
+    kinds = _types(events)
+    assert kinds.count("TOOL_CALL_START") == 1
+    assert "TOOL_CALL_ARGS" in kinds and "TOOL_CALL_END" in kinds
+    # the tool call lands after the text message, before the run ends
+    assert kinds.index("TEXT_MESSAGE_END") < kinds.index("TOOL_CALL_START")
+    assert kinds.index("TOOL_CALL_END") < kinds.index("RUN_FINISHED")
+
+    start = next(e for e in events if e["type"] == "TOOL_CALL_START")
+    assert start["toolCallName"] == "request_choice"
+    args = next(e for e in events if e["type"] == "TOOL_CALL_ARGS")
+    payload = json.loads(args["delta"])
+    assert payload["question"] == "Which angle?"
+    assert [o["label"] for o in payload["options"]] == ["a", "b"]
+
+
+def test_progress_rides_along_in_snapshots(monkeypatch):
+    events = _drain(
+        monkeypatch,
+        [
+            {"type": "status", "status": "drafting", "node": "draft"},
+            {"type": "artifact", "artifact": {"body": "", "version": 0}},
+            {"type": "reply", "delta": "Drafted a pass."},
+            {
+                "type": "final",
+                "assistant_message": "Drafted a pass.",
+                "artifact": {"body": "hi", "version": 1},
+                "status": "refining",
+                "plan": {},
+            },
+        ],
+    )
+    snapshots = [e["snapshot"] for e in events if e["type"] == "STATE_SNAPSHOT"]
+    assert snapshots
+    mid = [s for s in snapshots if s.get("processing")][-1]
+    assert mid["progress"]["label"] == "Drafting"
+    assert mid["progress"]["done"] is False
+    assert mid["progress"]["steps"] == ["draft"]
+
+    final = snapshots[-1]
+    assert final["processing"] is False
+    assert final["progress"]["done"] is True
+    assert final["progress"]["label"] == "Done"
+
+
 def test_error_mid_stream_still_finishes(monkeypatch):
     events = _drain(
         monkeypatch,

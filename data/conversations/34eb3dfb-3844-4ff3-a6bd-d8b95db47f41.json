@@ -1,0 +1,114 @@
+{
+  "conversation_id": "34eb3dfb-3844-4ff3-a6bd-d8b95db47f41",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I'm currently working at Fujifilm and need to discuss the Fujifilm X100VI. It's a compact camera with specific features like a 40.2-megapixel sensor and five-axis IBIS. Can we start going over the details?"
+    },
+    {
+      "role": "assistant",
+      "content": "Please provide more product facts to proceed.\n\nPlease provide at least three concrete product facts that may be included in the post."
+    },
+    {
+      "role": "user",
+      "content": "In addition to the sensor and IBIS, the Fujifilm X100VI features a 23mm F2 lens, a hybrid viewfinder, and various film simulation modes."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI! This powerful camera features a 40.2-megapixel sensor and a versatile 23mm F2 lens, ensuring stunning image quality. With five-axis IBIS for stable shots and a hybrid viewfinder for a seamless shooting experience, it’s perfect for any photography enthusiast. Plus, explore your creativity with various film simulation modes. Capture your moments with the X100VI!"
+    }
+  ],
+  "user_id": "deepeval-34eb3dfb-3844-4ff3-a6bd-d8b95db47f41",
+  "status": "complete",
+  "analysis": {
+    "company": "Fujifilm",
+    "product_name": "Fujifilm X100VI",
+    "product_facts": [
+      "40.2-megapixel sensor",
+      "five-axis IBIS",
+      "23mm F2 lens",
+      "hybrid viewfinder",
+      "various film simulation modes"
+    ],
+    "scope": "linkedin_post",
+    "intent": "provide_facts",
+    "needs_clarification": false,
+    "clarification_question": null,
+    "progress_update": "Product facts have been provided."
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI! This powerful camera features a 40.2-megapixel sensor and a versatile 23mm F2 lens, ensuring stunning image quality. With five-axis IBIS for stable shots and a hybrid viewfinder for a seamless shooting experience, it’s perfect for any photography enthusiast. Plus, explore your creativity with various film simulation modes. Capture your moments with the X100VI!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI! This powerful camera features a 40.2-megapixel sensor and a versatile 23mm F2 lens, ensuring stunning image quality. With five-axis IBIS for stable shots and a hybrid viewfinder for a seamless shooting experience, it’s perfect for any photography enthusiast. Plus, explore your creativity with various film simulation modes. Capture your moments with the X100VI!",
+      "source": "create",
+      "created_at": "2026-09-03T09:05:04.820008+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 57,
+    "maximum_words": null,
+    "updated_at": "2026-09-03T09:05:04.820203+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 5,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 57
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T09:05:04.825167+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

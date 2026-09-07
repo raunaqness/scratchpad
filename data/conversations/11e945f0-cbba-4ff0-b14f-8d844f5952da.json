@@ -1,0 +1,17 @@
+{
+  "conversation_id": "11e945f0-cbba-4ff0-b14f-8d844f5952da",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I’m working on a campaign for Fujifilm and need to discuss the Fujifilm X100. Can you keep track of the details as we go?"
+    },
+    {
+      "role": "assistant",
+      "content": "What does the product do? What tone should the post use, such as professional or confident?"
+    }
+  ],
+  "user_id": "deepeval-11e945f0-cbba-4ff0-b14f-8d844f5952da",
+  "status": "needs_clarification",
+  "updated_at": "2026-09-02T09:17:51.519103+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

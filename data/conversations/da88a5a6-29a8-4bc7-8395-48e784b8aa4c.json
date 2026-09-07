@@ -1,0 +1,81 @@
+{
+  "conversation_id": "da88a5a6-29a8-4bc7-8395-48e784b8aa4c",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI. Target audience is professional photographers, tone should be engaging yet informative, maximum length is 150 words, and include a strong call to action along with key product facts. Make sure every detail is nailed down."
+    },
+    {
+      "role": "assistant",
+      "content": "What does the product do?"
+    },
+    {
+      "role": "user",
+      "content": "The Fujifilm X100VI is a compact digital camera that offers advanced features like a 26.1MP sensor, hybrid viewfinder, and 4K video capabilities, perfect for capturing stunning imagery."
+    },
+    {
+      "role": "assistant",
+      "content": "📸 Elevate your photography game with the Fujifilm X100VI! Designed for professional photographers, this compact digital camera boasts a 26.1MP sensor, hybrid viewfinder, and 4K video capabilities. Whether you're shooting breathtaking landscapes or intimate portraits, the X100VI delivers stunning imagery with exceptional detail and clarity. Its portable design makes it the perfect companion for on-the-go shooting, ensuring you never miss a moment. Discover how this advanced camera can transform your creative vision into reality. Ready to capture the world like never before? Explore the Fujifilm X100VI today and take your photography to new heights! #Fujifilm #X100VI #Photography #ProfessionalPhotographers #CaptureTheMoment"
+    }
+  ],
+  "user_id": "deepeval-da88a5a6-29a8-4bc7-8395-48e784b8aa4c",
+  "status": "complete",
+  "analysis": {
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "tone": "engaging yet informative",
+    "length": "maximum 150 words",
+    "audience": "professional photographers",
+    "call_to_action": "strong call to action",
+    "scope": "linkedin_post",
+    "needs_clarification": false,
+    "clarification_question": "What does the product do?",
+    "tasks": [
+      "Clarify the product description for the Fujifilm X100VI.",
+      "Gather key product facts for the Fujifilm X100VI."
+    ],
+    "product_description": "The Fujifilm X100VI is a compact digital camera that offers advanced features like a 26.1MP sensor, hybrid viewfinder, and 4K video capabilities, perfect for capturing stunning imagery."
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_description"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    },
+    {
+      "step": "validate_constraints",
+      "status": "complete",
+      "word_count": 99
+    }
+  ],
+  "updated_at": "2026-09-02T10:44:43.553734+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

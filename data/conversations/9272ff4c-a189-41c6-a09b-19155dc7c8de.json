@@ -1,0 +1,101 @@
+{
+  "conversation_id": "9272ff4c-a189-41c6-a09b-19155dc7c8de",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI targeting photography enthusiasts. It should be professional, no longer than 150 words, and include a call to action for sharing their experiences. The post must highlight its compact design, advanced autofocus, and film simulation modes. Make sure all these details are covered."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, a compact design that makes it the perfect companion for photography enthusiasts. This camera features advanced autofocus technology, ensuring that you capture every moment with precision and clarity. With its unique film simulation modes, you can create stunning images that reflect your personal style and vision. We invite you to share your experiences with the X100VI. How has this camera enhanced your photography journey? Let us know in the comments!"
+    }
+  ],
+  "user_id": "deepeval-9272ff4c-a189-41c6-a09b-19155dc7c8de",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "tone": "professional",
+    "length": "no longer than 150 words",
+    "audience": "photography enthusiasts",
+    "call_to_action": "sharing their experiences",
+    "product_facts": [
+      "compact design",
+      "advanced autofocus",
+      "film simulation modes"
+    ],
+    "needs_clarification": false,
+    "tasks": [
+      "create LinkedIn post"
+    ],
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "planned_capabilities": [],
+  "draft": "Introducing the Fujifilm X100VI, a compact design that makes it the perfect companion for photography enthusiasts. This camera features advanced autofocus technology, ensuring that you capture every moment with precision and clarity. With its unique film simulation modes, you can create stunning images that reflect your personal style and vision. We invite you to share your experiences with the X100VI. How has this camera enhanced your photography journey? Let us know in the comments!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, a compact design that makes it the perfect companion for photography enthusiasts. This camera features advanced autofocus technology, ensuring that you capture every moment with precision and clarity. With its unique film simulation modes, you can create stunning images that reflect your personal style and vision. We invite you to share your experiences with the X100VI. How has this camera enhanced your photography journey? Let us know in the comments!",
+      "source": "create",
+      "created_at": "2026-09-07T11:57:43.640554+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 74,
+    "maximum_words": 150,
+    "updated_at": "2026-09-07T11:57:43.640743+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": 150
+    },
+    "optional": {
+      "tone": "professional",
+      "audience": "photography enthusiasts",
+      "call_to_action": "sharing their experiences"
+    }
+  },
+  "pending_input": {},
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 74
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-07T11:57:43.644529+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

@@ -1,0 +1,105 @@
+{
+  "conversation_id": "109b1c59-d02b-48ff-975a-332b14f9f8ce",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a confident LinkedIn post for the Fujifilm X100VI. It’s a compact camera, features a hybrid viewfinder, and has a 23mmF2 lens. Keep it professional and under 80 words."
+    },
+    {
+      "role": "assistant",
+      "content": "I have gathered the required product facts.\n\nIntroducing the Fujifilm X100VI, a compact camera designed for photography enthusiasts. It features a hybrid viewfinder, providing versatility and enhanced shooting experiences. Equipped with a 23mmF2 lens, it captures stunning images with clarity and detail. Explore the world of photography with the X100VI!"
+    },
+    {
+      "role": "user",
+      "content": "Could you refine that to make it even more impactful while keeping it concise?"
+    },
+    {
+      "role": "assistant",
+      "content": "I revised the draft according to your request and validated the new version against the confirmed facts and constraints.\n\nIntroducing the Fujifilm X100VI, a compact camera that elevates your photography experience. With its innovative hybrid viewfinder for versatile shooting, and a 23mmF2 lens that ensures stunning image clarity, the X100VI is designed for enthusiasts who seek excellence. Discover your passion for photography with the X100VI!"
+    }
+  ],
+  "user_id": "deepeval-109b1c59-d02b-48ff-975a-332b14f9f8ce",
+  "status": "complete",
+  "analysis": {
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "It’s a compact camera.",
+      "It features a hybrid viewfinder.",
+      "It has a 23mmF2 lens."
+    ],
+    "tone": "professional",
+    "length": 80,
+    "scope": "linkedin_post",
+    "intent": "edit_draft",
+    "needs_clarification": false,
+    "progress_update": "I have gathered the required product facts.",
+    "edit_instruction": "Make the post more impactful while keeping it concise.",
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI, a compact camera that elevates your photography experience. With its innovative hybrid viewfinder for versatile shooting, and a 23mmF2 lens that ensures stunning image clarity, the X100VI is designed for enthusiasts who seek excellence. Discover your passion for photography with the X100VI!",
+  "draft_version": 2,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, a compact camera designed for photography enthusiasts. It features a hybrid viewfinder, providing versatility and enhanced shooting experiences. Equipped with a 23mmF2 lens, it captures stunning images with clarity and detail. Explore the world of photography with the X100VI!",
+      "source": "create",
+      "created_at": "2026-09-02T12:14:49.316793+00:00"
+    },
+    {
+      "version": 2,
+      "draft": "Introducing the Fujifilm X100VI, a compact camera that elevates your photography experience. With its innovative hybrid viewfinder for versatile shooting, and a 23mmF2 lens that ensures stunning image clarity, the X100VI is designed for enthusiasts who seek excellence. Discover your passion for photography with the X100VI!",
+      "source": "edit",
+      "instruction": "Make the post more impactful while keeping it concise.",
+      "created_at": "2026-09-02T12:14:56.421025+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "product_anchor": true,
+    "word_count": 46,
+    "maximum_words": null,
+    "updated_at": "2026-09-02T12:14:56.421087+00:00"
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 43
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 46
+    }
+  ],
+  "updated_at": "2026-09-02T12:14:56.423664+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

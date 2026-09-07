@@ -88,10 +88,17 @@ cd frontend && npm run dev                        # http://localhost:3000/app
 (default `http://localhost:3000,http://localhost:5173`). For a containerized
 run, `docker compose up --build`.
 
-> Note: the frontend artifact panel still reads the old `draft` / `requirements`
-> shape. The backend emits the new `artifact.{angles,outline,body,open_questions,
-> version}` (plus `draft` / `draft_version` mirrors for compatibility); updating
-> the panel to the new shape is a separate frontend change.
+The frontend artifact panel reads the current `artifact.{angles,outline,body,
+open_questions,version,status}` shape (the `draft` / `draft_version` mirrors are
+still emitted for older clients). While a turn is in flight the panel animates —
+an indeterminate bar under the header, a streaming caret on the draft — and a
+dev-only progress chip (shown under `next dev`) sits at the top-right of the chat
+pane, left of **New Thread**, reflecting the graph node in progress.
+
+Agent-driven UI: when `brainstorm` puts angles on the board it emits a
+`request_choice` tool call; `ChoiceTool` renders radio buttons inline in the
+chat and a selection is sent back as a normal user turn (no interrupt
+round-trip).
 
 ## Environment
 

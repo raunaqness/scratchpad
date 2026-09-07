@@ -1,0 +1,96 @@
+{
+  "conversation_id": "01146409-4ffc-4d1b-86ac-4fbf8ecda6ad",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hey, I need help crafting a LinkedIn post about the Fujifilm X100VI. I've got some key facts to include, but I want to make sure it's polished and professional. Can you help with that?"
+    },
+    {
+      "role": "assistant",
+      "content": "Waiting for product facts to proceed.\n\nPlease provide at least three concrete product facts that may be included in the post."
+    },
+    {
+      "role": "user",
+      "content": "Sure! Here are three key facts: the Fujifilm X100VI features a 26.1MP APS-C sensor, has a fast 23mm f/2 lens, and offers hybrid autofocus for quick and accurate focusing."
+    },
+    {
+      "role": "assistant",
+      "content": "Product facts have been provided.\n\nIntroducing the Fujifilm X100VI, a powerful compact camera designed for photography enthusiasts. \n\n- It features a 26.1MP APS-C sensor, delivering stunning image quality.\n- Equipped with a fast 23mm f/2 lens, it captures sharp images in various lighting conditions.\n- The hybrid autofocus system ensures quick and accurate focusing, making it easier to capture the perfect shot.\n\nElevate your photography experience with the Fujifilm X100VI!"
+    }
+  ],
+  "user_id": "deepeval-01146409-4ffc-4d1b-86ac-4fbf8ecda6ad",
+  "status": "complete",
+  "analysis": {
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "needs_clarification": false,
+    "clarification_question": null,
+    "progress_update": "Product facts have been provided.",
+    "product_facts": [
+      "The Fujifilm X100VI features a 26.1MP APS-C sensor.",
+      "The Fujifilm X100VI has a fast 23mm f/2 lens.",
+      "The Fujifilm X100VI offers hybrid autofocus for quick and accurate focusing."
+    ]
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI, a powerful compact camera designed for photography enthusiasts. \n\n- It features a 26.1MP APS-C sensor, delivering stunning image quality.\n- Equipped with a fast 23mm f/2 lens, it captures sharp images in various lighting conditions.\n- The hybrid autofocus system ensures quick and accurate focusing, making it easier to capture the perfect shot.\n\nElevate your photography experience with the Fujifilm X100VI!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, a powerful compact camera designed for photography enthusiasts. \n\n- It features a 26.1MP APS-C sensor, delivering stunning image quality.\n- Equipped with a fast 23mm f/2 lens, it captures sharp images in various lighting conditions.\n- The hybrid autofocus system ensures quick and accurate focusing, making it easier to capture the perfect shot.\n\nElevate your photography experience with the Fujifilm X100VI!",
+      "source": "create",
+      "created_at": "2026-09-02T12:32:52.245421+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "product_anchor": true,
+    "word_count": 65,
+    "maximum_words": null,
+    "updated_at": "2026-09-02T12:32:52.245512+00:00"
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 65
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-02T12:32:52.248564+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

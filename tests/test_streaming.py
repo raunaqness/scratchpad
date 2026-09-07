@@ -41,6 +41,44 @@ def test_draft_streams_artifact_then_reply_then_final(isolated_state, install_mo
     assert events[-1]["artifact"]["body"] == "A" * 200
 
 
+def test_brainstorm_emits_a_choice_for_the_angles(isolated_state, install_models):
+    install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="brainstorm", topic="Widget"),
+            angles=[
+                "Angle A - hook one",
+                "Angle B - hook two",
+                "Angle C - hook three",
+            ],
+        )
+    )
+    events = _collect(
+        user_id="s", conversation_id="c1", user_message="brainstorm angles for Widget"
+    )
+    choices = [e for e in events if e["type"] == "ui_choice"]
+    assert len(choices) == 1
+    assert [o["label"] for o in choices[0]["options"]] == [
+        "Angle A - hook one",
+        "Angle B - hook two",
+        "Angle C - hook three",
+    ]
+    assert choices[0]["question"]
+    # the choice is offered before the turn is finalized
+    assert [e["type"] for e in events].index("ui_choice") < len(events) - 1
+
+
+def test_draft_turn_emits_no_choice(isolated_state, install_models):
+    install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="draft", topic="Widget", format="linkedin_post")
+        )
+    )
+    events = _collect(
+        user_id="s", conversation_id="c2", user_message="draft a post about Widget"
+    )
+    assert not [e for e in events if e["type"] == "ui_choice"]
+
+
 def test_chat_streams_real_reply_tokens(isolated_state, install_models):
     install_models(
         FakeModelScript(

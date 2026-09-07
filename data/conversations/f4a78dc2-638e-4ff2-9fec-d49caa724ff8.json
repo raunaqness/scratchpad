@@ -1,0 +1,96 @@
+{
+  "conversation_id": "f4a78dc2-638e-4ff2-9fec-d49caa724ff8",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Write a LinkedIn post for Fujifilm X100VI. Facts: compact body, 40.2MP sensor, hybrid viewfinder."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, a powerful camera featuring a compact body, a stunning 40.2MP sensor, and an innovative hybrid viewfinder. Capture your world with exceptional detail and versatility!"
+    }
+  ],
+  "user_id": "agui-f4a78dc2-638e-4ff2-9fec-d49caa724ff8",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "compact body",
+      "40.2MP sensor",
+      "hybrid viewfinder"
+    ],
+    "needs_clarification": false,
+    "tasks": [
+      "create LinkedIn post"
+    ],
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "planned_capabilities": [],
+  "draft": "Introducing the Fujifilm X100VI, a powerful camera featuring a compact body, a stunning 40.2MP sensor, and an innovative hybrid viewfinder. Capture your world with exceptional detail and versatility!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, a powerful camera featuring a compact body, a stunning 40.2MP sensor, and an innovative hybrid viewfinder. Capture your world with exceptional detail and versatility!",
+      "source": "create",
+      "created_at": "2026-09-07T10:01:00.240847+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 28,
+    "maximum_words": null,
+    "updated_at": "2026-09-07T10:01:00.241107+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 28
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-07T10:01:00.244446+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

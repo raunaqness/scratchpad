@@ -1,0 +1,100 @@
+{
+  "conversation_id": "68df955a-665a-4743-99a5-cd66af41a288",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI. Can you clarify what details you need from me? I want to avoid unnecessary back-and-forth."
+    },
+    {
+      "role": "assistant",
+      "content": "What does the product do? What tone should the post use, such as professional or confident?"
+    },
+    {
+      "role": "user",
+      "content": "The Fujifilm X100VI is a premium compact camera with advanced features. I'd like the tone to be professional."
+    },
+    {
+      "role": "assistant",
+      "content": "How long should the post be?"
+    },
+    {
+      "role": "user",
+      "content": "Let's keep it around 150 words."
+    },
+    {
+      "role": "assistant",
+      "content": "📸 Introducing the Fujifilm X100VI – the epitome of a premium compact camera designed for professionals and photography enthusiasts alike. Featuring advanced capabilities, this camera combines cutting-edge technology with a classic design, ensuring that every shot is captured with precision and artistry. The X100VI boasts a high-performance sensor and a fast lens, enabling stunning image quality even in challenging lighting conditions. Its intuitive controls and customizable settings provide photographers with the flexibility to create their vision effortlessly. Whether you're capturing fleeting moments or composing intricate scenes, the X100VI's robust features ensure that you are equipped to handle any photographic challenge. Discover the perfect blend of form and function with the Fujifilm X100VI. Elevate your photography experience and express your creativity like never before. #Fujifilm #X100VI #Photography #CompactCamera #ProfessionalPhotography"
+    }
+  ],
+  "user_id": "deepeval-68df955a-665a-4743-99a5-cd66af41a288",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "needs_clarification": false,
+    "clarification_question": "How long should the post be?",
+    "product_description": "premium compact camera with advanced features",
+    "tone": "professional",
+    "tasks": [
+      "Confirm the length of the LinkedIn post",
+      "Identify the target audience for the post"
+    ],
+    "length": "150 words"
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_description",
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    },
+    {
+      "step": "validate_constraints",
+      "status": "complete",
+      "word_count": 128
+    }
+  ],
+  "updated_at": "2026-09-02T10:01:57.317698+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

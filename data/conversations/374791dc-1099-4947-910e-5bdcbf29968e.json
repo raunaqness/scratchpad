@@ -1,0 +1,115 @@
+{
+  "conversation_id": "374791dc-1099-4947-910e-5bdcbf29968e",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hello, I work at Fujifilm and I'm looking to discuss the Fujifilm X100VI. It’s a compact camera with five-axis IBIS and a 40.2-megapixel sensor. Can we start with its unique features?"
+    },
+    {
+      "role": "assistant",
+      "content": "I need one more distinct product fact to proceed.\n\nPlease provide at least three concrete product facts that may be included in the post."
+    },
+    {
+      "role": "user",
+      "content": "Additionally, the X100VI features a 23mmF2 lens, making it ideal for street photography with its fast aperture."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI! \n\n- It has five-axis IBIS for enhanced stability.\n- It features a 40.2-megapixel sensor for stunning image quality.\n- It comes equipped with a 23mmF2 lens, making it ideal for street photography with its fast aperture.\n\nDiscover the power of photography with the X100VI!"
+    }
+  ],
+  "user_id": "deepeval-374791dc-1099-4947-910e-5bdcbf29968e",
+  "status": "complete",
+  "analysis": {
+    "company": "Fujifilm",
+    "product_name": "Fujifilm X100VI",
+    "product_facts": [
+      "It has five-axis IBIS.",
+      "It features a 40.2-megapixel sensor.",
+      "It features a 23mmF2 lens, making it ideal for street photography with its fast aperture."
+    ],
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "needs_clarification": false,
+    "clarification_question": null,
+    "progress_update": "I have enough product facts to proceed with drafting the post.",
+    "tasks": [
+      "Create a LinkedIn post based on the provided product facts."
+    ]
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI! \n\n- It has five-axis IBIS for enhanced stability.\n- It features a 40.2-megapixel sensor for stunning image quality.\n- It comes equipped with a 23mmF2 lens, making it ideal for street photography with its fast aperture.\n\nDiscover the power of photography with the X100VI!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI! \n\n- It has five-axis IBIS for enhanced stability.\n- It features a 40.2-megapixel sensor for stunning image quality.\n- It comes equipped with a 23mmF2 lens, making it ideal for street photography with its fast aperture.\n\nDiscover the power of photography with the X100VI!",
+      "source": "create",
+      "created_at": "2026-09-03T08:59:26.885538+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": false,
+    "word_count": 48,
+    "maximum_words": null,
+    "updated_at": "2026-09-03T08:59:26.885618+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 48
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T08:59:26.887769+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

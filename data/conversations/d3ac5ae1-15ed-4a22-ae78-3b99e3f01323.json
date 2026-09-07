@@ -1,0 +1,70 @@
+{
+  "conversation_id": "d3ac5ae1-15ed-4a22-ae78-3b99e3f01323",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need to confirm some features of the Fujifilm X100VI. Can you verify that it has five-axis IBIS, a two-way tilting LCD, and a 40.2-megapixel sensor?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    },
+    {
+      "role": "user",
+      "content": "I understand, but can you confirm if the X100VI has the 23mmF2 lens and hybrid viewfinder as part of its features?"
+    },
+    {
+      "role": "assistant",
+      "content": "What tone should the post use, such as professional or confident? How long should the post be?"
+    }
+  ],
+  "user_id": "deepeval-d3ac5ae1-15ed-4a22-ae78-3b99e3f01323",
+  "status": "needs_clarification",
+  "analysis": {
+    "scope": "linkedin_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_description": "A compact camera with advanced features.",
+    "needs_clarification": true,
+    "clarification_question": "What tone should the post use, such as professional or confident? How long should the post be?",
+    "tasks": [
+      "Clarify the tone for the LinkedIn post.",
+      "Clarify the length for the LinkedIn post."
+    ]
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    },
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    }
+  ],
+  "updated_at": "2026-09-02T10:02:12.935638+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

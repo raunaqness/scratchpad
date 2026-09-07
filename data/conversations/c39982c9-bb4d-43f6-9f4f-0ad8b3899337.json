@@ -1,0 +1,138 @@
+{
+  "conversation_id": "c39982c9-bb4d-43f6-9f4f-0ad8b3899337",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI aimed at professional photographers. Keep it concise, under 150 words, with an engaging tone. Make sure to include a strong call to action and highlight the key features. Can you get this done?"
+    },
+    {
+      "role": "assistant",
+      "content": "I need product facts to proceed.\n\nPlease provide at least three concrete product facts that may be included in the post."
+    },
+    {
+      "role": "user",
+      "content": "Sure! The Fujifilm X100VI features a 26.1MP APS-C X-Trans CMOS 4 sensor, a fast hybrid autofocus system, and a classic design with a built-in electronic viewfinder."
+    },
+    {
+      "role": "assistant",
+      "content": "I could not validate the current draft against the confirmed product facts and requested constraints. Please provide any missing product facts or constraints before we finalize it."
+    },
+    {
+      "role": "user",
+      "content": "The post should also emphasize the X100VI's low-light performance and portability. Can you incorporate those points?"
+    },
+    {
+      "role": "assistant",
+      "content": "I could not validate the current draft against the confirmed product facts and requested constraints. Please provide any missing product facts or constraints before we finalize it."
+    }
+  ],
+  "user_id": "deepeval-c39982c9-bb4d-43f6-9f4f-0ad8b3899337",
+  "status": "needs_clarification",
+  "analysis": {
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "The Fujifilm X100VI features a 26.1MP APS-C X-Trans CMOS 4 sensor.",
+      "It has a fast hybrid autofocus system.",
+      "The camera has a classic design with a built-in electronic viewfinder."
+    ],
+    "tone": "engaging",
+    "length": 150,
+    "audience": "professional photographers",
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "needs_clarification": false,
+    "progress_update": "Product facts have been provided.",
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [],
+  "draft": "Discover the Fujifilm X100VI, a compact powerhouse tailored for professional photographers. This camera features a 26.1MP APS-C X-Trans CMOS 4 sensor, ensuring stunning image quality. Its fast hybrid autofocus system allows for quick and precise focusing, making it perfect for capturing those fleeting moments. Plus, the classic design, complete with a built-in electronic viewfinder, offers both style and functionality. Elevate your photography game with the X100VI and experience the blend of tradition and innovation.",
+  "draft_version": 2,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Unlock your creative potential with the Fujifilm X100VI! This exceptional camera features a 26.1MP APS-C X-Trans CMOS 4 sensor, delivering stunning image quality. Capture every moment with precision using its fast hybrid autofocus system. Plus, enjoy the classic design that includes a built-in electronic viewfinder, making it a perfect companion for professional photographers. Elevate your photography game today!",
+      "source": "create",
+      "created_at": "2026-09-02T12:53:15.685492+00:00"
+    },
+    {
+      "version": 2,
+      "draft": "Discover the Fujifilm X100VI, a compact powerhouse tailored for professional photographers. This camera features a 26.1MP APS-C X-Trans CMOS 4 sensor, ensuring stunning image quality. Its fast hybrid autofocus system allows for quick and precise focusing, making it perfect for capturing those fleeting moments. Plus, the classic design, complete with a built-in electronic viewfinder, offers both style and functionality. Elevate your photography game with the X100VI and experience the blend of tradition and innovation.",
+      "source": "create",
+      "created_at": "2026-09-02T12:53:22.677808+00:00"
+    }
+  ],
+  "validation": {
+    "status": "failed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": false,
+    "word_count": 74,
+    "maximum_words": null,
+    "updated_at": "2026-09-02T12:53:22.677906+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": "engaging",
+      "audience": "professional photographers",
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "failed",
+      "word_count": 58
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "blocked"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "failed",
+      "word_count": 74
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "blocked"
+    }
+  ],
+  "updated_at": "2026-09-02T12:53:22.679990+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

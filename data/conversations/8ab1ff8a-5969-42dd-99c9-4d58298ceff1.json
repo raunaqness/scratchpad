@@ -1,0 +1,54 @@
+{
+  "conversation_id": "8ab1ff8a-5969-42dd-99c9-4d58298ceff1",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hey, can you write a blog post for me and publish it directly to LinkedIn? Also, I need an answer to a random question I have. Let's see if you can handle all that."
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-8ab1ff8a-5969-42dd-99c9-4d58298ceff1",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope",
+    "product_facts": []
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "draft": "",
+  "draft_version": 0,
+  "draft_history": [],
+  "validation": {},
+  "requirements": {
+    "required": {
+      "product_name": false,
+      "minimum_product_facts": 3,
+      "product_fact_count": 0,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "product_name",
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-02T13:06:18.591348+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

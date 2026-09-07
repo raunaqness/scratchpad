@@ -1,0 +1,112 @@
+{
+  "conversation_id": "a00be16e-9662-4449-906f-a57a6ec97389",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need to discuss the Fujifilm X100VI camera specifics with you. It has a 40.2-megapixel sensor and five-axis IBIS, right? Let's confirm those details first."
+    },
+    {
+      "role": "assistant",
+      "content": "I retained the confirmed product information below. I cannot verify or research additional specifications; provide any new facts you want included in the LinkedIn post."
+    },
+    {
+      "role": "user",
+      "content": "Yes, those details are correct. The camera also features a 23mm F2 lens, which is essential for its compact design."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, featuring a 40.2-megapixel sensor for stunning image quality. Capture smooth, stable shots with its five-axis In-Body Image Stabilization (IBIS). Plus, the 23mm F2 lens allows for exceptional low-light performance and depth of field control. Elevate your photography with the X100VI!"
+    }
+  ],
+  "user_id": "deepeval-a00be16e-9662-4449-906f-a57a6ec97389",
+  "status": "complete",
+  "analysis": {
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "needs_clarification": false,
+    "clarification_question": null,
+    "progress_update": "Gathered product facts for the Fujifilm X100VI.",
+    "product_facts": [
+      "40.2-megapixel sensor",
+      "five-axis IBIS",
+      "23mm F2 lens"
+    ]
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI, featuring a 40.2-megapixel sensor for stunning image quality. Capture smooth, stable shots with its five-axis In-Body Image Stabilization (IBIS). Plus, the 23mm F2 lens allows for exceptional low-light performance and depth of field control. Elevate your photography with the X100VI!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, featuring a 40.2-megapixel sensor for stunning image quality. Capture smooth, stable shots with its five-axis In-Body Image Stabilization (IBIS). Plus, the 23mm F2 lens allows for exceptional low-light performance and depth of field control. Elevate your photography with the X100VI!",
+      "source": "create",
+      "created_at": "2026-09-03T09:15:30.349227+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": false,
+    "word_count": 44,
+    "maximum_words": null,
+    "updated_at": "2026-09-03T09:15:30.349318+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 44
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T09:15:30.357354+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

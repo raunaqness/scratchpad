@@ -1,0 +1,63 @@
+{
+  "conversation_id": "12cde6d0-8e7f-4f00-9b1a-6b07f6d4843f",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hey - i wanna launch my next product the Fuji xt20"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, I’m here and ready to help. I can create a LinkedIn post from product information you provide."
+    }
+  ],
+  "user_id": "anonymous",
+  "status": "needs_clarification",
+  "analysis": {
+    "product_name": "Fujifilm XT20",
+    "scope": "linkedin_post",
+    "intent": "greeting",
+    "needs_clarification": true,
+    "product_facts": [],
+    "clarification_question": "Please provide at least three key product features or concrete product facts that may be included in the post."
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [],
+  "planned_capabilities": [],
+  "draft": "",
+  "draft_version": 0,
+  "draft_history": [],
+  "validation": {},
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 0,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    }
+  ],
+  "updated_at": "2026-09-07T09:42:58.662666+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

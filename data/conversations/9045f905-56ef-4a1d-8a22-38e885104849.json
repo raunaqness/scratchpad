@@ -1,0 +1,96 @@
+{
+  "conversation_id": "9045f905-56ef-4a1d-8a22-38e885104849",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI. Here are three facts: it features a 23mm f/2 lens, a 26.1MP APS-C sensor, and 4K video capability. Can you help me craft something professional with these details?"
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, a powerful compact camera featuring a 23mm f/2 lens, a 26.1MP APS-C sensor, and 4K video capability. Capture stunning images and high-quality videos with this versatile tool."
+    }
+  ],
+  "user_id": "deepeval-9045f905-56ef-4a1d-8a22-38e885104849",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "23mm f/2 lens",
+      "26.1MP APS-C sensor",
+      "4K video capability"
+    ],
+    "needs_clarification": false,
+    "tasks": [
+      "create LinkedIn post"
+    ],
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "planned_capabilities": [],
+  "draft": "Introducing the Fujifilm X100VI, a powerful compact camera featuring a 23mm f/2 lens, a 26.1MP APS-C sensor, and 4K video capability. Capture stunning images and high-quality videos with this versatile tool.",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, a powerful compact camera featuring a 23mm f/2 lens, a 26.1MP APS-C sensor, and 4K video capability. Capture stunning images and high-quality videos with this versatile tool.",
+      "source": "create",
+      "created_at": "2026-09-03T10:48:40.429265+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 31,
+    "maximum_words": null,
+    "updated_at": "2026-09-03T10:48:40.429422+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 31
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T10:48:40.432111+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

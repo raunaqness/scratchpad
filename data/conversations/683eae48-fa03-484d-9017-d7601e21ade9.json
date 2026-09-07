@@ -1,0 +1,96 @@
+{
+  "conversation_id": "683eae48-fa03-484d-9017-d7601e21ade9",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI targeting professional photographers. It should be professional in tone, no longer than 150 words, and include a strong call to action. Key facts to include: it has a 23mm f/2 lens, 26.1MP X-Trans CMOS 4 sensor, and 4K video capability. Make sure all these points are addressed."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nUnlock your creative potential with the Fujifilm X100VI, a powerful tool designed for professional photographers. Featuring a sharp 23mm f/2 lens, this camera ensures exceptional clarity and depth in every shot. The advanced 26.1MP X-Trans CMOS 4 sensor delivers stunning image quality, capturing intricate details and vibrant colors even in challenging lighting conditions. Plus, with 4K video capability, you can elevate your storytelling through dynamic visuals. Experience the perfect blend of performance and portability. Don’t miss out—explore the Fujifilm X100VI today and take your photography to new heights!"
+    }
+  ],
+  "user_id": "deepeval-683eae48-fa03-484d-9017-d7601e21ade9",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "tone": "professional",
+    "length": "I need a LinkedIn post for the Fujifilm X100VI targeting professional photographers. It should be professional in tone, no longer than 150 words, and include a strong call to action. Key facts to include: it has a 23mm f/2 lens, 26.1MP X-Trans CMOS 4 sensor, and 4K video capability. Make sure all these points are addressed.",
+    "audience": "professional photographers",
+    "product_facts": [
+      "23mm f/2 lens",
+      "26.1MP X-Trans CMOS 4 sensor",
+      "4K video capability"
+    ],
+    "needs_clarification": false,
+    "progress_update": "Ready to draft the LinkedIn post.",
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Unlock your creative potential with the Fujifilm X100VI, a powerful tool designed for professional photographers. Featuring a sharp 23mm f/2 lens, this camera ensures exceptional clarity and depth in every shot. The advanced 26.1MP X-Trans CMOS 4 sensor delivers stunning image quality, capturing intricate details and vibrant colors even in challenging lighting conditions. Plus, with 4K video capability, you can elevate your storytelling through dynamic visuals. Experience the perfect blend of performance and portability. Don’t miss out—explore the Fujifilm X100VI today and take your photography to new heights!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Unlock your creative potential with the Fujifilm X100VI, a powerful tool designed for professional photographers. Featuring a sharp 23mm f/2 lens, this camera ensures exceptional clarity and depth in every shot. The advanced 26.1MP X-Trans CMOS 4 sensor delivers stunning image quality, capturing intricate details and vibrant colors even in challenging lighting conditions. Plus, with 4K video capability, you can elevate your storytelling through dynamic visuals. Experience the perfect blend of performance and portability. Don’t miss out—explore the Fujifilm X100VI today and take your photography to new heights!",
+      "source": "create",
+      "created_at": "2026-09-03T09:01:48.360866+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 88,
+    "maximum_words": 150,
+    "updated_at": "2026-09-03T09:01:48.361093+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": 150
+    },
+    "optional": {
+      "tone": "professional",
+      "audience": "professional photographers",
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 88
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T09:01:48.364133+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

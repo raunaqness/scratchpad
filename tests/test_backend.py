@@ -10,7 +10,7 @@ from __future__ import annotations
 from backend.app import get_thread_state, run_conversation
 from backend.artifact import Artifact, apply_client_edits
 from backend.memory_store import load_memory
-from backend.signal_models import Critique, TurnPlan
+from backend.signal_models import Critique, GroundingNotes, TurnPlan
 from backend.textutil import dedupe, enforce_max_words, max_words, word_count
 from tests.conftest import FakeModelScript
 
@@ -209,6 +209,75 @@ def test_empty_writer_output_asks_for_more_not_an_empty_draft(isolated_state, in
     assert result["status"] == "needs_input"
     assert result["artifact"]["body"] == ""
     assert "empty" in result["assistant_message"]
+
+
+def test_subject_rename_rebases_the_artifact(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(
+                mode="draft",
+                topic="JBL Bluetooth speaker",
+                format="linkedin_post",
+                confirmed_facts=["360-degree sound", "20-hour battery"],
+            ),
+            draft="A LinkedIn post about the JBL Bluetooth speaker and its 360-degree sound.",
+            grounding=["the JBL speaker is waterproof"],
+        )
+    )
+    first = _run(
+        "draft a post about the JBL Bluetooth speaker", conversation_id="rename"
+    )
+    assert first["artifact"]["topic"] == "JBL Bluetooth speaker"
+    assert first["artifact"]["sources"]
+    assert first["artifact"]["open_questions"]
+
+    script.plan = TurnPlan(
+        mode="revise",
+        topic="Fujifilm XT20 camera",
+        subject_changed=True,
+        revise_instruction="this is actually about the Fujifilm XT20 camera",
+    )
+    script.revised = "A LinkedIn post about the Fujifilm XT20 camera."
+    script._grounding = GroundingNotes(items=[])
+    second = _run(
+        "actually this is about the Fujifilm XT20 camera", conversation_id="rename"
+    )
+
+    art = second["artifact"]
+    assert art["topic"] == "Fujifilm XT20 camera"
+    assert art["title"] == "Fujifilm XT20 camera"
+    # context scoped to the old subject is dropped
+    assert art["sources"] == []
+    assert art["open_questions"] == []
+    assert "Rebased" in second["assistant_message"]
+
+
+def test_subject_detail_added_does_not_rebase(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(
+                mode="draft",
+                topic="Widget Pro",
+                format="linkedin_post",
+                confirmed_facts=["ships in March"],
+            ),
+            draft="A post about Widget Pro shipping in March.",
+            grounding=[],
+        )
+    )
+    _run("draft a post about Widget Pro", conversation_id="detail")
+
+    # adding detail to the same subject: subject_changed stays False
+    script.plan = TurnPlan(
+        mode="revise",
+        topic="Widget Pro",
+        revise_instruction="mention the price",
+    )
+    script.revised = "A post about Widget Pro, $99, shipping in March."
+    result = _run("also mention it's $99", conversation_id="detail")
+
+    assert result["artifact"]["sources"] == ["ships in March"]
+    assert "Rebased" not in result["assistant_message"]
 
 
 def test_critique_annotates_open_questions(isolated_state, install_models):

@@ -1,0 +1,17 @@
+{
+  "conversation_id": "b76ac70e-cbf0-420f-81fa-f1ab09d599d1",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100. Can you help with that?"
+    },
+    {
+      "role": "assistant",
+      "content": "What does the product do? What tone should the post use, such as professional or confident?"
+    }
+  ],
+  "user_id": "deepeval-b76ac70e-cbf0-420f-81fa-f1ab09d599d1",
+  "status": "needs_clarification",
+  "updated_at": "2026-09-02T09:17:44.926632+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

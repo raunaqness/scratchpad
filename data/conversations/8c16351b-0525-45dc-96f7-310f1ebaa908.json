@@ -1,0 +1,114 @@
+{
+  "conversation_id": "8c16351b-0525-45dc-96f7-310f1ebaa908",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Draft a linkedin post for a product im launching - the Fuji XT20"
+    },
+    {
+      "role": "assistant",
+      "content": "To create the post safely, I still need the following information:\n\nPlease provide at least three concrete product facts that may be included in the post."
+    },
+    {
+      "role": "user",
+      "content": "1. It has a 40 MP camera.\n2. It is fully weather-sealed.\n3. It comes with interchangeable lenses."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fuji XT20! \n\n- It features a 40 MP camera for stunning image quality. \n- The camera is fully weather-sealed, ensuring durability in various conditions. \n- Enjoy the versatility of interchangeable lenses for different shooting styles. \n\nExplore the possibilities with the Fuji XT20!"
+    }
+  ],
+  "user_id": "agui-8c16351b-0525-45dc-96f7-310f1ebaa908",
+  "status": "complete",
+  "analysis": {
+    "product_name": "Fuji XT20",
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "needs_clarification": false,
+    "clarification_question": null,
+    "tasks": [
+      "create linkedin post"
+    ],
+    "product_facts": [
+      "It has a 40 MP camera.",
+      "It is fully weather-sealed.",
+      "It comes with interchangeable lenses."
+    ]
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "planned_capabilities": [],
+  "draft": "Introducing the Fuji XT20! \n\n- It features a 40 MP camera for stunning image quality. \n- The camera is fully weather-sealed, ensuring durability in various conditions. \n- Enjoy the versatility of interchangeable lenses for different shooting styles. \n\nExplore the possibilities with the Fuji XT20!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fuji XT20! \n\n- It features a 40 MP camera for stunning image quality. \n- The camera is fully weather-sealed, ensuring durability in various conditions. \n- Enjoy the versatility of interchangeable lenses for different shooting styles. \n\nExplore the possibilities with the Fuji XT20!",
+      "source": "create",
+      "created_at": "2026-09-07T10:02:09.073830+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": false,
+    "word_count": 44,
+    "maximum_words": null,
+    "updated_at": "2026-09-07T10:02:09.074100+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 44
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-07T10:02:09.077958+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

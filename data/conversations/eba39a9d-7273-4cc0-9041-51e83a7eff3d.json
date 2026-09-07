@@ -1,0 +1,53 @@
+{
+  "conversation_id": "eba39a9d-7273-4cc0-9041-51e83a7eff3d",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI. Make sure it targets photography enthusiasts, captures a professional tone, stays under 150 words, includes a clear call to action, and highlights key product features. Don't miss any of those details."
+    },
+    {
+      "role": "assistant",
+      "content": "What does the product do?"
+    }
+  ],
+  "user_id": "deepeval-eba39a9d-7273-4cc0-9041-51e83a7eff3d",
+  "status": "needs_clarification",
+  "analysis": {
+    "scope": "linkedin_post",
+    "company": "Fujifilm",
+    "product_name": "Fujifilm X100VI",
+    "tone": "professional",
+    "length": "under 150 words",
+    "audience": "photography enthusiasts",
+    "needs_clarification": true,
+    "clarification_question": "What does the product do?",
+    "tasks": [
+      "Identify key product features for the Fujifilm X100VI.",
+      "Draft a LinkedIn post targeting photography enthusiasts with a professional tone.",
+      "Ensure the post is under 150 words.",
+      "Include a clear call to action."
+    ]
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_description"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    }
+  ],
+  "updated_at": "2026-09-02T09:43:22.487167+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

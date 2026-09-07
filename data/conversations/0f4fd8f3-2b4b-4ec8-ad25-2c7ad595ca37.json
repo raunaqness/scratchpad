@@ -1,0 +1,93 @@
+{
+  "conversation_id": "0f4fd8f3-2b4b-4ec8-ad25-2c7ad595ca37",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need help drafting a LinkedIn post for the Fujifilm X100VI. Here are some key facts: it has a 26.1MP sensor, a fixed 23mm f/2 lens, and 4K video capability. Can you create a post that highlights these features?"
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, equipped with a 26.1MP sensor for stunning image quality. This camera features a fixed 23mm f/2 lens, perfect for capturing detailed shots with beautiful bokeh. Plus, it offers 4K video capability to elevate your filmmaking experience. Discover the power of the X100VI!"
+    }
+  ],
+  "user_id": "deepeval-0f4fd8f3-2b4b-4ec8-ad25-2c7ad595ca37",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "26.1MP sensor",
+      "fixed 23mm f/2 lens",
+      "4K video capability"
+    ],
+    "needs_clarification": false,
+    "progress_update": "Product facts have been collected.",
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI, equipped with a 26.1MP sensor for stunning image quality. This camera features a fixed 23mm f/2 lens, perfect for capturing detailed shots with beautiful bokeh. Plus, it offers 4K video capability to elevate your filmmaking experience. Discover the power of the X100VI!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, equipped with a 26.1MP sensor for stunning image quality. This camera features a fixed 23mm f/2 lens, perfect for capturing detailed shots with beautiful bokeh. Plus, it offers 4K video capability to elevate your filmmaking experience. Discover the power of the X100VI!",
+      "source": "create",
+      "created_at": "2026-09-03T09:15:52.187917+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 46,
+    "maximum_words": null,
+    "updated_at": "2026-09-03T09:15:52.188002+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 46
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T09:15:52.189694+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

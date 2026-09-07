@@ -1,0 +1,93 @@
+{
+  "conversation_id": "37bf6ecf-a4e7-490e-a57d-d9ab6bac7c66",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need help crafting a LinkedIn post for the Fujifilm X100VI. Here are some product facts: it has a 23mm f/2 lens, a 26.1MP sensor, and a hybrid autofocus system. Can you create a post that highlights these features?"
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI! This powerful camera features a 23mm f/2 lens, a 26.1MP sensor, and a hybrid autofocus system. Capture stunning images with precision and speed. Explore the possibilities with the X100VI!"
+    }
+  ],
+  "user_id": "deepeval-37bf6ecf-a4e7-490e-a57d-d9ab6bac7c66",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "it has a 23mm f/2 lens",
+      "it has a 26.1MP sensor",
+      "it has a hybrid autofocus system"
+    ],
+    "needs_clarification": false,
+    "progress_update": "Ready to draft the LinkedIn post.",
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI! This powerful camera features a 23mm f/2 lens, a 26.1MP sensor, and a hybrid autofocus system. Capture stunning images with precision and speed. Explore the possibilities with the X100VI!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI! This powerful camera features a 23mm f/2 lens, a 26.1MP sensor, and a hybrid autofocus system. Capture stunning images with precision and speed. Explore the possibilities with the X100VI!",
+      "source": "create",
+      "created_at": "2026-09-02T12:59:19.314814+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": false,
+    "word_count": 33,
+    "maximum_words": null,
+    "updated_at": "2026-09-02T12:59:19.314882+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 33
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-02T12:59:19.316811+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

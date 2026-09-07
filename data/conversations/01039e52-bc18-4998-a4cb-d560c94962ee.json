@@ -1,0 +1,93 @@
+{
+  "conversation_id": "01039e52-bc18-4998-a4cb-d560c94962ee",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hey, I need a LinkedIn post for the Fujifilm X100VI. Here are some facts: it has a 23mm f/2 lens, a 26.1MP sensor, and it shoots 4K video. Can you help me craft something that highlights these features?"
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI! \n\n- Equipped with a 23mm f/2 lens for stunning image quality.\n- Features a 26.1MP sensor that captures incredible detail.\n- Capable of shooting 4K video for high-resolution filming.\n\nElevate your photography and videography with the X100VI!"
+    }
+  ],
+  "user_id": "deepeval-01039e52-bc18-4998-a4cb-d560c94962ee",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "23mm f/2 lens",
+      "26.1MP sensor",
+      "shoots 4K video"
+    ],
+    "needs_clarification": false,
+    "progress_update": "Three distinct product facts have been collected.",
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI! \n\n- Equipped with a 23mm f/2 lens for stunning image quality.\n- Features a 26.1MP sensor that captures incredible detail.\n- Capable of shooting 4K video for high-resolution filming.\n\nElevate your photography and videography with the X100VI!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI! \n\n- Equipped with a 23mm f/2 lens for stunning image quality.\n- Features a 26.1MP sensor that captures incredible detail.\n- Capable of shooting 4K video for high-resolution filming.\n\nElevate your photography and videography with the X100VI!",
+      "source": "create",
+      "created_at": "2026-09-03T09:07:42.302620+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": false,
+    "word_count": 41,
+    "maximum_words": null,
+    "updated_at": "2026-09-03T09:07:42.302726+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 41
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T09:07:42.304794+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

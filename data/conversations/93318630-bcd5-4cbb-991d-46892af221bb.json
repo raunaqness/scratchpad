@@ -1,0 +1,39 @@
+{
+  "conversation_id": "93318630-bcd5-4cbb-991d-46892af221bb",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Can you write a blog post for me, publish it on LinkedIn, and also tell me why the sky is blue? Let’s see if you can handle all that."
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-93318630-bcd5-4cbb-991d-46892af221bb",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope"
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "company",
+        "product_name",
+        "product_description",
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-02T10:13:35.743205+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

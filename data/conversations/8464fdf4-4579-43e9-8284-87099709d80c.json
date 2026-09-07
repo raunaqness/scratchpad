@@ -1,0 +1,41 @@
+{
+  "conversation_id": "8464fdf4-4579-43e9-8284-87099709d80c",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need to clarify some specifications for the Fujifilm X100VI. Can you confirm the details on the five-axis IBIS and the 40.2-megapixel sensor?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-8464fdf4-4579-43e9-8284-87099709d80c",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_description": "Five-axis IBIS and 40.2-megapixel sensor",
+    "needs_clarification": true,
+    "clarification_question": "What tone and length do you prefer for the LinkedIn post?"
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-02T10:13:59.688010+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

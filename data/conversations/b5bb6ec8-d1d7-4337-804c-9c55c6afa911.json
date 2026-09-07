@@ -1,0 +1,41 @@
+{
+  "conversation_id": "b5bb6ec8-d1d7-4337-804c-9c55c6afa911",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hey, can you tell me a recipe for cooking? I want to see if you can actually help with that."
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-b5bb6ec8-d1d7-4337-804c-9c55c6afa911",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope",
+    "needs_clarification": true,
+    "clarification_question": "Could you please provide a product name and product description for the LinkedIn post?"
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "company",
+        "product_name",
+        "product_description",
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-02T10:45:24.259503+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AuiConfig,
   AuiProvider,
@@ -8,16 +8,13 @@ import {
   Tools,
   defineToolkit,
   useAui,
-  useAuiState,
 } from "@assistant-ui/react";
+import { useAgUiState } from "@assistant-ui/react-ag-ui";
 import { Check, PlusIcon } from "lucide-react";
-import {
-  useAgUiInterrupts,
-  useAgUiState,
-  useAgUiSubmitInterruptResponses,
-} from "@assistant-ui/react-ag-ui";
 
 import { Thread } from "@/components/assistant-ui/elements/thread.aui";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 type ChoiceOption = {
   id: string;
@@ -32,51 +29,54 @@ type ChoiceArgs = {
 
 type ChoiceToolProps = {
   args: ChoiceArgs;
-  interrupt?: unknown;
   result?: unknown;
+};
+
+type SignalProgress = {
+  node?: string | null;
+  label?: string;
+  status?: string;
+  steps?: string[];
+  done?: boolean;
 };
 
 type SignalArtifact = {
   processing?: boolean;
-  progress?: {
-    stage?: string;
-    label?: string;
-    completed_steps?: string[];
-  };
+  progress?: SignalProgress;
   status?: string;
+  kind?: "idea_board" | "outline" | "draft";
+  title?: string;
+  topic?: string;
+  angles?: string[];
+  outline?: string[];
+  body?: string;
+  open_questions?: string[];
+  version?: number;
+  // back-compat mirrors still emitted by the backend
   draft?: string;
   draft_version?: number;
-  validation?: {
-    status?: string;
-  };
-  requirements?: {
-    required?: {
-      product_name?: boolean;
-      product_fact_count?: number;
-      minimum_product_facts?: number;
-    };
-  };
 };
 
-function ChoiceTool({ args, interrupt, result }: ChoiceToolProps) {
+/**
+ * Agent-generated picker. The backend emits a `request_choice` tool call
+ * (e.g. brainstorm angles); we render radio buttons and a selection is sent
+ * back as a normal user turn — the interpreter turns it into `chosen_angle`.
+ */
+function ChoiceTool({ args, result }: ChoiceToolProps) {
+  const aui = useAui();
   const [selected, setSelected] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const submitInterruptResponses = useAgUiSubmitInterruptResponses();
-  const pendingInterrupts = useAgUiInterrupts();
+  const [submitted, setSubmitted] = useState(false);
   const options = args.options ?? [];
-  const hasResult = result !== undefined;
-  const pendingInterrupt = pendingInterrupts.find(
-    (item) =>
-      item.id === args.id ||
-      item.toolCallId === args.id ||
-      item.toolCallId === `choice-${args.id}`,
-  );
+  const done = result !== undefined || submitted;
 
-  if (hasResult && result !== undefined) {
+  if (done) {
+    const label =
+      options.find((option) => option.id === selected)?.label ??
+      (typeof result === "string" ? result : selected);
     return (
       <div className="choice-card choice-card-complete">
         <Check size={16} />
-        <span>Selected: {String(result)}</span>
+        <span>Going with: {label || "your pick"}</span>
       </div>
     );
   }
@@ -101,24 +101,15 @@ function ChoiceTool({ args, interrupt, result }: ChoiceToolProps) {
       <button
         type="button"
         className="choice-proceed"
-        disabled={!selected || !pendingInterrupt || submitting}
-        onClick={async () => {
-          if (!pendingInterrupt || !selected) return;
-          setSubmitting(true);
-          try {
-            await submitInterruptResponses([
-              {
-                interruptId: pendingInterrupt.id,
-                status: "resolved",
-                payload: { id: args.id, value: selected },
-              },
-            ]);
-          } finally {
-            setSubmitting(false);
-          }
+        disabled={!selected}
+        onClick={() => {
+          const label = options.find((option) => option.id === selected)?.label;
+          if (!label) return;
+          setSubmitted(true);
+          aui.thread.append(`Let's run with this angle: ${label}`);
         }}
       >
-        {submitting ? "Proceeding…" : "Proceed"}
+        Proceed
       </button>
     </div>
   );
@@ -130,7 +121,6 @@ const toolkit = defineToolkit({
     render: (props) => (
       <ChoiceTool
         args={props.args as ChoiceArgs}
-        interrupt={props.interrupt}
         result={props.result}
       />
     ),
@@ -170,70 +160,149 @@ const toolkit = defineToolkit({
   },
 });
 
-function ArtifactPanel() {
-  const artifact = useAgUiState<SignalArtifact>();
-  const draft = artifact?.draft ?? "";
-  const requirements = artifact?.requirements?.required;
-  const isReady = Boolean(draft);
-  const isOpen = Boolean(artifact?.processing || draft || artifact?.draft_version);
+const KIND_TITLE: Record<string, string> = {
+  idea_board: "Idea board",
+  outline: "Outline",
+  draft: "Draft",
+};
 
+const STATUS_LABEL: Record<string, string> = {
+  exploring: "Exploring angles",
+  drafting: "Outline ready",
+  refining: "Draft in progress",
+  stable: "Stable",
+  empty: "No draft yet",
+};
+
+function ArtifactPanel() {
+  const state = useAgUiState<SignalArtifact>();
+  const processing = Boolean(state?.processing);
+  const body = state?.body ?? state?.draft ?? "";
+  const angles = state?.angles ?? [];
+  const outline = state?.outline ?? [];
+  const openQuestions = state?.open_questions ?? [];
+  const version = state?.version ?? state?.draft_version ?? 0;
+  const kind = state?.kind ?? (body ? "draft" : outline.length ? "outline" : "idea_board");
+
+  const isOpen = Boolean(
+    processing || body || angles.length || outline.length || version,
+  );
   if (!isOpen) {
     return null;
   }
 
+  const hasContent = Boolean(body || outline.length || angles.length);
+
   return (
-    <aside className="artifact-panel">
+    <aside className={cn("artifact-panel", processing && "is-loading")}>
       <div className="artifact-header">
         <div>
           <p className="artifact-kicker">Live artifact</p>
-          <h2>LinkedIn draft</h2>
+          <h2>{state?.title || KIND_TITLE[kind] || "Draft"}</h2>
         </div>
-        {artifact?.draft_version ? (
-          <span className="artifact-version">v{artifact.draft_version}</span>
-        ) : null}
+        {version ? <span className="artifact-version">v{version}</span> : null}
       </div>
+
+      <div className="artifact-progressbar" aria-hidden={!processing} data-active={processing} />
+
       <div className="artifact-body">
-        {artifact?.progress ? (
-          <details className="debug-progress" open={artifact.processing}>
-            <summary>Backend progress</summary>
-            <p>{artifact.progress.label}</p>
-            {artifact.progress.completed_steps?.length ? (
-              <ol>
-                {artifact.progress.completed_steps.map((step, index) => (
-                  <li key={`${step}-${index}`}>{step}</li>
-                ))}
-              </ol>
-            ) : (
-              <span>Current stage: {artifact.progress.stage}</span>
-            )}
-          </details>
-        ) : null}
-        {isReady ? (
-          <div className="artifact-copy">{draft}</div>
+        {body ? (
+          <div className="artifact-copy">
+            {body}
+            {processing ? <span className="artifact-caret" /> : null}
+          </div>
+        ) : outline.length ? (
+          <ol className="artifact-outline">
+            {outline.map((beat, index) => (
+              <li key={`${beat}-${index}`}>{beat}</li>
+            ))}
+          </ol>
+        ) : angles.length ? (
+          <ul className="artifact-angles">
+            {angles.map((angle, index) => (
+              <li key={`${angle}-${index}`}>{angle}</li>
+            ))}
+          </ul>
+        ) : processing ? (
+          <div className="artifact-skeleton">
+            <Skeleton className="h-4 w-11/12" />
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
         ) : (
           <div className="artifact-empty">
             <div className="artifact-empty-mark">S</div>
-            <p>Your draft will take shape here.</p>
+            <p>Your piece will take shape here.</p>
             <span>
-              Share a product name and at least three concrete facts to begin.
+              Share a product or an idea and Signal starts putting angles on the
+              board.
             </span>
           </div>
         )}
+
+        {openQuestions.length ? (
+          <div className="artifact-questions">
+            <p className="artifact-questions-heading">Open questions</p>
+            <ul>
+              {openQuestions.map((question, index) => (
+                <li key={`${question}-${index}`}>{question}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
+
       <div className="artifact-footer">
         <span>
-          {artifact?.validation?.status === "passed"
-            ? "Validated"
-            : artifact?.status === "needs_clarification"
-              ? "Waiting for your input"
-              : isReady
-                ? "Draft in progress"
-                : requirements?.product_fact_count
-                  ? `${requirements.product_fact_count} facts collected`
-                  : "No draft yet"}
+          {processing
+            ? state?.progress?.label
+              ? `${state.progress.label}…`
+              : "Working…"
+            : hasContent
+              ? STATUS_LABEL[state?.status ?? ""] ?? "Draft in progress"
+              : "No draft yet"}
         </span>
       </div>
     </aside>
+  );
+}
+
+function ProgressChip() {
+  const state = useAgUiState<SignalArtifact>();
+  const processing = Boolean(state?.processing);
+  const progress = state?.progress;
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (processing) {
+      setVisible(true);
+      return;
+    }
+    if (!progress) return;
+    const timeout = setTimeout(() => setVisible(false), 1400);
+    return () => clearTimeout(timeout);
+  }, [processing, progress]);
+
+  // dev-only: true under `next dev`, false in a production build
+  const isDev =
+    process.env.NODE_ENV === "development" ||
+    process.env.NEXT_PUBLIC_APP_ENV === "development";
+  if (!isDev) return null;
+  if (!visible || !progress) return null;
+
+  const steps = progress.steps?.length ? progress.steps.join(" → ") : undefined;
+
+  return (
+    <div
+      className={cn("progress-chip", !processing && "is-done")}
+      title={steps}
+      aria-live="polite"
+    >
+      <span className={processing ? "progress-chip-spinner" : "progress-chip-check"} />
+      <span className="progress-chip-label">
+        {processing ? progress.label ?? "Working" : "Done"}
+      </span>
+    </div>
   );
 }
 
@@ -244,11 +313,20 @@ function NewThreadButton() {
     <button
       type="button"
       onClick={() => aui.threads.switchToNewThread()}
-      className="bg-background hover:bg-accent absolute top-4 right-4 z-10 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors"
+      className="bg-background hover:bg-accent flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors"
     >
       <PlusIcon className="size-4" />
       New Thread
     </button>
+  );
+}
+
+function TopRightControls() {
+  return (
+    <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+      <ProgressChip />
+      <NewThreadButton />
+    </div>
   );
 }
 
@@ -288,7 +366,7 @@ export default function AppPage() {
       <main className="app-workspace">
         <section className="app-chat">
           <EnvironmentBadge />
-          <NewThreadButton />
+          <TopRightControls />
           <Thread />
         </section>
         <ArtifactPanel />

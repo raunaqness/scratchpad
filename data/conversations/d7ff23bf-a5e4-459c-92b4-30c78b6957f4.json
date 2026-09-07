@@ -1,0 +1,44 @@
+{
+  "conversation_id": "d7ff23bf-a5e4-459c-92b4-30c78b6957f4",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hey, I'm trying to see if Signal can actually give me a recipe. Can you tell me how to cook something?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-d7ff23bf-a5e4-459c-92b4-30c78b6957f4",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope",
+    "intent": "out_of_scope",
+    "needs_clarification": false,
+    "progress_update": "No relevant product facts provided for a LinkedIn post.",
+    "product_facts": []
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "draft": "",
+  "draft_version": 0,
+  "draft_history": [],
+  "validation": {},
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "product_name",
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-02T12:15:59.738644+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

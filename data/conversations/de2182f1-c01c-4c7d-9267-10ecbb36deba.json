@@ -1,0 +1,96 @@
+{
+  "conversation_id": "de2182f1-c01c-4c7d-9267-10ecbb36deba",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI targeting photography professionals. It should be professional in tone, no longer than 150 words, and include a strong call to action. Highlight its compact design, advanced autofocus, and 26.1 MP sensor. Make sure all these elements are addressed."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, the perfect companion for photography professionals seeking a blend of portability and performance. With its compact design, this camera allows you to capture stunning images without the bulk. The advanced autofocus system ensures you never miss a moment, delivering sharp and precise focus even in challenging conditions. Equipped with a powerful 26.1 MP sensor, the X100VI produces breathtaking detail and vibrant colors, elevating your photography to new heights. Ready to enhance your photography experience? Discover the Fujifilm X100VI today and take your craft to the next level!"
+    }
+  ],
+  "user_id": "deepeval-de2182f1-c01c-4c7d-9267-10ecbb36deba",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "tone": "professional",
+    "length": "I need a LinkedIn post for the Fujifilm X100VI targeting photography professionals. It should be professional in tone, no longer than 150 words, and include a strong call to action. Highlight its compact design, advanced autofocus, and 26.1 MP sensor. Make sure all these elements are addressed.",
+    "audience": "photography professionals",
+    "product_facts": [
+      "compact design",
+      "advanced autofocus",
+      "26.1 MP sensor"
+    ],
+    "needs_clarification": false,
+    "progress_update": "Ready to draft the LinkedIn post.",
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI, the perfect companion for photography professionals seeking a blend of portability and performance. With its compact design, this camera allows you to capture stunning images without the bulk. The advanced autofocus system ensures you never miss a moment, delivering sharp and precise focus even in challenging conditions. Equipped with a powerful 26.1 MP sensor, the X100VI produces breathtaking detail and vibrant colors, elevating your photography to new heights. Ready to enhance your photography experience? Discover the Fujifilm X100VI today and take your craft to the next level!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, the perfect companion for photography professionals seeking a blend of portability and performance. With its compact design, this camera allows you to capture stunning images without the bulk. The advanced autofocus system ensures you never miss a moment, delivering sharp and precise focus even in challenging conditions. Equipped with a powerful 26.1 MP sensor, the X100VI produces breathtaking detail and vibrant colors, elevating your photography to new heights. Ready to enhance your photography experience? Discover the Fujifilm X100VI today and take your craft to the next level!",
+      "source": "create",
+      "created_at": "2026-09-03T09:10:26.358127+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 91,
+    "maximum_words": 150,
+    "updated_at": "2026-09-03T09:10:26.358421+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": 150
+    },
+    "optional": {
+      "tone": "professional",
+      "audience": "photography professionals",
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 91
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T09:10:26.361019+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

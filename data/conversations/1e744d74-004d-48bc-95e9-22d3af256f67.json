@@ -1,0 +1,80 @@
+{
+  "conversation_id": "1e744d74-004d-48bc-95e9-22d3af256f67",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI. Target audience is professional photographers, the tone should be informative yet engaging, maximum length is 150 words, and it must include a strong call to action. Make sure to highlight key product facts too. Can you get that done?"
+    },
+    {
+      "role": "assistant",
+      "content": "What does the product do?"
+    },
+    {
+      "role": "user",
+      "content": "The Fujifilm X100VI is a compact camera designed for professional photographers, featuring a fast autofocus system, a high-resolution sensor, and advanced film simulation modes."
+    },
+    {
+      "role": "assistant",
+      "content": "📸 Attention professional photographers! Introducing the Fujifilm X100VI – the ultimate compact camera tailored for your creative needs. Experience a fast autofocus system that ensures you never miss a moment, combined with a high-resolution sensor that captures stunning detail. Plus, explore advanced film simulation modes that bring your artistic vision to life. Whether you're shooting in the studio or on the streets, the X100VI is designed to elevate your photography game. Don't just take our word for it; see it in action! 👉 Discover more about the Fujifilm X100VI and elevate your photography experience today! #Fujifilm #X100VI #Photography #ProfessionalPhotographers"
+    }
+  ],
+  "user_id": "deepeval-1e744d74-004d-48bc-95e9-22d3af256f67",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "tone": "informative yet engaging",
+    "length": "maximum 150 words",
+    "audience": "professional photographers",
+    "call_to_action": "strong call to action",
+    "needs_clarification": false,
+    "clarification_question": "What does the product do?",
+    "tasks": [
+      "Draft a LinkedIn post based on the provided details."
+    ],
+    "product_description": "The Fujifilm X100VI is a compact camera designed for professional photographers, featuring a fast autofocus system, a high-resolution sensor, and advanced film simulation modes."
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_description"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    },
+    {
+      "step": "validate_constraints",
+      "status": "complete",
+      "word_count": 99
+    }
+  ],
+  "updated_at": "2026-09-02T10:34:16.324739+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

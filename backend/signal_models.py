@@ -38,6 +38,11 @@ class TurnPlan(BaseModel):
     chosen_angle: str | None = None
     revise_instruction: str | None = None
 
+    # True when the user switches the piece to a DIFFERENT subject than the
+    # artifact's current topic (a rename / correction), not just adding detail.
+    # The graph rebases the artifact when this is set alongside a new `topic`.
+    subject_changed: bool = False
+
     # conversation control
     clarifying_question: str | None = None
     reply_gist: str | None = None

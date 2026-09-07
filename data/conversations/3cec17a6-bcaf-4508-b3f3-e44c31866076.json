@@ -1,0 +1,58 @@
+{
+  "conversation_id": "3cec17a6-bcaf-4508-b3f3-e44c31866076",
+  "turns": [
+    {
+      "role": "user",
+      "content": "what?"
+    },
+    {
+      "role": "assistant",
+      "content": "I’m happy to help with product content. Right now I can create LinkedIn posts from information you provide, but I can’t handle that request yet."
+    }
+  ],
+  "user_id": "anonymous",
+  "status": "out_of_scope",
+  "analysis": {
+    "product_name": "Fujifilm XT20",
+    "scope": "out_of_scope",
+    "intent": "out_of_scope",
+    "needs_clarification": true,
+    "clarification_question": "Please provide at least three distinct concrete product facts for the Fujifilm XT20.",
+    "product_facts": []
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "planned_capabilities": [],
+  "draft": "",
+  "draft_version": 0,
+  "draft_history": [],
+  "validation": {},
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 0,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-07T09:45:16.071770+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

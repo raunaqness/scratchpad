@@ -1,0 +1,54 @@
+{
+  "conversation_id": "d319187d-1211-40c1-92f0-ae1e4a93980e",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hey, I’m just curious if you can actually share recipes here or if you’re limited to LinkedIn posts only. Can you tell me how to cook something?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-d319187d-1211-40c1-92f0-ae1e4a93980e",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope",
+    "product_facts": []
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "draft": "",
+  "draft_version": 0,
+  "draft_history": [],
+  "validation": {},
+  "requirements": {
+    "required": {
+      "product_name": false,
+      "minimum_product_facts": 3,
+      "product_fact_count": 0,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "product_name",
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-03T10:12:32.443035+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

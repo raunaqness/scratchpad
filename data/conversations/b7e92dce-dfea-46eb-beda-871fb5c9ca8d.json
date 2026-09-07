@@ -1,0 +1,114 @@
+{
+  "conversation_id": "b7e92dce-dfea-46eb-beda-871fb5c9ca8d",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I'm currently working at Fujifilm and need to discuss the X100VI. It's crucial to highlight its five-axis IBIS and 40.2-megapixel sensor. Can we delve into the specifics of this compact camera?"
+    },
+    {
+      "role": "assistant",
+      "content": "To create the post safely, I still need the following information:\n\nI have retained these confirmed product facts: five-axis IBIS, 40.2-megapixel sensor. Please provide at least three concrete product facts in total before drafting."
+    },
+    {
+      "role": "user",
+      "content": "Additionally, the X100VI features a 23mmF2 lens, which enhances its versatility for various photography styles."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, a powerful compact camera featuring a five-axis IBIS for superior image stabilization. Capture stunning details with its 40.2-megapixel sensor and enjoy the versatility of the 23mmF2 lens. Elevate your photography experience with the X100VI!"
+    }
+  ],
+  "user_id": "deepeval-b7e92dce-dfea-46eb-beda-871fb5c9ca8d",
+  "status": "complete",
+  "analysis": {
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "five-axis IBIS",
+      "40.2-megapixel sensor",
+      "23mmF2 lens"
+    ],
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "needs_clarification": false,
+    "clarification_question": null,
+    "tasks": [
+      "collect product facts"
+    ]
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI, a powerful compact camera featuring a five-axis IBIS for superior image stabilization. Capture stunning details with its 40.2-megapixel sensor and enjoy the versatility of the 23mmF2 lens. Elevate your photography experience with the X100VI!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, a powerful compact camera featuring a five-axis IBIS for superior image stabilization. Capture stunning details with its 40.2-megapixel sensor and enjoy the versatility of the 23mmF2 lens. Elevate your photography experience with the X100VI!",
+      "source": "create",
+      "created_at": "2026-09-03T10:26:46.363015+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 38,
+    "maximum_words": null,
+    "updated_at": "2026-09-03T10:26:46.363168+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 38
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T10:26:46.366558+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

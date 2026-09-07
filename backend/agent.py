@@ -7,8 +7,9 @@ produces them, and ``RUN_FINISHED`` is always sent — including after an error.
 
 from __future__ import annotations
 
+import json
 import uuid
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Iterator
 
 from ag_ui.core import (
     EventType,
@@ -20,6 +21,9 @@ from ag_ui.core import (
     TextMessageContentEvent,
     TextMessageEndEvent,
     TextMessageStartEvent,
+    ToolCallArgsEvent,
+    ToolCallEndEvent,
+    ToolCallStartEvent,
 )
 from ag_ui.encoder import EventEncoder
 from fastapi import FastAPI, Request
@@ -39,6 +43,58 @@ app.add_middleware(
     allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+# Human-readable label per graph node, for the dev progress indicator.
+_PROGRESS_LABELS = {
+    "interpret": "Reading your turn",
+    "brainstorm": "Brainstorming angles",
+    "draft": "Drafting",
+    "revise": "Revising",
+    "critique": "Critiquing",
+    "respond": "Replying",
+}
+
+
+def _progress(node: str | None, status: str, steps: list[str], *, done: bool) -> dict[str, Any]:
+    return {
+        "node": node,
+        "label": "Done" if done else _PROGRESS_LABELS.get(node or "", node or "Working"),
+        "status": status,
+        "steps": list(steps),
+        "done": done,
+    }
+
+
+def _choice_tool_events(
+    encoder: EventEncoder, choice: dict[str, Any], parent_message_id: str | None
+) -> Iterator[str]:
+    """Render a ``ui_choice`` as a self-contained ``request_choice`` tool call."""
+
+    tool_call_id = f"choice-{uuid.uuid4()}"
+    args = {
+        "id": choice.get("id"),
+        "question": choice.get("question") or "Choose an option",
+        "options": choice.get("options") or [],
+    }
+    yield encoder.encode(
+        ToolCallStartEvent(
+            type=EventType.TOOL_CALL_START,
+            toolCallId=tool_call_id,
+            toolCallName="request_choice",
+            parentMessageId=parent_message_id,
+        )
+    )
+    yield encoder.encode(
+        ToolCallArgsEvent(
+            type=EventType.TOOL_CALL_ARGS,
+            toolCallId=tool_call_id,
+            delta=json.dumps(args),
+        )
+    )
+    yield encoder.encode(
+        ToolCallEndEvent(type=EventType.TOOL_CALL_END, toolCallId=tool_call_id)
+    )
 
 
 def _message_text(message: object) -> str:
@@ -90,13 +146,24 @@ def _client_artifact(input_data: RunAgentInput) -> dict[str, Any] | None:
 
 
 def _empty_state() -> dict[str, Any]:
-    return _state_snapshot(Artifact().model_dump(), status="processing", processing=True)
+    return _state_snapshot(
+        Artifact().model_dump(),
+        status="processing",
+        processing=True,
+        progress=_progress(None, "processing", [], done=False),
+    )
 
 
-def _state_snapshot(artifact: dict[str, Any], *, status: str, processing: bool) -> dict[str, Any]:
+def _state_snapshot(
+    artifact: dict[str, Any],
+    *,
+    status: str,
+    processing: bool,
+    progress: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     # `artifact.*` is the real shape; `draft` / `draft_version` are back-compat
     # mirrors so an older panel still renders something.
-    return {
+    snapshot = {
         "processing": processing,
         "status": status,
         "draft": artifact.get("body", ""),
@@ -104,6 +171,9 @@ def _state_snapshot(artifact: dict[str, Any], *, status: str, processing: bool) 
         "artifact": artifact,
         **artifact,
     }
+    if progress is not None:
+        snapshot["progress"] = progress
+    return snapshot
 
 
 async def _signal_events(
@@ -114,6 +184,9 @@ async def _signal_events(
     message_id = str(uuid.uuid4())
     message_open = False
     last_status = "processing"
+    progress_steps: list[str] = []
+    progress = _progress(None, last_status, progress_steps, done=False)
+    pending_choice: dict[str, Any] | None = None
 
     try:
         yield encoder.encode(
@@ -163,13 +236,23 @@ async def _signal_events(
                     StateSnapshotEvent(
                         type=EventType.STATE_SNAPSHOT,
                         snapshot=_state_snapshot(
-                            event["artifact"], status=last_status, processing=True
+                            event["artifact"],
+                            status=last_status,
+                            processing=True,
+                            progress=progress,
                         ),
                     )
                 )
 
             elif kind == "status":
                 last_status = event["status"]
+                node = event.get("node")
+                if node and node not in progress_steps:
+                    progress_steps.append(node)
+                progress = _progress(node, last_status, progress_steps, done=False)
+
+            elif kind == "ui_choice":
+                pending_choice = event
 
             elif kind == "final":
                 if message_open:
@@ -199,6 +282,10 @@ async def _signal_events(
                             type=EventType.TEXT_MESSAGE_END, messageId=message_id
                         )
                     )
+                if pending_choice is not None:
+                    for raw in _choice_tool_events(encoder, pending_choice, message_id):
+                        yield raw
+                    pending_choice = None
                 yield encoder.encode(
                     StateSnapshotEvent(
                         type=EventType.STATE_SNAPSHOT,
@@ -206,6 +293,12 @@ async def _signal_events(
                             event.get("artifact", {}),
                             status=event.get("status", last_status),
                             processing=False,
+                            progress=_progress(
+                                progress.get("node"),
+                                event.get("status", last_status),
+                                progress_steps,
+                                done=True,
+                            ),
                         ),
                     )
                 )
@@ -224,6 +317,10 @@ async def _signal_events(
             yield encoder.encode(
                 TextMessageEndEvent(type=EventType.TEXT_MESSAGE_END, messageId=message_id)
             )
+        if pending_choice is not None:
+            for raw in _choice_tool_events(encoder, pending_choice, message_id):
+                yield raw
+            pending_choice = None
         yield encoder.encode(
             RunFinishedEvent(
                 type=EventType.RUN_FINISHED, threadId=thread_id, runId=run_id

@@ -1,0 +1,63 @@
+{
+  "conversation_id": "local-thread",
+  "turns": [
+    {
+      "role": "user",
+      "content": "What information do you need to create my LinkedIn post?"
+    },
+    {
+      "role": "assistant",
+      "content": "To create the post safely, I still need the following information:\n\nWhat is the product name? Please provide at least three concrete product facts that may be included in the post."
+    }
+  ],
+  "user_id": "agui-local-thread",
+  "status": "needs_clarification",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "ask_requirements",
+    "needs_clarification": true,
+    "clarification_question": "What is the product name? Please provide at least three concrete product facts that may be included in the post.",
+    "product_facts": []
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [],
+  "planned_capabilities": [],
+  "draft": "",
+  "draft_version": 0,
+  "draft_history": [],
+  "validation": {},
+  "requirements": {
+    "required": {
+      "product_name": false,
+      "minimum_product_facts": 3,
+      "product_fact_count": 0,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_name",
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    }
+  ],
+  "updated_at": "2026-09-07T10:17:49.184481+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

@@ -1,0 +1,17 @@
+{
+  "conversation_id": "e252fde3-e9c5-42fb-8831-e56575822882",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for our new product. It should target young professionals, maintain a professional tone, and be no longer than 150 words. But I’m missing the call to action—what do you suggest?"
+    },
+    {
+      "role": "assistant",
+      "content": "Which company is promoting the product? What is the product name?"
+    }
+  ],
+  "user_id": "deepeval-e252fde3-e9c5-42fb-8831-e56575822882",
+  "status": "needs_clarification",
+  "updated_at": "2026-09-02T09:18:02.599306+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

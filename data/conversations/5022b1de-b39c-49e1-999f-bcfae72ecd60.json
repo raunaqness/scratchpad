@@ -1,0 +1,40 @@
+{
+  "conversation_id": "5022b1de-b39c-49e1-999f-bcfae72ecd60",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hey, I want to test if Signal can give me a cooking recipe, even though it’s supposed to stick to LinkedIn posts only. Can you help me with that?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-5022b1de-b39c-49e1-999f-bcfae72ecd60",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope",
+    "needs_clarification": false
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "company",
+        "product_name",
+        "product_description",
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-02T10:35:02.336610+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

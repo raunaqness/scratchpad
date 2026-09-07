@@ -1,0 +1,85 @@
+{
+  "conversation_id": "9abc36ab-e2e7-4592-bb37-3d14f6281f78",
+  "turns": [
+    {
+      "role": "user",
+      "content": "hey - is this working?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, I’m here and ready to help. I can create a LinkedIn post from product information you provide."
+    },
+    {
+      "role": "user",
+      "content": "i wanna launch the FUJI xt20 our latest product"
+    },
+    {
+      "role": "assistant",
+      "content": "I’d be happy to help create a LinkedIn post for Fujifilm XT20. \n\nPlease provide at least three key product features or concrete product facts that may be included in the post."
+    }
+  ],
+  "user_id": "anonymous",
+  "status": "needs_clarification",
+  "analysis": {
+    "product_name": "Fujifilm XT20",
+    "scope": "linkedin_post",
+    "intent": "ask_requirements",
+    "needs_clarification": true,
+    "clarification_question": "Please provide at least three key product features or concrete product facts that may be included in the post.",
+    "tasks": [
+      "collect product facts"
+    ],
+    "product_facts": []
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [],
+  "planned_capabilities": [],
+  "draft": "",
+  "draft_version": 0,
+  "draft_history": [],
+  "validation": {},
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 0,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    }
+  ],
+  "updated_at": "2026-09-07T09:27:15.257843+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

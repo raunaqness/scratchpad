@@ -1,0 +1,99 @@
+{
+  "conversation_id": "9ac4a389-76a0-4537-a89a-aab971d21c40",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI. Can you confirm what information you still need from me before we get started?"
+    },
+    {
+      "role": "assistant",
+      "content": "What does the product do? What tone should the post use, such as professional or confident?"
+    },
+    {
+      "role": "user",
+      "content": "The Fujifilm X100VI is a compact camera designed for photography enthusiasts. I’d like the tone to be professional and engaging."
+    },
+    {
+      "role": "assistant",
+      "content": "How long should the post be?"
+    },
+    {
+      "role": "user",
+      "content": "I'd like the post to be around 150 words."
+    },
+    {
+      "role": "assistant",
+      "content": "📸 Introducing the Fujifilm X100VI: a compact camera designed for photography enthusiasts who seek excellence in every shot. With its sleek design and advanced features, the X100VI is crafted to elevate your photography experience. This camera combines a classic aesthetic with modern technology, making it ideal for both street photography and everyday moments. The X100VI boasts a high-performance sensor, delivering stunning image quality and vibrant colors. Its intuitive controls and fast autofocus ensure that you never miss a moment, whether you're capturing landscapes or candid portraits. Designed to be portable, the X100VI fits comfortably in your bag, ready to accompany you on all your photographic adventures. Join the community of passionate photographers who trust Fujifilm for their creative expression. Explore the possibilities with the X100VI and take your photography to new heights. #Fujifilm #X100VI #Photography #Camera #PhotographyEnthusiast"
+    }
+  ],
+  "user_id": "deepeval-9ac4a389-76a0-4537-a89a-aab971d21c40",
+  "status": "complete",
+  "analysis": {
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_description": "The Fujifilm X100VI is a compact camera designed for photography enthusiasts.",
+    "tone": "professional and engaging",
+    "scope": "linkedin_post",
+    "needs_clarification": false,
+    "clarification_question": "How long should the post be?",
+    "tasks": [
+      "Draft a LinkedIn post for the Fujifilm X100VI with the specified product description and tone."
+    ],
+    "length": "150 words"
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_description",
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    },
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    },
+    {
+      "step": "validate_constraints",
+      "status": "complete",
+      "word_count": 137
+    }
+  ],
+  "updated_at": "2026-09-02T10:49:35.935165+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

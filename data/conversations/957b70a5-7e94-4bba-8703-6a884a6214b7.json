@@ -1,0 +1,41 @@
+{
+  "conversation_id": "957b70a5-7e94-4bba-8703-6a884a6214b7",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need more details on this product. The description is too vague, and I can't trust any claims without solid backing. Can you provide specifics like price, launch date, and actual performance data?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-957b70a5-7e94-4bba-8703-6a884a6214b7",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope",
+    "needs_clarification": true,
+    "clarification_question": "What is the product name and description you would like to focus on for the LinkedIn post?"
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "company",
+        "product_name",
+        "product_description",
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-02T09:25:32.668581+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

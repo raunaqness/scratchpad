@@ -1,0 +1,96 @@
+{
+  "conversation_id": "8f5b1627-1d1b-4f72-8a9d-bb241b6f5173",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI. Here are the facts: it has a 26.1MP APS-C X-Trans CMOS 4 sensor, a fixed 23mm f/2 lens, and it supports 4K video recording. Can you help me craft something professional using these details?"
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI, a powerful camera featuring a 26.1MP APS-C X-Trans CMOS 4 sensor for stunning image quality. This model comes equipped with a fixed 23mm f/2 lens, perfect for capturing sharp and vibrant photos. Additionally, it supports 4K video recording, allowing you to create high-resolution videos with ease. Elevate your photography and videography with the X100VI!"
+    }
+  ],
+  "user_id": "deepeval-8f5b1627-1d1b-4f72-8a9d-bb241b6f5173",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "26.1MP APS-C X-Trans CMOS 4 sensor",
+      "fixed 23mm f/2 lens",
+      "supports 4K video recording"
+    ],
+    "needs_clarification": false,
+    "tasks": [
+      "create LinkedIn post"
+    ],
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "planned_capabilities": [],
+  "draft": "Introducing the Fujifilm X100VI, a powerful camera featuring a 26.1MP APS-C X-Trans CMOS 4 sensor for stunning image quality. This model comes equipped with a fixed 23mm f/2 lens, perfect for capturing sharp and vibrant photos. Additionally, it supports 4K video recording, allowing you to create high-resolution videos with ease. Elevate your photography and videography with the X100VI!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI, a powerful camera featuring a 26.1MP APS-C X-Trans CMOS 4 sensor for stunning image quality. This model comes equipped with a fixed 23mm f/2 lens, perfect for capturing sharp and vibrant photos. Additionally, it supports 4K video recording, allowing you to create high-resolution videos with ease. Elevate your photography and videography with the X100VI!",
+      "source": "create",
+      "created_at": "2026-09-03T10:52:34.326326+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 58,
+    "maximum_words": null,
+    "updated_at": "2026-09-03T10:52:34.326555+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 58
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T10:52:34.333857+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

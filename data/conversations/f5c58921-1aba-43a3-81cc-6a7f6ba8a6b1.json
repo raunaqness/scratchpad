@@ -1,0 +1,17 @@
+{
+  "conversation_id": "f5c58921-1aba-43a3-81cc-6a7f6ba8a6b1",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need more information about this product. The description is vague, and I can't find any details on its price, launch date, or specifications. Can you provide factual evidence for its claims?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-f5c58921-1aba-43a3-81cc-6a7f6ba8a6b1",
+  "status": "out_of_scope",
+  "updated_at": "2026-09-02T09:18:40.830860+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

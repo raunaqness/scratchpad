@@ -1,0 +1,116 @@
+{
+  "conversation_id": "4161a31e-85dd-4309-9af8-d2c7fff5986a",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hello, I'm looking for some detailed information about the Fujifilm X100VI. Specifically, I need to confirm its features like the sensor and lens specifications. Can you help with that?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    },
+    {
+      "role": "user",
+      "content": "I appreciate that, but could you provide the specific features of the Fujifilm X100VI, like the sensor details and lens specifications?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    },
+    {
+      "role": "user",
+      "content": "I see you can create LinkedIn posts. Can you at least summarize the key features of the Fujifilm X100VI for a potential post?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    },
+    {
+      "role": "user",
+      "content": "Could you please confirm that the Fujifilm X100VI has a 40.2-megapixel sensor and a 23mm F2 lens? I want to ensure these details are accurate for my LinkedIn post."
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-4161a31e-85dd-4309-9af8-d2c7fff5986a",
+  "status": "out_of_scope",
+  "analysis": {
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "scope": "out_of_scope",
+    "intent": "external_fact_request",
+    "needs_clarification": true,
+    "clarification_question": "Please provide at least three distinct concrete product facts about the Fujifilm X100VI.",
+    "progress_update": "I need more specific product facts to proceed.",
+    "product_facts": []
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "draft": "",
+  "draft_version": 0,
+  "draft_history": [],
+  "validation": {},
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 0,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    },
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    },
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    },
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-02T12:53:58.969964+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

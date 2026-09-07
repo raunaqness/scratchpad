@@ -1,0 +1,41 @@
+{
+  "conversation_id": "9931034a-b313-42de-947d-ba6e29b06bd4",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need to clarify something about the LinkedIn post request. Can you help me outline the steps for planning and validating it in LangSmith?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-9931034a-b313-42de-947d-ba6e29b06bd4",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope",
+    "needs_clarification": true,
+    "clarification_question": "What product name and product description would you like to include in the LinkedIn post?"
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "company",
+        "product_name",
+        "product_description",
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-02T09:25:39.487186+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

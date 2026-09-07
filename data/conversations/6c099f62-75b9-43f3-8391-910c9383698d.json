@@ -1,0 +1,97 @@
+{
+  "conversation_id": "6c099f62-75b9-43f3-8391-910c9383698d",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI targeting photography enthusiasts. It should be professional yet engaging, no more than 150 words, with a clear call to action to check out the product. Key facts to include: it has a 23mm f/2 lens, advanced autofocus, and a classic design. Make sure all these elements are addressed."
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nDiscover the Fujifilm X100VI – a perfect blend of performance and style for photography enthusiasts. This remarkable camera features a 23mm f/2 lens, delivering stunning image quality in a compact form. With advanced autofocus technology, you can capture every moment with precision and speed, ensuring you never miss a shot. The classic design not only pays homage to traditional photography but also offers a user-friendly experience that both novice and professional photographers will appreciate. Elevate your photography game and embrace the art of capturing moments with the Fujifilm X100VI. Check out the product today!"
+    }
+  ],
+  "user_id": "deepeval-6c099f62-75b9-43f3-8391-910c9383698d",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "validate_draft",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "tone": "professional yet engaging",
+    "length": "I need a LinkedIn post for the Fujifilm X100VI targeting photography enthusiasts. It should be professional yet engaging, no more than 150 words, with a clear call to action to check out the product. Key facts to include: it has a 23mm f/2 lens, advanced autofocus, and a classic design. Make sure all these elements are addressed.",
+    "audience": "photography enthusiasts",
+    "product_facts": [
+      "it has a 23mm f/2 lens",
+      "advanced autofocus",
+      "a classic design"
+    ],
+    "call_to_action": "check out the product",
+    "needs_clarification": false,
+    "progress_update": "I have the product facts needed for the LinkedIn post.",
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Discover the Fujifilm X100VI – a perfect blend of performance and style for photography enthusiasts. This remarkable camera features a 23mm f/2 lens, delivering stunning image quality in a compact form. With advanced autofocus technology, you can capture every moment with precision and speed, ensuring you never miss a shot. The classic design not only pays homage to traditional photography but also offers a user-friendly experience that both novice and professional photographers will appreciate. Elevate your photography game and embrace the art of capturing moments with the Fujifilm X100VI. Check out the product today!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Discover the Fujifilm X100VI – a perfect blend of performance and style for photography enthusiasts. This remarkable camera features a 23mm f/2 lens, delivering stunning image quality in a compact form. With advanced autofocus technology, you can capture every moment with precision and speed, ensuring you never miss a shot. The classic design not only pays homage to traditional photography but also offers a user-friendly experience that both novice and professional photographers will appreciate. Elevate your photography game and embrace the art of capturing moments with the Fujifilm X100VI. Check out the product today!",
+      "source": "create",
+      "created_at": "2026-09-03T09:04:35.917400+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": false,
+    "word_count": 94,
+    "maximum_words": 150,
+    "updated_at": "2026-09-03T09:04:35.917578+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": 150
+    },
+    "optional": {
+      "tone": "professional yet engaging",
+      "audience": "photography enthusiasts",
+      "call_to_action": "check out the product"
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 94
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T09:04:35.919821+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

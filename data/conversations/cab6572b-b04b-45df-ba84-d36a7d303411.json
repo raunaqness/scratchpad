@@ -1,0 +1,17 @@
+{
+  "conversation_id": "cab6572b-b04b-45df-ba84-d36a7d303411",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Write a LinkedIn post for the Fujifilm X100."
+    },
+    {
+      "role": "assistant",
+      "content": "I can currently help create LinkedIn posts from product information you provide. I can't write blog posts, publish content, or handle unrelated requests."
+    }
+  ],
+  "user_id": "deepeval-cab6572b-b04b-45df-ba84-d36a7d303411",
+  "status": "out_of_scope",
+  "updated_at": "2026-09-02T08:42:05.541936+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

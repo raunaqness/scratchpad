@@ -1,0 +1,93 @@
+{
+  "conversation_id": "5ebbe65d-2c86-4b12-ba8b-0804f7f3f88b",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI. Here are some key facts: it has a 23mm f/2 lens, a 26.1MP sensor, and a hybrid optical/electronic viewfinder. Can you help me craft something professional using these details?"
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI! \n\nEquipped with a 23mm f/2 lens, this camera offers exceptional image quality and versatility. It features a 26.1MP sensor for stunning detail in every shot. Plus, the hybrid optical/electronic viewfinder allows for a seamless shooting experience.\n\nDiscover the power of the X100VI today!"
+    }
+  ],
+  "user_id": "deepeval-5ebbe65d-2c86-4b12-ba8b-0804f7f3f88b",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "23mm f/2 lens",
+      "26.1MP sensor",
+      "hybrid optical/electronic viewfinder"
+    ],
+    "needs_clarification": false,
+    "progress_update": "I have the product facts needed for the LinkedIn post.",
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI! \n\nEquipped with a 23mm f/2 lens, this camera offers exceptional image quality and versatility. It features a 26.1MP sensor for stunning detail in every shot. Plus, the hybrid optical/electronic viewfinder allows for a seamless shooting experience.\n\nDiscover the power of the X100VI today!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI! \n\nEquipped with a 23mm f/2 lens, this camera offers exceptional image quality and versatility. It features a 26.1MP sensor for stunning detail in every shot. Plus, the hybrid optical/electronic viewfinder allows for a seamless shooting experience.\n\nDiscover the power of the X100VI today!",
+      "source": "create",
+      "created_at": "2026-09-02T13:13:37.572818+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 47,
+    "maximum_words": null,
+    "updated_at": "2026-09-02T13:13:37.573270+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 47
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-02T13:13:37.576263+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

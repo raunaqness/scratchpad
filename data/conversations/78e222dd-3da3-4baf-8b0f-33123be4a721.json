@@ -1,0 +1,77 @@
+{
+  "conversation_id": "78e222dd-3da3-4baf-8b0f-33123be4a721",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hello, I'd like to discuss the Fujifilm X100VI. It’s a compact camera with a 40.2-megapixel sensor and five-axis IBIS. Can you keep track of the details as we go?"
+    },
+    {
+      "role": "assistant",
+      "content": "I have noted the facts about the Fujifilm X100VI.\n\nIntroducing the Fujifilm X100VI! \n\n📸 It has a 40.2-megapixel sensor for stunning image quality.  \n🎥 It features five-axis IBIS for enhanced stability during shooting.  \n👜 Best of all, it is a compact camera, perfect for capturing moments on the go.  \n\nExplore the possibilities with the X100VI!"
+    }
+  ],
+  "user_id": "deepeval-78e222dd-3da3-4baf-8b0f-33123be4a721",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "provide_facts",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "It has a 40.2-megapixel sensor.",
+      "It features five-axis IBIS.",
+      "It is a compact camera."
+    ],
+    "needs_clarification": false,
+    "progress_update": "I have noted the facts about the Fujifilm X100VI.",
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI! \n\n📸 It has a 40.2-megapixel sensor for stunning image quality.  \n🎥 It features five-axis IBIS for enhanced stability during shooting.  \n👜 Best of all, it is a compact camera, perfect for capturing moments on the go.  \n\nExplore the possibilities with the X100VI!",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI! \n\n📸 It has a 40.2-megapixel sensor for stunning image quality.  \n🎥 It features five-axis IBIS for enhanced stability during shooting.  \n👜 Best of all, it is a compact camera, perfect for capturing moments on the go.  \n\nExplore the possibilities with the X100VI!",
+      "source": "create",
+      "created_at": "2026-09-02T12:15:49.935025+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "product_anchor": true,
+    "word_count": 46,
+    "maximum_words": null,
+    "updated_at": "2026-09-02T12:15:49.935080+00:00"
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 46
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-02T12:15:49.937328+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

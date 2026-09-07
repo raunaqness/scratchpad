@@ -1,0 +1,55 @@
+{
+  "conversation_id": "a03abafb-c1e3-426f-b293-913fddcc2273",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a confident, professional LinkedIn post about the Fujifilm X100VI. It's a compact camera perfect for street photography, and it should be under 80 words. Can you help with that?"
+    },
+    {
+      "role": "assistant",
+      "content": "Introducing the Fujifilm X100VI – a compact camera designed for street photography enthusiasts. Its sleek design and advanced features make it the perfect companion for capturing the essence of urban life. Elevate your photography experience with the X100VI, where quality meets portability. Discover the art of storytelling through your lens. #Fujifilm #X100VI #StreetPhotography"
+    }
+  ],
+  "user_id": "deepeval-a03abafb-c1e3-426f-b293-913fddcc2273",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_description": "a compact camera perfect for street photography",
+    "tone": "confident, professional",
+    "length": "under 80 words",
+    "needs_clarification": false
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    },
+    {
+      "step": "validate_constraints",
+      "status": "complete",
+      "word_count": 53
+    }
+  ],
+  "updated_at": "2026-09-02T09:43:15.472881+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

@@ -1,0 +1,95 @@
+{
+  "conversation_id": "0846ef69-4726-46e6-a88d-6874274f2ac7",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need a LinkedIn post for the Fujifilm X100VI. Here are the facts: it has a 26.1MP sensor, a fast autofocus system, and a classic design. Can you help craft something that highlights these features?"
+    },
+    {
+      "role": "assistant",
+      "content": "I created the draft and validated it against the confirmed product facts and requested constraints.\n\nIntroducing the Fujifilm X100VI! This camera features a 26.1MP sensor, a fast autofocus system, and a classic design that combines elegance with performance. Capture stunning images with this powerful and stylish camera."
+    }
+  ],
+  "user_id": "deepeval-0846ef69-4726-46e6-a88d-6874274f2ac7",
+  "status": "complete",
+  "analysis": {
+    "scope": "linkedin_post",
+    "intent": "request_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "product_facts": [
+      "26.1MP sensor",
+      "fast autofocus system",
+      "classic design"
+    ],
+    "needs_clarification": false,
+    "tasks": [
+      "create LinkedIn post"
+    ],
+    "clarification_question": null
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "draft": "Introducing the Fujifilm X100VI! This camera features a 26.1MP sensor, a fast autofocus system, and a classic design that combines elegance with performance. Capture stunning images with this powerful and stylish camera.",
+  "draft_version": 1,
+  "draft_history": [
+    {
+      "version": 1,
+      "draft": "Introducing the Fujifilm X100VI! This camera features a 26.1MP sensor, a fast autofocus system, and a classic design that combines elegance with performance. Capture stunning images with this powerful and stylish camera.",
+      "source": "create",
+      "created_at": "2026-09-03T10:27:05.693321+00:00"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "request_complete": true,
+    "product_anchor": true,
+    "required_facts_present": true,
+    "draft_fact_coverage": true,
+    "word_count": 32,
+    "maximum_words": null,
+    "updated_at": "2026-09-03T10:27:05.693767+00:00"
+  },
+  "requirements": {
+    "required": {
+      "product_name": true,
+      "minimum_product_facts": 3,
+      "product_fact_count": 3,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "in_progress",
+      "missing_fields": []
+    },
+    {
+      "step": "validate_constraints",
+      "status": "passed",
+      "word_count": 32
+    },
+    {
+      "step": "capability",
+      "capability": "linkedin_post",
+      "status": "complete"
+    }
+  ],
+  "updated_at": "2026-09-03T10:27:05.696755+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

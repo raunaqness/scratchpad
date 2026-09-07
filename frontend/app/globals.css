@@ -393,6 +393,17 @@ body:has(.app-workspace) {
   .theme-toggle {
     transition: none;
   }
+
+  .artifact-caret,
+  .artifact-progressbar[data-active="true"]::after,
+  .artifact-panel.is-loading .artifact-body,
+  .progress-chip-spinner {
+    animation: none;
+  }
+
+  .artifact-caret {
+    opacity: 1;
+  }
 }
 
 .app-workspace {
@@ -430,6 +441,54 @@ body:has(.app-workspace) {
   z-index: 10;
 }
 
+/* dev-only progress chip, pinned left of the New Thread button */
+.progress-chip {
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  display: flex;
+  font-size: 0.72rem;
+  font-weight: 600;
+  gap: 0.4rem;
+  height: 2rem;
+  padding: 0 0.7rem;
+  white-space: nowrap;
+}
+
+.progress-chip.is-done {
+  color: var(--primary);
+}
+
+.progress-chip-label {
+  letter-spacing: 0.01em;
+}
+
+.progress-chip-spinner {
+  animation: signal-spin 0.7s linear infinite;
+  border: 2px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  border-radius: 999px;
+  border-top-color: var(--primary);
+  display: inline-block;
+  height: 0.85rem;
+  width: 0.85rem;
+}
+
+.progress-chip-check {
+  background: var(--primary);
+  border-radius: 999px;
+  display: inline-block;
+  height: 0.5rem;
+  width: 0.5rem;
+}
+
+@keyframes signal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .artifact-panel {
   background: color-mix(in srgb, var(--card) 55%, var(--background));
   display: flex;
@@ -465,10 +524,10 @@ body:has(.app-workspace) {
 
 .artifact-header h2 {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.5rem, 3vw, 2.3rem);
-  font-weight: 400;
-  letter-spacing: -0.05em;
-  margin-top: 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin-top: 0.35rem;
 }
 
 .artifact-version {
@@ -507,11 +566,160 @@ body:has(.app-workspace) {
 
 .artifact-copy {
   color: var(--foreground);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.25rem, 2.3vw, 1.8rem);
-  line-height: 1.45;
-  padding: clamp(2rem, 5vw, 4rem) 0;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.65;
+  padding: 1.5rem 0;
   white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* blinking cursor while the draft is still streaming in */
+.artifact-caret {
+  animation: signal-caret 1s step-end infinite;
+  background: var(--primary);
+  display: inline-block;
+  height: 1.05em;
+  margin-left: 2px;
+  transform: translateY(0.15em);
+  width: 2px;
+}
+
+@keyframes signal-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.artifact-outline,
+.artifact-angles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  padding: 1.25rem 0;
+}
+
+.artifact-outline {
+  counter-reset: beat;
+  list-style: none;
+}
+
+.artifact-outline li {
+  counter-increment: beat;
+  padding-left: 1.9rem;
+  position: relative;
+}
+
+.artifact-outline li::before {
+  color: var(--primary);
+  content: counter(beat);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  left: 0;
+  position: absolute;
+}
+
+.artifact-angles {
+  list-style: none;
+}
+
+.artifact-angles li {
+  border-left: 2px solid var(--border);
+  padding-left: 0.9rem;
+  transition: border-color 160ms ease;
+}
+
+.artifact-angles li:hover {
+  border-left-color: var(--primary);
+}
+
+.artifact-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem 0;
+}
+
+.artifact-questions {
+  border-top: 1px dashed var(--border);
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+}
+
+.artifact-questions-heading {
+  color: var(--primary);
+  font-size: 0.67rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.artifact-questions ul {
+  color: var(--muted-foreground);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  list-style: disc;
+  margin: 0.6rem 0 0 1.1rem;
+}
+
+.artifact-questions li + li {
+  margin-top: 0.35rem;
+}
+
+/* indeterminate loading bar under the artifact header */
+.artifact-progressbar {
+  background: var(--border);
+  border-radius: 999px;
+  height: 2px;
+  margin-top: -1px;
+  overflow: hidden;
+  position: relative;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.artifact-progressbar[data-active="true"] {
+  opacity: 1;
+}
+
+.artifact-progressbar[data-active="true"]::after {
+  animation: signal-progress 1.15s ease-in-out infinite;
+  background: var(--primary);
+  border-radius: 999px;
+  content: "";
+  inset: 0;
+  position: absolute;
+  width: 40%;
+}
+
+@keyframes signal-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}
+
+/* subtle wash over the panel while a turn is in flight */
+.artifact-panel.is-loading .artifact-body {
+  animation: signal-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes signal-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
 }
 
 .artifact-empty {
@@ -541,8 +749,8 @@ body:has(.app-workspace) {
 .artifact-empty p {
   color: var(--foreground);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.5rem;
-  line-height: 1.1;
+  font-size: 1.1rem;
+  line-height: 1.25;
 }
 
 .artifact-empty span {

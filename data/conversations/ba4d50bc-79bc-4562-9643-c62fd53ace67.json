@@ -1,0 +1,58 @@
+{
+  "conversation_id": "ba4d50bc-79bc-4562-9643-c62fd53ace67",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hey, can you give me a recipe for cooking? I'm curious if you can help with that or if you're limited to LinkedIn posts only."
+    },
+    {
+      "role": "assistant",
+      "content": "I’m happy to help with product content. Right now I can create LinkedIn posts from information you provide, but I can’t handle that request yet."
+    }
+  ],
+  "user_id": "deepeval-ba4d50bc-79bc-4562-9643-c62fd53ace67",
+  "status": "out_of_scope",
+  "analysis": {
+    "scope": "out_of_scope",
+    "intent": "out_of_scope",
+    "product_facts": []
+  },
+  "tasks": [],
+  "completed_tasks": [],
+  "planned_capabilities": [
+    "linkedin_post"
+  ],
+  "draft": "",
+  "draft_version": 0,
+  "draft_history": [],
+  "validation": {},
+  "requirements": {
+    "required": {
+      "product_name": false,
+      "minimum_product_facts": 3,
+      "product_fact_count": 0,
+      "maximum_words": null
+    },
+    "optional": {
+      "tone": null,
+      "audience": null,
+      "call_to_action": null
+    }
+  },
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "out_of_scope",
+      "missing_fields": [
+        "product_name",
+        "product_facts"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "out_of_scope"
+    }
+  ],
+  "updated_at": "2026-09-03T10:48:31.822388+00:00",
+  "prompt_version": "MARKETING_AGENT_V2"
+}

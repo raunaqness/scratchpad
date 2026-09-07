@@ -96,8 +96,35 @@ def _emit_reply(text: str) -> None:
         _emit({"type": "reply", "delta": text})
 
 
+def _emit_choice(choice_id: str, question: str, options: list[str]) -> None:
+    """Ask the client to render a picker (radio buttons) for a set of options.
+
+    Consumed by the AG-UI layer, which turns it into a ``request_choice`` tool
+    call; the client renders it and a selection comes back as a normal user turn.
+    Silently no-ops for fewer than two real options.
+    """
+
+    opts = [o.strip() for o in options if isinstance(o, str) and o.strip()]
+    if len(opts) < 2:
+        return
+    _emit(
+        {
+            "type": "ui_choice",
+            "id": choice_id,
+            "question": question,
+            "options": [{"id": str(i), "label": opt} for i, opt in enumerate(opts)],
+        }
+    )
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _norm(text: str | None) -> str:
+    """Loose comparison key for subject strings."""
+
+    return " ".join((text or "").lower().split())
 
 
 # ---------------------------------------------------------------------------
@@ -136,6 +163,22 @@ def _seed_artifact(state: SignalState, plan: TurnPlan) -> Artifact:
 
     artifact = ensure_artifact(state.get("artifact"))
     artifact = apply_client_edits(artifact, state.get("client_artifact"))
+
+    # Subject rename mid-conversation: rebase the artifact onto the new subject.
+    # Title/topic follow the new subject; context scoped to the old one
+    # (facts, open questions, angles, outline) is dropped. This turn's
+    # `confirmed_facts` are re-added below, so anything restated survives.
+    if plan.subject_changed and plan.topic and _norm(plan.topic) != _norm(artifact.topic):
+        artifact = artifact.model_copy(
+            update={
+                "topic": plan.topic,
+                "title": plan.topic,
+                "sources": [],
+                "open_questions": [],
+                "angles": [],
+                "outline": [],
+            }
+        )
 
     update: dict[str, Any] = {}
     if plan.format:
@@ -318,6 +361,11 @@ def _brainstorm(state: SignalState) -> SignalState:
             f"Put {len(result['angles'])} angles on the board. "
             "Tell me which to run with (or mix two) and I'll outline it."
         )
+        _emit_choice(
+            f"angle-v{artifact.version}",
+            "Which angle should I run with?",
+            artifact.angles,
+        )
     return _finish(state, node="brainstorm", artifact=artifact, message=message,
                    status=artifact.status)
 
@@ -378,6 +426,11 @@ def _draft(state: SignalState) -> SignalState:
         return _writer_failed(state, "draft")
     flags = len(artifact.open_questions)
     message = f"Drafted a first pass ({word_count(artifact.body)} words)."
+    if state["plan"].get("subject_changed"):
+        message = (
+            f"Rebased the piece onto {artifact.topic or 'the new subject'} and cleared "
+            f"the old fact list — re-share any specs you want me to use. " + message
+        )
     if flags:
         message += f" Flagged {flags} thing{'s' if flags != 1 else ''} to confirm — see open questions."
     message += " Want it punchier, shorter, or a different angle?"
@@ -390,10 +443,17 @@ def _revise(state: SignalState) -> SignalState:
     if not check_draft(artifact.body).allowed:
         return _writer_failed(state, "revise")
     instruction = state["plan"].get("revise_instruction") or "your notes"
-    message = (
-        f"Revised for {instruction!r} (v{artifact.version}, "
-        f"{word_count(artifact.body)} words). Take a look."
-    )
+    if state["plan"].get("subject_changed"):
+        message = (
+            f"Rebased the piece onto {artifact.topic or 'the new subject'} (v{artifact.version}, "
+            f"{word_count(artifact.body)} words) and cleared the old fact list — "
+            "re-share any specs you want me to use."
+        )
+    else:
+        message = (
+            f"Revised for {instruction!r} (v{artifact.version}, "
+            f"{word_count(artifact.body)} words). Take a look."
+        )
     return _finish(state, node="revise", artifact=artifact, message=message,
                    status="refining")
 
@@ -514,6 +574,7 @@ async def astream_conversation(
 
     ``{"type": "artifact", "artifact": {...}}``
     ``{"type": "reply", "delta": "..."}``
+    ``{"type": "ui_choice", "id", "question", "options": [{"id", "label"}]}``
     ``{"type": "status", "status": "...", "node": "..."}``
     ``{"type": "final", "assistant_message", "artifact", "status", "plan"}``
     """
@@ -549,7 +610,7 @@ async def astream_conversation(
             graph_input, config, stream_mode=["custom", "updates"]
         ):
             if mode == "custom" and isinstance(chunk, dict):
-                if chunk.get("type") in {"artifact", "reply"}:
+                if chunk.get("type") in {"artifact", "reply", "ui_choice"}:
                     yield chunk
             elif mode == "updates" and isinstance(chunk, dict):
                 for node, update in chunk.items():

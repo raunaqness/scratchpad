@@ -119,6 +119,12 @@ Choosing mode:
 - "is this good / what's weak / check this" -> critique.
 
 Other fields:
+- topic: the product, feature, or idea the piece is about. Set it whenever the
+  user names OR renames the subject — including a mid-conversation correction
+  ("actually this is about X", "the product is really Y").
+- subject_changed: true ONLY when the user is switching the piece to a
+  DIFFERENT subject than the current artifact's topic (a rename or correction),
+  not when they are merely adding detail to the same subject.
 - confirmed_facts: facts the user stated THIS turn, verbatim and short. Company
   and product names are not facts on their own.
 - product_mode: "existing" if they describe a real shipping product;

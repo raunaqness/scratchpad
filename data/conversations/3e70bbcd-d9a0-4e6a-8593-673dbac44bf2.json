@@ -1,0 +1,17 @@
+{
+  "conversation_id": "3e70bbcd-d9a0-4e6a-8593-673dbac44bf2",
+  "turns": [
+    {
+      "role": "user",
+      "content": "Hey, I need to clarify something for a LinkedIn post request. Can you help me outline the steps for the task planning and how I can validate the final status?"
+    },
+    {
+      "role": "assistant",
+      "content": "Which company is promoting the product? What is the product name?"
+    }
+  ],
+  "user_id": "deepeval-3e70bbcd-d9a0-4e6a-8593-673dbac44bf2",
+  "status": "needs_clarification",
+  "updated_at": "2026-09-02T09:18:47.680406+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

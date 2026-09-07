@@ -1,0 +1,52 @@
+{
+  "conversation_id": "8dbbdb48-1374-42c6-b067-21ebc4e17ad7",
+  "turns": [
+    {
+      "role": "user",
+      "content": "I need to create a LinkedIn post for the Fujifilm X100VI. Can you help me gather the missing product details and confirm the tone and length before we finalize it?"
+    },
+    {
+      "role": "assistant",
+      "content": "What does the product do? What tone should the post use, such as professional or confident?"
+    }
+  ],
+  "user_id": "deepeval-8dbbdb48-1374-42c6-b067-21ebc4e17ad7",
+  "status": "needs_clarification",
+  "analysis": {
+    "scope": "linkedin_post",
+    "company": "Fujifilm",
+    "product_name": "X100VI",
+    "needs_clarification": true,
+    "clarification_question": "What does the product do? What tone should the post use, such as professional or confident?",
+    "tasks": [
+      "Gather the product description for the Fujifilm X100VI.",
+      "Confirm the desired tone for the LinkedIn post.",
+      "Determine the preferred length for the LinkedIn post.",
+      "Identify the target audience for the LinkedIn post."
+    ]
+  },
+  "tasks": [
+    "collect_product_facts",
+    "confirm_preferences",
+    "draft_linkedin_post",
+    "validate_constraints"
+  ],
+  "completed_tasks": [],
+  "trajectory": [
+    {
+      "step": "analyze",
+      "status": "needs_clarification",
+      "missing_fields": [
+        "product_description",
+        "tone",
+        "length"
+      ]
+    },
+    {
+      "step": "respond",
+      "status": "needs_clarification"
+    }
+  ],
+  "updated_at": "2026-09-02T09:44:02.142511+00:00",
+  "prompt_version": "MARKETING_AGENT_V1"
+}

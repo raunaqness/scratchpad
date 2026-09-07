@@ -6,6 +6,28 @@ __pycache__/
 .deepeval-runs/
 *.py[cod]
 
+# Media, archives, and test artifacts
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+*.ico
+*.webm
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.zip
+*.tar
+*.gz
+*.trace
+*.har
+test-results/
+playwright-report/
+blob-report/
+
 data/conversations/*
 data/logs/*
 data/memory/*

@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 import backend.app as app
 from backend.config import settings
 
@@ -171,6 +173,7 @@ def test_draft_is_persisted_validated_and_edited(tmp_path, monkeypatch):
                 "intent": "request_post",
                 "company": "Fujifilm",
                 "product_name": "X100",
+                    "tone": "professional",
                 "product_facts": [
                     "compact camera",
                     "street photography",
@@ -236,3 +239,67 @@ def test_draft_is_persisted_validated_and_edited(tmp_path, monkeypatch):
     assert stored["draft_version"] == 2
     assert [item["version"] for item in stored["draft_history"]] == [1, 2]
     assert stored["validation"]["status"] == "passed"
+
+
+def test_tone_choice_resumes_and_updates_draft(tmp_path, monkeypatch):
+    original_data_dir = settings.data_dir
+    settings.data_dir = tmp_path
+    fake_model = FakeModel(
+        [
+            {
+                "scope": "linkedin_post",
+                "product_name": "X100",
+                "product_facts": ["compact", "40.2MP", "hybrid viewfinder"],
+            },
+            {"scope": "linkedin_post"},
+            {"scope": "linkedin_post"},
+        ]
+    )
+    requests = []
+    monkeypatch.setattr(app, "_model", lambda: fake_model)
+    monkeypatch.setattr(
+        app,
+        "create_linkedin_post",
+        lambda request: (
+            requests.append(request)
+            or "X100: compact, 40.2MP, hybrid viewfinder."
+        ),
+    )
+
+    try:
+        pending = app.run_conversation(
+            user_id="choice-user",
+            conversation_id="choice-conversation",
+            user_message="Create a LinkedIn post for X100.",
+        )
+        resumed = app.run_conversation(
+            user_id="choice-user",
+            conversation_id="choice-conversation",
+            user_message="Resume the pending choice.",
+            choice_response={"id": "tone", "value": "bold"},
+        )
+    finally:
+        settings.data_dir = original_data_dir
+
+    assert pending["status"] == "needs_clarification"
+    assert pending["pending_input"]["id"] == "tone"
+    assert [option["id"] for option in pending["pending_input"]["options"]] == [
+        "professional",
+        "conversational",
+        "bold",
+    ]
+    assert resumed["status"] == "complete"
+    assert resumed["pending_input"] == {}
+    assert requests[0]["tone"] == "bold"
+    stored = json.loads(
+        (tmp_path / "conversations" / "choice-conversation.json").read_text()
+    )
+    assert stored["pending_input"] == {}
+
+
+def test_invalid_choice_is_rejected():
+    with pytest.raises(ValueError, match="invalid option"):
+        app._validate_choice(
+            app._tone_choice(),
+            {"id": "tone", "value": "invented"},
+        )

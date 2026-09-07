@@ -7,6 +7,7 @@ import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -47,6 +48,8 @@ class SignalState(TypedDict, total=False):
     completed_tasks: list[str]
     planned_capabilities: list[str]
     trajectory: list[dict[str, Any]]
+    pending_input: dict[str, Any]
+    choice_response: dict[str, Any]
 
 
 def _safe_id(value: str) -> str:
@@ -135,6 +138,21 @@ def _is_planned_content_request(message: str) -> bool:
             re.IGNORECASE,
         )
     )
+
+
+def _tone_choice() -> dict[str, Any]:
+    """Build the stable choice contract rendered by AG-UI clients."""
+    return {
+        "id": "tone",
+        "kind": "single_choice",
+        "field": "tone",
+        "question": "What should be the tone of the draft?",
+        "options": [
+            {"id": "professional", "label": "Professional"},
+            {"id": "conversational", "label": "Conversational"},
+            {"id": "bold", "label": "Bold"},
+        ],
+    }
 
 
 def _conversation_path(conversation_id: str) -> Path:
@@ -416,6 +434,17 @@ def _analyze(state: SignalState) -> SignalState:
         explicit_length = _length_from_turns(state.get("turns", []))
         if explicit_length is not None:
             analysis["length"] = explicit_length
+    choice_response = state.get("choice_response", {})
+    if choice_response:
+        analysis = _merge_analysis(
+            analysis,
+            {
+                choice_response.get("field", "tone"): choice_response.get("value"),
+            },
+        )
+        analysis["intent"] = "request_post"
+        analysis["needs_clarification"] = False
+        analysis["clarification_question"] = None
     known_product = analysis.get("product_name")
     discussing_known_product = (
         isinstance(known_product, str)
@@ -493,6 +522,28 @@ def _analyze(state: SignalState) -> SignalState:
         ]
     else:
         tasks = []
+    pending_input = (
+        _tone_choice()
+        if (
+            not choice_response
+            and not state.get("pending_input")
+            and not missing
+            and analysis.get("scope") == "linkedin_post"
+            and not analysis.get("tone")
+        )
+        else {}
+    )
+    if state.get("pending_input") and not choice_response:
+        pending_input = state["pending_input"]
+        analysis["intent"] = "select_preferences"
+        analysis["needs_clarification"] = True
+        analysis["clarification_question"] = pending_input["question"]
+        status = "needs_clarification"
+    if pending_input:
+        analysis["intent"] = "select_preferences"
+        analysis["needs_clarification"] = True
+        analysis["clarification_question"] = pending_input["question"]
+        status = "needs_clarification"
     trajectory = [
         *state.get("trajectory", []),
         {
@@ -507,6 +558,7 @@ def _analyze(state: SignalState) -> SignalState:
         "requirements": requirements,
         "tasks": tasks,
         "status": status,
+        "pending_input": pending_input,
         "trajectory": trajectory,
     }
 
@@ -959,11 +1011,36 @@ def _build_graph():
 GRAPH = _build_graph()
 
 
+def _validate_choice(
+    pending_input: dict[str, Any], choice_response: dict[str, Any]
+) -> dict[str, Any]:
+    """Validate and normalize a pending single-choice response."""
+    if not pending_input:
+        raise ValueError("No pending choice exists for this conversation")
+    if choice_response.get("id") != pending_input.get("id"):
+        raise ValueError("Choice response does not match the pending input")
+    option_ids = {
+        option.get("id")
+        for option in pending_input.get("options", [])
+        if isinstance(option, dict)
+    }
+    value = choice_response.get("value")
+    if value not in option_ids:
+        raise ValueError("Choice response contains an invalid option")
+    return {
+        "id": pending_input["id"],
+        "field": pending_input["field"],
+        "value": value,
+    }
+
+
 def run_conversation(
     *,
     user_id: str,
     conversation_id: str,
     user_message: str,
+    choice_response: dict[str, Any] | None = None,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Run one backend conversation turn through the LangGraph workflow."""
 
@@ -978,6 +1055,17 @@ def run_conversation(
         {"conversation_id": conversation_id, "turns": []},
     )
     memory = _read_json(memory_file, {"user_id": user_id, "facts": []})
+    pending_input = conversation.get("pending_input", {})
+    normalized_choice = (
+        _validate_choice(pending_input, choice_response)
+        if choice_response
+        else {}
+    )
+    if normalized_choice:
+        user_message = (
+            f"Selected {normalized_choice['field']}: "
+            f"{normalized_choice['value']}"
+        )
     state: SignalState = {
         "user_id": user_id,
         "conversation_id": conversation_id,
@@ -993,9 +1081,12 @@ def run_conversation(
         "draft_history": conversation.get("draft_history", []),
         "validation": conversation.get("validation", {}),
         "requirements": conversation.get("requirements", {}),
+        "pending_input": pending_input if not normalized_choice else {},
+        "choice_response": normalized_choice,
         "trajectory": conversation.get("trajectory", []),
     }
-    result = GRAPH.invoke(
+    result: dict[str, Any] = {}
+    for update in GRAPH.stream(
         state,
         config={
             "configurable": {"thread_id": conversation_id},
@@ -1007,7 +1098,25 @@ def run_conversation(
                 "prompt_version": CURRENT_PROMPT_VERSION,
             },
         },
-    )
+    ):
+        for step, step_state in update.items():
+            if not isinstance(step_state, dict):
+                continue
+            result.update(step_state)
+            progress_callback and progress_callback(
+                {
+                    "stage": step,
+                    "label": f"LangGraph completed {step}",
+                    "status": step_state.get("status"),
+                    "completed_steps": [
+                        item.get("step")
+                        for item in step_state.get("trajectory", [])
+                        if isinstance(item, dict) and item.get("step")
+                    ],
+                    "tasks": step_state.get("tasks", []),
+                    "completed_tasks": step_state.get("completed_tasks", []),
+                }
+            )
 
     assistant_message = result["assistant_message"]
     memory = _update_memory(
@@ -1034,6 +1143,7 @@ def run_conversation(
             "draft_history": result.get("draft_history", []),
             "validation": result.get("validation", {}),
             "requirements": result.get("requirements", {}),
+            "pending_input": result.get("pending_input", {}),
             "trajectory": result.get("trajectory", []),
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "prompt_version": CURRENT_PROMPT_VERSION,
@@ -1056,5 +1166,6 @@ def run_conversation(
         "draft_version": result.get("draft_version", 0),
         "validation": result.get("validation", {}),
         "requirements": result.get("requirements", {}),
+        "pending_input": result.get("pending_input", {}),
         "trajectory": result.get("trajectory", []),
     }

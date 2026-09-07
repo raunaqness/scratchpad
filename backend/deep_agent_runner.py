@@ -20,7 +20,7 @@ from backend.signal_tools import create_tools
 
 _SIGNAL_PROFILE_REGISTERED = False
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_SKILLS_ROOT = _PROJECT_ROOT / "backend" / "skills"
+_SKILLS_PATH = "/backend/skills/"
 
 
 def _register_signal_profile() -> None:
@@ -84,7 +84,7 @@ def analyze_with_deep_agent(
         model=model,
         tools=[],
         backend=FilesystemBackend(root_dir=_PROJECT_ROOT),
-        skills=[str(_SKILLS_ROOT)],
+        skills=[_SKILLS_PATH],
         system_prompt=(
             f"{system_prompt}\n\n"
             "You are Signal's structured turn analyzer. Return only the "
@@ -133,7 +133,7 @@ def create_post_with_deep_agent(
         model=model,
         tools=[create_tool],
         backend=FilesystemBackend(root_dir=_PROJECT_ROOT),
-        skills=[str(_SKILLS_ROOT)],
+        skills=[_SKILLS_PATH],
         system_prompt=(
             "You are Signal's LinkedIn writing execution agent. "
             "Use the create_linkedin_post_tool exactly once with the supplied "
@@ -187,7 +187,7 @@ def edit_post_with_deep_agent(
         model=model,
         tools=[edit_tool],
         backend=FilesystemBackend(root_dir=_PROJECT_ROOT),
-        skills=[str(_SKILLS_ROOT)],
+        skills=[_SKILLS_PATH],
         system_prompt=(
             "You are Signal's LinkedIn editing execution agent. "
             "Use the edit_linkedin_post_tool exactly once with the supplied "

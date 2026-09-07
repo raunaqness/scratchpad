@@ -28,9 +28,9 @@ test-results/
 playwright-report/
 blob-report/
 
-data/conversations/*
 data/logs/*
 data/memory/*
-!data/conversations/.gitkeep
+data/signal.db
+data/signal.db-*
 !data/logs/.gitkeep
 !data/memory/.gitkeep

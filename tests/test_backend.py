@@ -1,305 +1,230 @@
-"""Fast backend regression tests that do not call a remote model."""
+"""Deterministic backend tests — no remote model, scripted fakes only.
 
-import json
+These pin the think-pad contract: brainstorm/draft/revise/critique modes, blog +
+article formats, non-blocking grounding flags, a versioned live artifact, and
+checkpointer-backed persistence.
+"""
 
-import pytest
+from __future__ import annotations
 
-import backend.app as app
-from backend.config import settings
-
-
-class FakeResponse:
-    def __init__(self, content: str):
-        self.content = content
-
-
-class FakeModel:
-    def __init__(self, responses: list[dict]):
-        self.responses = iter(responses)
-
-    def invoke(self, _messages):
-        return FakeResponse(json.dumps(next(self.responses)))
+from backend.app import get_thread_state, run_conversation
+from backend.artifact import Artifact, apply_client_edits
+from backend.memory_store import load_memory
+from backend.signal_models import Critique, TurnPlan
+from backend.textutil import dedupe, enforce_max_words, max_words, word_count
+from tests.conftest import FakeModelScript
 
 
-def test_maximum_words_is_extracted():
-    assert app._maximum_words("under 100 words") == 100
-    assert app._maximum_words("maximum of 80 words") == 80
-    assert app._maximum_words("medium") is None
+# --------------------------------------------------------------------------- #
+# unit helpers
+# --------------------------------------------------------------------------- #
 
 
-def test_three_product_facts_are_required():
-    assert not app._has_minimum_product_facts(
-        {"product_facts": ["compact", "40.2 megapixels"]}
-    )
-    assert app._has_minimum_product_facts(
-        {"product_facts": ["compact", "40.2 megapixels", "hybrid viewfinder"]}
-    )
+def test_max_words_and_enforcement():
+    assert max_words("under 100 words") == 100
+    assert max_words("no more than 60 words") == 60
+    assert max_words("keep it to 80 words") == 80
+    assert max_words("medium length") is None
+    assert enforce_max_words("one two three four", 2) == "one two"
+    assert enforce_max_words("one two", 5) == "one two"
+    assert word_count("a b c") == 3
+    assert dedupe(["a", " a ", "", "b"]) == ["a", "b"]
 
 
-def test_draft_grounding_allows_supplied_facts_and_neutral_copy():
-    request = {
-        "company": "Fujifilm",
-        "product_name": "X100",
-        "product_description": "A compact camera for street photography.",
-    }
-    assert app._draft_is_grounded(
-        "Introducing the Fujifilm X100, a compact camera for street photography.",
-        request,
-    )
+def test_artifact_versioning_and_client_edits():
+    art = Artifact(format="blog_post", topic="Widgets")
+    assert art.version == 0 and art.status == "empty"
+    bumped = art.touched(status="drafting")
+    assert bumped.version == 1 and bumped.updated_at and bumped.status == "drafting"
+
+    edited = apply_client_edits(bumped, {"body": "user wrote this", "version": 999})
+    assert edited.body == "user wrote this"
+    assert edited.version == 2  # server-owned, not the client's 999
 
 
-def test_draft_grounding_requires_product_name():
-    request = {
-        "company": "Fujifilm",
-        "product_description": "A compact camera for street photography.",
-    }
-    assert not app._draft_is_grounded(
-        "A compact camera for street photography.",
-        request,
+# --------------------------------------------------------------------------- #
+# graph behaviour
+# --------------------------------------------------------------------------- #
+
+
+def _run(user_message: str, *, conversation_id: str = "c1", user_id: str = "u1", **kw):
+    return run_conversation(
+        user_id=user_id,
+        conversation_id=conversation_id,
+        user_message=user_message,
+        **kw,
     )
 
 
-def test_confirmed_fields_survive_later_extraction():
-    merged = app._merge_analysis(
-        {"company": "Fujifilm", "product_name": "X100"},
-        {"scope": "linkedin_post", "tone": "confident"},
-    )
-    assert merged["company"] == "Fujifilm"
-    assert merged["product_name"] == "X100"
-    assert merged["tone"] == "confident"
-
-
-def test_conversation_persists_analysis_and_trajectory(tmp_path, monkeypatch):
-    original_data_dir = settings.data_dir
-    settings.data_dir = tmp_path
-    requests = []
-    fake_model = FakeModel(
-        [
-            {
-                "scope": "linkedin_post",
-                "company": "Fujifilm",
-                "product_name": "X100",
-                "product_description": "A compact camera for street photography.",
-                "product_facts": [
-                    "compact camera",
-                    "street photography",
-                    "designed for photography",
-                ],
-                "tone": "confident",
-                "length": "under 10 words",
-                "needs_clarification": False,
-                "progress_update": (
-                    "I collected the confirmed facts and validated the draft."
-                ),
-            },
-            {"scope": "linkedin_post"},
-            {
-                "scope": "linkedin_post",
-                "product_description": "A compact camera for travel.",
-                "tone": "professional",
-            },
-        ]
-    )
-    monkeypatch.setattr(
-        app,
-        "_model",
-        lambda: fake_model,
-    )
-    monkeypatch.setattr(
-        app,
-        "create_linkedin_post",
-        lambda request: (
-            requests.append(request)
-            or (
-                f"{request['company']} {request['product_name']}: "
-                f"{request['product_description']}"
-            )
-        ),
-    )
-
-    try:
-        first = app.run_conversation(
-            user_id="test-user",
-            conversation_id="test-conversation",
-            user_message="Create the post with the supplied campaign details.",
+def test_brainstorm_turn_fills_the_board(isolated_state, install_models):
+    install_models(
+        FakeModelScript(
+            plan=TurnPlan(
+                mode="brainstorm", topic="faster cold starts", format="linkedin_post"
+            ),
+            angles=["Dev time saved - the hook", "Cost of idle compute - the hook"],
         )
-        second = app.run_conversation(
-            user_id="test-user",
-            conversation_id="test-conversation",
-            user_message="Use the same confirmed details.",
+    )
+    result = _run("help me post about our faster cold starts")
+
+    art = result["artifact"]
+    assert result["mode"] == "brainstorm"
+    assert art["kind"] == "idea_board"
+    assert len(art["angles"]) == 2
+    assert art["body"] == ""
+    assert art["status"] == "exploring"
+    assert art["version"] == 1
+
+
+def test_blog_post_is_a_supported_format(isolated_state, install_models):
+    install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="draft", format="blog_post", topic="Edge Functions"),
+            draft="# Faster edge functions\n\nYour cold starts were the problem. Here's the fix.",
         )
-        third = app.run_conversation(
-            user_id="test-user",
-            conversation_id="test-conversation",
-            user_message="Update the description and use a professional tone.",
+    )
+    result = _run("write a blog post about our edge functions launch")
+
+    assert result["status"] == "refining"
+    assert result["artifact"]["format"] == "blog_post"
+    assert result["artifact"]["kind"] == "draft"
+    assert result["artifact"]["body"].startswith("# Faster edge functions")
+
+
+def test_draft_flags_unsupported_claims_without_blocking(isolated_state, install_models):
+    install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="draft", topic="Widget Pro", format="linkedin_post"),
+            draft="Widget Pro cuts latency to 12ms.",
+            grounding=["'cuts latency to 12ms' is not in the confirmed sources"],
         )
-    finally:
-        settings.data_dir = original_data_dir
+    )
+    result = _run("draft a linkedin post: Widget Pro is our new latency tool")
 
-    assert first["status"] == "complete"
-    assert second["status"] == "complete"
-    assert third["status"] == "complete"
-    assert first["assistant_message"].startswith(
-        "I created the draft and validated it against the confirmed product "
-        "facts and requested constraints."
-    )
-    assert requests[1] == requests[0]
-    assert requests[2]["product_description"] == "A compact camera for travel."
-    assert requests[2]["tone"] == "professional"
-    stored = json.loads(
-        (tmp_path / "conversations" / "test-conversation.json").read_text()
-    )
-    memory = json.loads((tmp_path / "memory" / "test-user.json").read_text())
-    assert stored["analysis"]["product_name"] == "X100"
-    assert stored["analysis"]["product_description"] == "A compact camera for travel."
-    assert memory["facts"][2]["key"] == "product_description"
-    assert memory["facts"][2]["value"] == "A compact camera for travel."
-    assert memory["preferences"]["tone"]["value"] == "professional"
-    assert any(
-        item["step"] == "validate_constraints" and item["status"] == "passed"
-        for item in stored["trajectory"]
-    )
+    assert result["status"] == "refining"  # flagged, not blocked
+    assert any("12ms" in q for q in result["artifact"]["open_questions"])
+    assert result["artifact"]["body"]
 
 
-def test_draft_is_persisted_validated_and_edited(tmp_path, monkeypatch):
-    original_data_dir = settings.data_dir
-    settings.data_dir = tmp_path
-    create_requests = []
-    edit_requests = []
-    fake_model = FakeModel(
-        [
-            {
-                "scope": "linkedin_post",
-                "intent": "request_post",
-                "company": "Fujifilm",
-                "product_name": "X100",
-                    "tone": "professional",
-                "product_facts": [
-                    "compact camera",
-                    "street photography",
-                    "designed for photography",
-                ],
-            },
-            {"scope": "linkedin_post", "intent": "validate_draft"},
-            {
-                "scope": "linkedin_post",
-                "intent": "edit_draft",
-                "edit_instruction": "Make the opening more direct.",
-            },
-        ]
-    )
-    monkeypatch.setattr(app, "_model", lambda: fake_model)
-    monkeypatch.setattr(
-        app,
-        "create_linkedin_post",
-        lambda request: (
-            create_requests.append(request)
-            or "Fujifilm X100: compact camera for street photography."
-        ),
-    )
-    monkeypatch.setattr(
-        app,
-        "edit_linkedin_post",
-        lambda request, draft, instruction: (
-            edit_requests.append((request, draft, instruction))
-            or "Fujifilm X100: designed for photography."
-        ),
-    )
-
-    try:
-        first = app.run_conversation(
-            user_id="draft-user",
-            conversation_id="draft-conversation",
-            user_message="Create the LinkedIn post.",
+def test_exploratory_product_is_not_gated_on_facts(isolated_state, install_models):
+    install_models(
+        FakeModelScript(
+            plan=TurnPlan(
+                mode="brainstorm",
+                product_mode="exploratory",
+                topic="an AI notepad I'm dreaming up",
+            ),
+            angles=["The blank-page problem - [assumption] users freeze at the start"],
         )
-        validated = app.run_conversation(
-            user_id="draft-user",
-            conversation_id="draft-conversation",
-            user_message="Validate the current draft.",
-        )
-        edited = app.run_conversation(
-            user_id="draft-user",
-            conversation_id="draft-conversation",
-            user_message="Make the opening more direct.",
-        )
-    finally:
-        settings.data_dir = original_data_dir
-
-    assert first["status"] == "complete"
-    assert validated["status"] == "complete"
-    assert "validated the current draft" in validated["assistant_message"]
-    assert len(create_requests) == 1
-    assert len(edit_requests) == 1
-    assert edit_requests[0][1] == first["draft"]
-    assert edit_requests[0][2] == "Make the opening more direct."
-    assert edited["draft_version"] == 2
-    stored = json.loads(
-        (tmp_path / "conversations" / "draft-conversation.json").read_text()
     )
-    assert stored["draft_version"] == 2
-    assert [item["version"] for item in stored["draft_history"]] == [1, 2]
-    assert stored["validation"]["status"] == "passed"
+    result = _run("I have a rough idea for an AI notepad, help me think it through")
+
+    assert result["status"] == "exploring"
+    assert result["artifact"]["product_mode"] == "exploratory"
+    assert result["artifact"]["angles"]
+    assert result["pending_question"] is None  # it did NOT demand three facts
 
 
-def test_tone_choice_resumes_and_updates_draft(tmp_path, monkeypatch):
-    original_data_dir = settings.data_dir
-    settings.data_dir = tmp_path
-    fake_model = FakeModel(
-        [
-            {
-                "scope": "linkedin_post",
-                "product_name": "X100",
-                "product_facts": ["compact", "40.2MP", "hybrid viewfinder"],
-            },
-            {"scope": "linkedin_post"},
-            {"scope": "linkedin_post"},
-        ]
-    )
-    requests = []
-    monkeypatch.setattr(app, "_model", lambda: fake_model)
-    monkeypatch.setattr(
-        app,
-        "create_linkedin_post",
-        lambda request: (
-            requests.append(request)
-            or "X100: compact, 40.2MP, hybrid viewfinder."
-        ),
-    )
-
-    try:
-        pending = app.run_conversation(
-            user_id="choice-user",
-            conversation_id="choice-conversation",
-            user_message="Create a LinkedIn post for X100.",
+def test_revise_updates_the_draft_and_bumps_version(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="draft", topic="Widget", format="linkedin_post"),
+            draft="First pass about Widget, a little wordy and slow to start.",
+            revised="Punchy Widget line. No throat-clearing.",
         )
-        resumed = app.run_conversation(
-            user_id="choice-user",
-            conversation_id="choice-conversation",
-            user_message="Resume the pending choice.",
-            choice_response={"id": "tone", "value": "bold"},
-        )
-    finally:
-        settings.data_dir = original_data_dir
-
-    assert pending["status"] == "needs_clarification"
-    assert pending["pending_input"]["id"] == "tone"
-    assert [option["id"] for option in pending["pending_input"]["options"]] == [
-        "professional",
-        "conversational",
-        "bold",
-    ]
-    assert resumed["status"] == "complete"
-    assert resumed["pending_input"] == {}
-    assert requests[0]["tone"] == "bold"
-    stored = json.loads(
-        (tmp_path / "conversations" / "choice-conversation.json").read_text()
     )
-    assert stored["pending_input"] == {}
+    first = _run("draft a post about Widget", conversation_id="rev")
+    assert first["artifact"]["version"] == 1
+
+    script.plan = TurnPlan(mode="revise", revise_instruction="make it punchier")
+    second = _run("make it punchier", conversation_id="rev")
+
+    assert second["artifact"]["version"] == 2
+    assert second["artifact"]["body"] == "Punchy Widget line. No throat-clearing."
+    assert second["status"] == "refining"
 
 
-def test_invalid_choice_is_rejected():
-    with pytest.raises(ValueError, match="invalid option"):
-        app._validate_choice(
-            app._tone_choice(),
-            {"id": "tone", "value": "invented"},
+def test_publish_request_is_declined_with_no_side_effect(isolated_state, install_models):
+    install_models(
+        FakeModelScript(plan=TurnPlan(mode="chat", reply_gist="they asked to publish"))
+    )
+    result = _run("great, now publish this to LinkedIn for me")
+
+    assert result["plan"]["safety_flag"] == "publish_request"
+    assert "can't" in result["assistant_message"] or "cannot" in result["assistant_message"]
+    assert result["artifact"]["body"] == ""
+    assert result["status"] == "needs_input"
+
+
+def test_clarifying_question_is_returned_verbatim(isolated_state, install_models):
+    question = "Which angle - the cost story or the developer-time story?"
+    install_models(
+        FakeModelScript(plan=TurnPlan(mode="brainstorm", clarifying_question=question))
+    )
+    result = _run("help me with a post")
+
+    assert result["assistant_message"] == question
+    assert result["status"] == "needs_input"
+    assert result["pending_question"] == question
+
+
+def test_state_and_memory_persist_across_turns(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(
+                mode="draft",
+                topic="Widget",
+                format="linkedin_post",
+                audience="platform engineers",
+            ),
+            draft="A draft about Widget for platform engineers.",
+            revised="A tighter draft about Widget.",
         )
+    )
+    _run(
+        "draft a post about Widget for platform engineers",
+        conversation_id="persist",
+        user_id="mem-u",
+    )
+    script.plan = TurnPlan(mode="revise", revise_instruction="cut a sentence")
+    _run("cut a sentence", conversation_id="persist", user_id="mem-u")
+
+    state = get_thread_state("persist")
+    assert len(state["turns"]) == 4  # user/assistant x2
+    assert state["artifact"]["version"] >= 2
+
+    memory = load_memory("mem-u")
+    assert memory["facts"]["audience"]["value"] == "platform engineers"
+
+
+def test_empty_writer_output_asks_for_more_not_an_empty_draft(isolated_state, install_models):
+    install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="draft", topic="Widget", format="linkedin_post"),
+            draft="   ",  # model returned nothing usable
+        )
+    )
+    result = _run("draft something")
+
+    assert result["status"] == "needs_input"
+    assert result["artifact"]["body"] == ""
+    assert "empty" in result["assistant_message"]
+
+
+def test_critique_annotates_open_questions(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="draft", topic="Widget", format="linkedin_post"),
+            draft="A first Widget draft.",
+            critique=Critique(
+                summary="Hook is soft.", points=["Rewrite line 1", "Add a CTA"]
+            ),
+        )
+    )
+    _run("draft a post about Widget", conversation_id="crit")
+    script.plan = TurnPlan(mode="critique")
+    result = _run("what's weak about this?", conversation_id="crit")
+
+    assert result["assistant_message"] == "Hook is soft."
+    assert "Rewrite line 1" in result["artifact"]["open_questions"]
+    assert "Add a CTA" in result["artifact"]["open_questions"]

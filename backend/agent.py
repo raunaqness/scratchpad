@@ -1,54 +1,47 @@
-"""CopilotKit-compatible AG-UI endpoint for Signal."""
+"""AG-UI (CopilotKit-compatible) endpoint for Signal.
+
+Streams a real turn: artifact versions go out as ``STATE_SNAPSHOT`` as the graph
+builds them, reply tokens stream as ``TEXT_MESSAGE_CONTENT`` as the model
+produces them, and ``RUN_FINISHED`` is always sent — including after an error.
+"""
 
 from __future__ import annotations
 
-import asyncio
-import json
-import re
-import sys
 import uuid
-from pathlib import Path
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 from ag_ui.core import (
     EventType,
-    Interrupt,
     RunAgentInput,
     RunErrorEvent,
     RunFinishedEvent,
-    RunFinishedInterruptOutcome,
     RunStartedEvent,
     StateSnapshotEvent,
     TextMessageContentEvent,
     TextMessageEndEvent,
     TextMessageStartEvent,
-    ToolCallArgsEvent,
-    ToolCallEndEvent,
-    ToolCallStartEvent,
 )
 from ag_ui.encoder import EventEncoder
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-SIGNAL_ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(SIGNAL_ROOT / ".env")
-if str(SIGNAL_ROOT) not in sys.path:
-    sys.path.insert(0, str(SIGNAL_ROOT))
+from backend.app import astream_conversation
+from backend.artifact import Artifact
+from backend.config import settings
+from backend.prompts import CURRENT_PROMPT_VERSION
 
 app = FastAPI(title="Signal AG-UI Agent")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origin_list or ["http://localhost:3000"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
 )
 
 
 def _message_text(message: object) -> str:
-    """Extract text from an AG-UI message's supported content shapes."""
     content = getattr(message, "content", "")
     if isinstance(content, str):
         return content
@@ -62,243 +55,201 @@ def _message_text(message: object) -> str:
 
 
 def _last_user_message(input_data: RunAgentInput) -> str:
-    """Return the latest user message from a typed AG-UI request."""
-    for message in reversed(input_data.messages):
+    for message in reversed(input_data.messages or []):
         if getattr(message, "role", "") == "user":
             return _message_text(message)
     return ""
 
 
-def _state_snapshot(result: dict[str, object]) -> dict[str, object]:
-    """Expose Signal's useful workflow state through AG-UI."""
-    trajectory = result.get("trajectory", [])
-    completed_steps = [
-        step.get("step")
-        for step in trajectory
-        if isinstance(step, dict) and step.get("step")
-    ] if isinstance(trajectory, list) else []
+def _forwarded(input_data: RunAgentInput) -> dict[str, Any]:
+    value = getattr(input_data, "forwarded_props", None)
+    return value if isinstance(value, dict) else {}
+
+
+def _user_id(input_data: RunAgentInput) -> str:
+    forwarded = _forwarded(input_data)
+    for candidate in (forwarded.get("user_id"), forwarded.get("userId")):
+        if isinstance(candidate, str) and candidate.strip():
+            return candidate.strip()
+    state = input_data.state if isinstance(input_data.state, dict) else {}
+    if isinstance(state.get("user_id"), str) and state["user_id"].strip():
+        return state["user_id"].strip()
+    return f"agui-{input_data.thread_id}"
+
+
+def _client_artifact(input_data: RunAgentInput) -> dict[str, Any] | None:
+    state = input_data.state if isinstance(input_data.state, dict) else {}
+    if isinstance(state.get("artifact"), dict) and state["artifact"]:
+        return state["artifact"]
+    if "body" in state or "angles" in state or "outline" in state:
+        return state
+    forwarded = _forwarded(input_data)
+    if isinstance(forwarded.get("artifact"), dict):
+        return forwarded["artifact"]
+    return None
+
+
+def _empty_state() -> dict[str, Any]:
+    return _state_snapshot(Artifact().model_dump(), status="processing", processing=True)
+
+
+def _state_snapshot(artifact: dict[str, Any], *, status: str, processing: bool) -> dict[str, Any]:
+    # `artifact.*` is the real shape; `draft` / `draft_version` are back-compat
+    # mirrors so an older panel still renders something.
     return {
-        "processing": False,
-        "progress": {
-            "stage": completed_steps[-1] if completed_steps else "complete",
-            "label": "LangGraph run complete",
-            "completed_steps": completed_steps,
-        },
-        "status": result.get("status"),
-        "draft": result.get("draft", ""),
-        "draft_version": result.get("draft_version", 0),
-        "validation": result.get("validation", {}),
-        "requirements": result.get("requirements", {}),
-        "pending_input": result.get("pending_input", {}),
+        "processing": processing,
+        "status": status,
+        "draft": artifact.get("body", ""),
+        "draft_version": artifact.get("version", 0),
+        "artifact": artifact,
+        **artifact,
     }
-
-
-def _progress_snapshot(progress: dict[str, object]) -> dict[str, object]:
-    """Expose one completed LangGraph node through AG-UI state."""
-    return {
-        "processing": True,
-        "status": "processing",
-        "progress": progress,
-        "tasks": progress.get("tasks", []),
-        "completed_tasks": progress.get("completed_tasks", []),
-    }
-
-
-def _choice_response(input_data: RunAgentInput) -> dict[str, object]:
-    """Extract a resolved AG-UI interrupt or tool result."""
-    for resume in input_data.resume or []:
-        if resume.status == "resolved" and isinstance(resume.payload, dict):
-            payload = resume.payload
-            return {
-                "id": payload.get("id", "tone"),
-                "value": payload.get("value", payload.get("optionId")),
-            }
-    for message in reversed(input_data.messages):
-        if getattr(message, "role", "") != "tool":
-            continue
-        content = _message_text(message)
-        try:
-            payload = json.loads(content)
-        except json.JSONDecodeError:
-            payload = {"id": "tone", "value": content}
-        if isinstance(payload, dict) and payload.get("value", payload.get("optionId")):
-            return {
-                "id": payload.get("id", "tone"),
-                "value": payload.get("value", payload.get("optionId")),
-            }
-    return {}
 
 
 async def _signal_events(
     input_data: RunAgentInput, encoder: EventEncoder
 ) -> AsyncGenerator[str, None]:
-    """Run Signal and encode its result as CopilotKit-compatible events."""
+    thread_id = input_data.thread_id
+    run_id = input_data.run_id
+    message_id = str(uuid.uuid4())
+    message_open = False
+    last_status = "processing"
+
     try:
         yield encoder.encode(
             RunStartedEvent(
-                type=EventType.RUN_STARTED,
-                threadId=input_data.thread_id,
-                runId=input_data.run_id,
-                parentRunId=input_data.parent_run_id,
-                input=input_data,
+                type=EventType.RUN_STARTED, threadId=thread_id, runId=run_id
             )
         )
         yield encoder.encode(
-            StateSnapshotEvent(
-                type=EventType.STATE_SNAPSHOT,
-                snapshot={
-                    "processing": True,
-                    "status": "processing",
-                    "progress": {
-                        "stage": "analyze",
-                        "label": "Analyzing the request",
-                        "completed_steps": [],
-                    },
-                    "draft": "",
-                    "draft_version": 0,
-                    "validation": {},
-                    "requirements": {},
-                    "pending_input": {},
-                },
-            )
+            StateSnapshotEvent(type=EventType.STATE_SNAPSHOT, snapshot=_empty_state())
         )
-        from backend.app import run_conversation
 
-        choice_response = _choice_response(input_data)
-        progress_queue: asyncio.Queue[dict[str, object]] = asyncio.Queue()
-        loop = asyncio.get_running_loop()
+        user_message = _last_user_message(input_data)
+        if not user_message.strip():
+            raise ValueError("No user message in the AG-UI request.")
 
-        def on_progress(progress: dict[str, object]) -> None:
-            loop.call_soon_threadsafe(progress_queue.put_nowait, progress)
+        async for event in astream_conversation(
+            user_id=_user_id(input_data),
+            conversation_id=thread_id,
+            user_message=user_message,
+            client_artifact=_client_artifact(input_data),
+        ):
+            kind = event["type"]
 
-        run_task = asyncio.create_task(
-            asyncio.to_thread(
-                run_conversation,
-                user_id=f"agui-{input_data.thread_id}",
-                conversation_id=input_data.thread_id,
-                user_message=_last_user_message(input_data),
-                choice_response=choice_response or None,
-                progress_callback=on_progress,
-            )
-        )
-        while not run_task.done():
-            try:
-                progress = await asyncio.wait_for(progress_queue.get(), 0.1)
-            except TimeoutError:
-                continue
-            yield encoder.encode(
-                StateSnapshotEvent(
-                    type=EventType.STATE_SNAPSHOT,
-                    snapshot=_progress_snapshot(progress),
+            if kind == "reply":
+                if not message_open:
+                    message_open = True
+                    yield encoder.encode(
+                        TextMessageStartEvent(
+                            type=EventType.TEXT_MESSAGE_START,
+                            messageId=message_id,
+                            role="assistant",
+                        )
+                    )
+                yield encoder.encode(
+                    TextMessageContentEvent(
+                        type=EventType.TEXT_MESSAGE_CONTENT,
+                        messageId=message_id,
+                        delta=event["delta"],
+                    )
                 )
-            )
-        result = await run_task
-        while not progress_queue.empty():
-            yield encoder.encode(
-                StateSnapshotEvent(
-                    type=EventType.STATE_SNAPSHOT,
-                    snapshot=_progress_snapshot(progress_queue.get_nowait()),
+
+            elif kind == "artifact":
+                # An artifact update between reply tokens would split the message.
+                if message_open:
+                    continue
+                yield encoder.encode(
+                    StateSnapshotEvent(
+                        type=EventType.STATE_SNAPSHOT,
+                        snapshot=_state_snapshot(
+                            event["artifact"], status=last_status, processing=True
+                        ),
+                    )
                 )
+
+            elif kind == "status":
+                last_status = event["status"]
+
+            elif kind == "final":
+                if message_open:
+                    yield encoder.encode(
+                        TextMessageEndEvent(
+                            type=EventType.TEXT_MESSAGE_END, messageId=message_id
+                        )
+                    )
+                    message_open = False
+                elif event.get("assistant_message"):
+                    yield encoder.encode(
+                        TextMessageStartEvent(
+                            type=EventType.TEXT_MESSAGE_START,
+                            messageId=message_id,
+                            role="assistant",
+                        )
+                    )
+                    yield encoder.encode(
+                        TextMessageContentEvent(
+                            type=EventType.TEXT_MESSAGE_CONTENT,
+                            messageId=message_id,
+                            delta=event["assistant_message"],
+                        )
+                    )
+                    yield encoder.encode(
+                        TextMessageEndEvent(
+                            type=EventType.TEXT_MESSAGE_END, messageId=message_id
+                        )
+                    )
+                yield encoder.encode(
+                    StateSnapshotEvent(
+                        type=EventType.STATE_SNAPSHOT,
+                        snapshot=_state_snapshot(
+                            event.get("artifact", {}),
+                            status=event.get("status", last_status),
+                            processing=False,
+                        ),
+                    )
+                )
+                yield encoder.encode(
+                    RunFinishedEvent(
+                        type=EventType.RUN_FINISHED,
+                        threadId=thread_id,
+                        runId=run_id,
+                        result={"status": event.get("status")},
+                    )
+                )
+                return
+
+        # Stream ended without a final event — still finish cleanly.
+        if message_open:
+            yield encoder.encode(
+                TextMessageEndEvent(type=EventType.TEXT_MESSAGE_END, messageId=message_id)
             )
-        message_id = str(uuid.uuid4())
         yield encoder.encode(
-            TextMessageStartEvent(
-                type=EventType.TEXT_MESSAGE_START,
-                messageId=message_id,
-                role="assistant",
+            RunFinishedEvent(
+                type=EventType.RUN_FINISHED, threadId=thread_id, runId=run_id
             )
         )
-        response = str(result["assistant_message"])
-        for chunk in re.findall(r"\S+\s*|\n+", response):
+
+    except Exception as error:  # noqa: BLE001 - surface as an AG-UI error + finish
+        if message_open:
             yield encoder.encode(
-                TextMessageContentEvent(
-                    type=EventType.TEXT_MESSAGE_CONTENT,
-                    messageId=message_id,
-                    delta=chunk,
-                )
+                TextMessageEndEvent(type=EventType.TEXT_MESSAGE_END, messageId=message_id)
             )
-            await asyncio.sleep(0)
         yield encoder.encode(
-            TextMessageEndEvent(
-                type=EventType.TEXT_MESSAGE_END,
-                messageId=message_id,
-            )
+            RunErrorEvent(type=EventType.RUN_ERROR, message="Signal hit an error on this turn.")
         )
-        yield encoder.encode(
-            StateSnapshotEvent(
-                type=EventType.STATE_SNAPSHOT,
-                snapshot=_state_snapshot(result),
-            )
-        )
-        pending_input = result.get("pending_input")
-        if pending_input:
-            tool_call_id = f"choice-{pending_input['id']}"
-            yield encoder.encode(
-                ToolCallStartEvent(
-                    type=EventType.TOOL_CALL_START,
-                    toolCallId=tool_call_id,
-                    toolCallName="request_choice",
-                    parentMessageId=message_id,
-                )
-            )
-            yield encoder.encode(
-                ToolCallArgsEvent(
-                    type=EventType.TOOL_CALL_ARGS,
-                    toolCallId=tool_call_id,
-                    delta=json.dumps(pending_input),
-                )
-            )
-            yield encoder.encode(
-                ToolCallEndEvent(
-                    type=EventType.TOOL_CALL_END,
-                    toolCallId=tool_call_id,
-                )
-            )
-            yield encoder.encode(
-                RunFinishedEvent(
-                    type=EventType.RUN_FINISHED,
-                    threadId=input_data.thread_id,
-                    runId=input_data.run_id,
-                    outcome=RunFinishedInterruptOutcome(
-                        interrupts=[
-                            Interrupt(
-                                # assistant-ui keys the pending action by the
-                                # tool call id. Keep both AG-UI identifiers
-                                # aligned so resume responses are accepted.
-                                id=tool_call_id,
-                                reason="user_input",
-                                message=pending_input["question"],
-                                toolCallId=tool_call_id,
-                                responseSchema={
-                                    "type": "string",
-                                    "enum": [
-                                        option["id"]
-                                        for option in pending_input["options"]
-                                    ],
-                                },
-                            )
-                        ]
-                    ),
-                )
-            )
-            return
         yield encoder.encode(
             RunFinishedEvent(
                 type=EventType.RUN_FINISHED,
-                threadId=input_data.thread_id,
-                runId=input_data.run_id,
-                result={"status": result.get("status")},
+                threadId=thread_id,
+                runId=run_id,
+                result={"status": "error"},
             )
-        )
-    except Exception as error:
-        yield encoder.encode(
-            RunErrorEvent(type=EventType.RUN_ERROR, message=str(error))
         )
 
 
 @app.post("/agent")
 async def agent_endpoint(input_data: RunAgentInput, request: Request) -> StreamingResponse:
-    """Accept a typed AG-UI run and stream Signal events."""
     encoder = EventEncoder(accept=request.headers.get("accept"))
     return StreamingResponse(
         _signal_events(input_data, encoder),
@@ -313,16 +264,14 @@ async def agent_endpoint(input_data: RunAgentInput, request: Request) -> Streami
 
 @app.get("/health")
 async def health() -> dict[str, object]:
-    """Report adapter health and provider configuration."""
-    from backend.config import settings
-
     return {
         "status": "ok",
         "openrouter_configured": bool(settings.openrouter_api_key),
+        "prompt_version": CURRENT_PROMPT_VERSION,
     }
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("backend.agent:app", host="0.0.0.0", port=8001)
+    uvicorn.run("backend.agent:app", host="0.0.0.0", port=settings.agent_port)

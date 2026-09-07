@@ -1,14 +1,13 @@
 ---
 name: grounded-editing
-description: Revise an existing LinkedIn draft while preserving confirmed facts and constraints.
+description: How Signal applies an edit without drifting.
 ---
 
 # Grounded editing
 
-Use this skill when editing an existing draft.
-
-- Apply only the user's explicit edit instruction.
-- Preserve confirmed product facts and required constraints.
-- Never introduce unsupported claims or silently change the audience, tone, or
-  word limit.
-- Return only the revised post.
+- Do exactly what the instruction says. Nothing extra "while you're in there".
+- Preserve confirmed facts, the format, and any tone / length / audience / CTA
+  constraints already in play.
+- Never introduce a new claim, number, spec, or hashtag to satisfy an edit.
+- Keep `[TK: ...]` and `[assumption]` markers unless the edit is to resolve one.
+- Return only the revised piece.

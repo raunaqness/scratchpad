@@ -1,998 +1,576 @@
-"""Signal's minimal OpenRouter-backed LangGraph backend."""
+"""Signal's LangGraph backend — a creative thinking-pad for content.
+
+One turn = one run through the graph:
+
+    interpret ─► route ─► brainstorm | draft | revise | critique | respond ─► END
+
+``interpret`` produces a validated :class:`TurnPlan` (structured output, temp 0)
+and the router trusts it — there are no regex overrides. Every work node returns
+an updated artifact; ``astream_conversation`` streams each version (and the
+reply tokens) to the AG-UI layer. Thread state is the SQLite checkpointer; the
+only JSON left is per-user durable memory.
+"""
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
-import re
+from collections.abc import AsyncIterator
 from datetime import datetime, timezone
-from pathlib import Path
-from collections.abc import Callable
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.language_models import BaseChatModel
-from langchain_openai import ChatOpenAI
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
 
-from backend.capabilities.social_media import create_linkedin_post, edit_linkedin_post
-from backend.config import settings
-from backend.deep_agent_runner import (
-    analyze_with_deep_agent,
-    create_post_with_deep_agent,
-    edit_post_with_deep_agent,
+from backend.artifact import Artifact, apply_client_edits, ensure_artifact
+from backend.capabilities.writing import (
+    brainstorm,
+    chat_reply,
+    critique,
+    grounding_notes,
+    revise_content,
+    write_content,
 )
-from backend.policy import check_output, preflight
+from backend.config import settings
+from backend.llm import get_chat_model
+from backend.memory_store import compact as compact_memory
+from backend.memory_store import load_memory, save_memory
+from backend.policy import check_draft, preflight
 from backend.prompts import (
     CURRENT_PROMPT_VERSION,
-    CURRENT_SYSTEM_PROMPT,
-    analysis_prompt,
+    DISALLOWED_REPLY,
+    PUBLISH_REPLY,
+    THINKPAD_SYSTEM_PROMPT,
+    interpret_prompt,
 )
+from backend.signal_models import TurnPlan
+from backend.textutil import dedupe, enforce_max_words, max_words, word_count
 
 logger = logging.getLogger(__name__)
-GUARDRAILS_PATH = Path(__file__).resolve().parent / "guardrails.json"
+
+_ARTIFACT_STREAM_EVERY = 24  # tokens between mid-draft artifact snapshots
+
+
 class SignalState(TypedDict, total=False):
     user_id: str
     conversation_id: str
     user_message: str
-    turns: list[dict[str, str]]
+    client_artifact: dict[str, Any]
     memory: dict[str, Any]
-    previous_analysis: dict[str, Any]
-    analysis: dict[str, Any]
-    requirements: dict[str, Any]
+
+    turns: list[dict[str, Any]]
+    summary: str
+
+    plan: dict[str, Any]
+    artifact: dict[str, Any]
     assistant_message: str
-    draft: str
-    draft_version: int
-    draft_history: list[dict[str, Any]]
-    validation: dict[str, Any]
     status: str
-    tasks: list[str]
-    completed_tasks: list[str]
-    planned_capabilities: list[str]
     trajectory: list[dict[str, Any]]
-    pending_input: dict[str, Any]
-    choice_response: dict[str, Any]
 
 
-def _safe_id(value: str) -> str:
-    safe = re.sub(r"[^A-Za-z0-9_.-]", "_", value.strip())
-    if not safe:
-        raise ValueError("user_id and conversation_id must not be empty")
-    return safe[:200]
+# ---------------------------------------------------------------------------
+# streaming helpers
+# ---------------------------------------------------------------------------
 
+def _emit(payload: dict[str, Any]) -> None:
+    """Push a payload to the active stream, or no-op outside a stream."""
 
-def _read_json(path: Path, default: dict[str, Any]) -> dict[str, Any]:
-    if not path.exists():
-        return default
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        logger.warning("Ignoring malformed local JSON file: %s", path)
-        return default
+        writer = get_stream_writer()
+    except RuntimeError:  # pragma: no cover - not in a streaming context
+        return
+    if writer is not None:
+        writer(payload)
 
 
-def _write_json(path: Path, value: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(f"{path.suffix}.tmp")
-    temporary.write_text(
-        json.dumps(value, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    temporary.replace(path)
+def _emit_artifact(artifact: Artifact) -> None:
+    _emit({"type": "artifact", "artifact": artifact.model_dump()})
 
 
-def _model() -> ChatOpenAI:
-    if not settings.openrouter_api_key:
-        raise RuntimeError("OPENROUTER_API_KEY is required to run Signal")
-    if not settings.openrouter_model:
-        raise RuntimeError("OPENROUTER_MODEL is required to run Signal")
-    return ChatOpenAI(
-        model=settings.openrouter_model,
-        api_key=settings.openrouter_api_key,
-        base_url="https://openrouter.ai/api/v1",
-        temperature=settings.openrouter_temperature,
-        max_tokens=settings.openrouter_max_tokens,
-        timeout=settings.openrouter_timeout_seconds,
-        max_retries=settings.openrouter_max_retries,
-    )
+def _emit_reply(text: str) -> None:
+    if text:
+        _emit({"type": "reply", "delta": text})
 
 
-def _extract_json(text: str) -> dict[str, Any]:
-    candidate = text.strip()
-    if candidate.startswith("```"):
-        candidate = re.sub(r"^```(?:json)?\s*|\s*```$", "", candidate)
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+# ---------------------------------------------------------------------------
+# turn interpretation
+# ---------------------------------------------------------------------------
+
+def _rollup(summary: str, turns: list[dict[str, Any]]) -> str:
+    """Compress older turns into ``summary`` once the transcript gets long."""
+
+    if len(turns) <= settings.summarize_after:
+        return summary
+    keep = settings.history_window
+    older = turns[:-keep]
     try:
-        value = json.loads(candidate)
-    except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", candidate, flags=re.DOTALL)
-        if not match:
-            return {}
-        try:
-            value = json.loads(match.group(0))
-        except json.JSONDecodeError:
-            return {}
-    return value if isinstance(value, dict) else {}
-
-
-def _blocked_by_guardrails(message: str) -> bool:
-    return not preflight(message).allowed
-
-
-def _is_greeting(message: str) -> bool:
-    """Recognize lightweight conversational availability checks."""
-
-    return bool(
-        re.search(
-            r"^\s*(?:hey|hi|hello|is this thing on|are you there)\b",
-            message,
-            re.IGNORECASE,
-        )
-    )
-
-
-def _is_planned_content_request(message: str) -> bool:
-    """Recognize future content types that should receive a helpful roadmap."""
-
-    return bool(
-        re.search(
-            r"\b(?:blog|article|email campaign)\b",
-            message,
-            re.IGNORECASE,
-        )
-    )
-
-
-def _tone_choice() -> dict[str, Any]:
-    """Build the stable choice contract rendered by AG-UI clients."""
-    return {
-        "id": "tone",
-        "kind": "single_choice",
-        "field": "tone",
-        "question": "What should be the tone of the draft?",
-        "options": [
-            {"id": "professional", "label": "Professional"},
-            {"id": "conversational", "label": "Conversational"},
-            {"id": "bold", "label": "Bold"},
-        ],
-    }
-
-
-def _conversation_path(conversation_id: str) -> Path:
-    return settings.data_dir / "conversations" / f"{_safe_id(conversation_id)}.json"
-
-
-def _memory_path(user_id: str) -> Path:
-    return settings.data_dir / "memory" / f"{_safe_id(user_id)}.json"
-
-
-def _analysis_from_memory(
-    memory: dict[str, Any],
-    conversation_id: str | None = None,
-) -> dict[str, Any]:
-    """Convert persisted explicit facts and preferences into request fields."""
-
-    analysis: dict[str, Any] = {}
-    for fact in memory.get("facts", []):
-        if not isinstance(fact, dict):
-            continue
-        key = fact.get("key")
-        value = fact.get("value")
-        if key and value not in (None, "", []):
-            analysis[key] = value
-
-    campaign = memory.get("campaigns", {}).get(conversation_id, {})
-    product_facts = campaign.get("product_facts", []) if isinstance(campaign, dict) else []
-    if not product_facts:
-        product_facts = memory.get("product_facts", [])
-    if isinstance(product_facts, list):
-        analysis["product_facts"] = [
-            fact
-            for fact in product_facts
-            if isinstance(fact, str) and fact.strip()
-        ]
-
-    preferences = memory.get("preferences", {})
-    if isinstance(preferences, dict):
-        for key, preference in preferences.items():
-            value = (
-                preference.get("value")
-                if isinstance(preference, dict)
-                else preference
-            )
-            if value not in (None, "", []):
-                analysis[key] = value
-    return analysis
-
-
-def _merge_analysis(
-    previous: dict[str, Any],
-    current: dict[str, Any],
-) -> dict[str, Any]:
-    """Keep confirmed values when a later extraction omits them.
-
-    ``current`` is treated as a turn delta. Explicit values from the current
-    turn override prior values, while omitted values remain available.
-    """
-
-    merged = {
-        key: value
-        for key, value in previous.items()
-        if value not in (None, "", [])
-    }
-    merged.update(
-        {
-            key: value
-            for key, value in current.items()
-            if value not in (None, "", [])
-        }
-    )
-    prior_product_facts = previous.get("product_facts", [])
-    current_product_facts = current.get("product_facts", [])
-    if isinstance(prior_product_facts, list) or isinstance(current_product_facts, list):
-        merged["product_facts"] = list(
-            dict.fromkeys(
-                [
-                    fact.strip()
-                    for fact in [*prior_product_facts, *current_product_facts]
-                    if isinstance(fact, str) and fact.strip()
-                ]
-            )
-        )
-    merged["scope"] = current.get("scope", "linkedin_post")
-    return merged
-
-
-def _update_memory(
-    memory: dict[str, Any],
-    analysis: dict[str, Any],
-    conversation_id: str | None = None,
-) -> dict[str, Any]:
-    """Persist only explicit fields extracted from the current conversation."""
-
-    facts = {
-        fact["key"]: fact
-        for fact in memory.get("facts", [])
-        if isinstance(fact, dict) and fact.get("key")
-    }
-    for key in (
-        "company",
-        "product_name",
-        "product_description",
-    ):
-        value = analysis.get(key)
-        if value:
-            facts[key] = {
-                "key": key,
-                "value": value,
-                "source": "user_conversation",
-                "confidence": "explicit",
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }
-    product_facts = analysis.get("product_facts", [])
-    stored_product_facts = memory.get("product_facts", [])
-    if not isinstance(product_facts, list):
-        product_facts = []
-    if not isinstance(stored_product_facts, list):
-        stored_product_facts = []
-    merged_product_facts = list(
-        dict.fromkeys(
+        model = get_chat_model(temperature=0.0, tags=["signal:summary"])
+        response = model.invoke(
             [
-                *stored_product_facts,
-                *[
-                    fact.strip()
-                    for fact in product_facts
-                    if isinstance(fact, str) and fact.strip()
-                ],
+                SystemMessage(
+                    content=(
+                        "Summarize this content-brainstorming conversation so far "
+                        "in 4-6 sentences: the product/idea, confirmed facts, "
+                        "chosen direction, and open questions. No preamble."
+                    )
+                ),
+                HumanMessage(content=json.dumps(older, ensure_ascii=False)),
             ]
         )
-    )
-    preferences = {
-        key: value
-        for key, value in memory.get("preferences", {}).items()
-    }
-    for key in ("tone", "length", "audience", "call_to_action"):
-        value = analysis.get(key)
-        if value:
-            preferences[key] = {
-                "value": value,
-                "source": "user_conversation",
-                "confidence": "explicit",
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }
-    updated = {
-        **memory,
-        "facts": list(facts.values()),
-        "preferences": preferences,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }
-    if conversation_id:
-        campaigns = {
-            key: value
-            for key, value in memory.get("campaigns", {}).items()
-            if isinstance(value, dict)
-        }
-        campaigns[conversation_id] = {
-            "product_name": analysis.get("product_name"),
-            "product_facts": merged_product_facts,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }
-        updated["campaigns"] = campaigns
-    return updated
+        text = getattr(response, "content", "")
+        return text if isinstance(text, str) and text.strip() else summary
+    except Exception:  # pragma: no cover - defensive
+        return summary
 
 
-def _analyze(state: SignalState) -> SignalState:
-    analysis_model_is_live = False
-    if _blocked_by_guardrails(state["user_message"]):
-        analysis = {
-            "scope": "out_of_scope",
-            "intent": (
-                "planned_capability"
-                if _is_planned_content_request(state["user_message"])
-                else "out_of_scope"
-            ),
-            "tasks": [],
-        }
-        state["planned_capabilities"] = ["linkedin_post"]
-        if _is_planned_content_request(state["user_message"]):
-            state["planned_capabilities"].append("blog_post")
-    elif _is_greeting(state["user_message"]):
-        analysis = {
-            "scope": "linkedin_post",
-            "intent": "greeting",
-            "needs_clarification": False,
-            "tasks": [],
-        }
-    else:
-        stored_analysis = _analysis_from_memory(
-            state.get("memory", {}),
-            state.get("conversation_id"),
-        )
-        confirmed_analysis = _merge_analysis(
-            stored_analysis,
-            state.get("previous_analysis", {}),
-        )
-        analysis_model = _model()
-        analysis_model_is_live = isinstance(analysis_model, BaseChatModel)
-        prompt = analysis_prompt(
-            {
-                **state,
-                "previous_analysis": confirmed_analysis,
-            }
-        )
-        if analysis_model_is_live:
-            analysis = analyze_with_deep_agent(
-                analysis_model,
-                CURRENT_SYSTEM_PROMPT,
-                prompt,
-            )
-        else:
-            response = analysis_model.invoke(
-                [
-                    SystemMessage(content=CURRENT_SYSTEM_PROMPT),
-                    HumanMessage(content=prompt),
-                ]
-            )
-            analysis = _extract_json(str(response.content))
+def _seed_artifact(state: SignalState, plan: TurnPlan) -> Artifact:
+    """Carry the artifact forward, folding in client edits and plan hints."""
 
-    if (
-        re.search(r"\b(?:validate|verify|check)\b", state["user_message"], re.I)
-        and re.search(r"\b(?:draft|post)\b", state["user_message"], re.I)
-    ):
-        analysis["intent"] = "validate_draft"
+    artifact = ensure_artifact(state.get("artifact"))
+    artifact = apply_client_edits(artifact, state.get("client_artifact"))
 
-    analysis = _merge_analysis(
-        _merge_analysis(
-            _analysis_from_memory(
-                state.get("memory", {}),
-                state.get("conversation_id"),
-            ),
-            state.get("previous_analysis", {}),
-        ),
-        analysis,
+    update: dict[str, Any] = {}
+    if plan.format:
+        update["format"] = plan.format
+    if plan.product_mode:
+        update["product_mode"] = plan.product_mode
+    if plan.topic:
+        update["topic"] = plan.topic
+        if not artifact.title:
+            update["title"] = plan.topic
+    if update:
+        artifact = artifact.model_copy(update=update)
+    if plan.confirmed_facts:
+        artifact = artifact.with_sources(plan.confirmed_facts)
+    if artifact.status == "empty" and (artifact.sources or artifact.topic):
+        artifact = artifact.model_copy(update={"status": "exploring"})
+    return artifact
+
+
+def _interpret(state: SignalState) -> SignalState:
+    turns = state.get("turns", [])
+    summary = _rollup(state.get("summary", ""), turns)
+    memory_view = compact_memory(state.get("memory", {}))
+
+    prior_artifact = apply_client_edits(
+        ensure_artifact(state.get("artifact")), state.get("client_artifact")
     )
-    if analysis_model_is_live and _maximum_words(analysis.get("length")) is None:
-        explicit_length = _length_from_turns(state.get("turns", []))
-        if explicit_length is not None:
-            analysis["length"] = explicit_length
-    choice_response = state.get("choice_response", {})
-    if choice_response:
-        analysis = _merge_analysis(
-            analysis,
-            {
-                choice_response.get("field", "tone"): choice_response.get("value"),
-            },
+
+    plan = TurnPlan(mode="chat", reply_gist="acknowledge and offer a next step")
+    try:
+        model = get_chat_model(
+            temperature=settings.interpret_temperature, tags=["signal:interpret"]
         )
-        analysis["intent"] = "request_post"
-        analysis["needs_clarification"] = False
-        analysis["clarification_question"] = None
-    known_product = analysis.get("product_name")
-    discussing_known_product = (
-        isinstance(known_product, str)
-        and bool(known_product.strip())
-        and known_product.casefold() in state["user_message"].casefold()
-    )
-    if (
-        analysis.get("scope") == "out_of_scope"
-        and discussing_known_product
-        and not _blocked_by_guardrails(state["user_message"])
-    ):
-        analysis["scope"] = "linkedin_post"
-        analysis["intent"] = "external_fact_request"
-    if analysis.get("scope") != "linkedin_post":
-        analysis["scope"] = "out_of_scope"
-    requirements = _requirements_from_analysis(analysis)
-    required = requirements["required"]
-    missing = (
-        ["product_name"] if not required["product_name"] else []
-    )
-    if required["product_fact_count"] < required["minimum_product_facts"]:
-        missing.append("product_facts")
-    if analysis["scope"] == "linkedin_post" and missing:
-        analysis["needs_clarification"] = True
-        questions = {
-            "product_name": "What is the product name?",
-            "product_facts": (
-                "Please provide at least three concrete product facts that may "
-                "be included in the post."
-            ),
-        }
-        known_facts = analysis.get("product_facts", [])
-        if (
-            "product_facts" in missing
-            and isinstance(known_facts, list)
-            and known_facts
-        ):
-            retained = ", ".join(
-                fact for fact in known_facts if isinstance(fact, str)
-            )
-            questions["product_facts"] = (
-                f"I have retained these confirmed product facts: {retained}. "
-                "Please provide at least three concrete product facts in total "
-                "before drafting."
-            )
-        analysis["clarification_question"] = " ".join(
-            questions[field] for field in missing[:2]
+        structured = model.with_structured_output(TurnPlan)
+        result = structured.invoke(
+            [
+                SystemMessage(content=THINKPAD_SYSTEM_PROMPT),
+                HumanMessage(
+                    content=interpret_prompt(
+                        summary=summary,
+                        turns=turns[-settings.history_window :],
+                        artifact=prior_artifact.model_dump(),
+                        memory=memory_view,
+                        user_message=state["user_message"],
+                    )
+                ),
+            ]
         )
-    elif analysis["scope"] == "linkedin_post":
-        analysis["needs_clarification"] = False
-        analysis["clarification_question"] = None
-    if (
-        analysis.get("intent") == "external_fact_request"
-        and not re.search(r"\b(?:create|draft|write|make)\b.*\bpost\b", state["user_message"], re.I)
-    ):
-        analysis["needs_clarification"] = True
-        analysis["clarification_question"] = (
-            "I can use product facts you provide, but I cannot verify or "
-            "research specifications. Please provide the facts you want in "
-            "the LinkedIn post."
-        )
-    status = (
-        "out_of_scope"
-        if analysis["scope"] == "out_of_scope"
-        else "needs_clarification"
-        if analysis.get("needs_clarification")
-        else "in_progress"
-    )
-    if analysis["scope"] == "linkedin_post":
-        tasks = [
-            "collect_product_facts",
-            "confirm_preferences",
-            "draft_linkedin_post",
-            "validate_constraints",
-        ]
-    else:
-        tasks = []
-    pending_input = (
-        _tone_choice()
-        if (
-            not choice_response
-            and not state.get("pending_input")
-            and not missing
-            and analysis.get("scope") == "linkedin_post"
-            and not analysis.get("tone")
-        )
-        else {}
-    )
-    if state.get("pending_input") and not choice_response:
-        pending_input = state["pending_input"]
-        analysis["intent"] = "select_preferences"
-        analysis["needs_clarification"] = True
-        analysis["clarification_question"] = pending_input["question"]
-        status = "needs_clarification"
-    if pending_input:
-        analysis["intent"] = "select_preferences"
-        analysis["needs_clarification"] = True
-        analysis["clarification_question"] = pending_input["question"]
-        status = "needs_clarification"
-    trajectory = [
-        *state.get("trajectory", []),
-        {
-            "step": "analyze",
-            "status": status,
-            "missing_fields": missing,
-        },
-    ]
+        if isinstance(result, TurnPlan):
+            plan = result
+        elif isinstance(result, dict):
+            plan = TurnPlan.model_validate(result)
+    except Exception as error:  # pragma: no cover - defensive
+        logger.warning("turn interpretation failed, defaulting to chat: %s", error)
+
+    # Deterministic safety gate — not left to the model.
+    decision = preflight(state["user_message"])
+    if decision.flag != "ok":
+        plan.safety_flag = decision.flag
+
+    artifact = _seed_artifact(state, plan)
+
+    status = {
+        "brainstorm": "exploring",
+        "draft": "drafting",
+        "revise": "refining",
+        "critique": "refining",
+        "chat": artifact.status if artifact.status != "empty" else "exploring",
+    }.get(plan.mode, "exploring")
+    if plan.clarifying_question or plan.safety_flag != "ok":
+        status = "needs_input"
+
     return {
         **state,
-        "analysis": analysis,
-        "requirements": requirements,
-        "tasks": tasks,
+        "summary": summary,
+        "plan": plan.model_dump(),
+        "artifact": artifact.model_dump(),
         "status": status,
-        "pending_input": pending_input,
-        "trajectory": trajectory,
+        "trajectory": [
+            *state.get("trajectory", []),
+            {"step": "interpret", "mode": plan.mode, "status": status, "at": _now()},
+        ],
     }
 
 
 def _route(state: SignalState) -> str:
-    if state["analysis"].get("intent") in {"greeting", "planned_capability"}:
+    plan = state["plan"]
+    artifact = state["artifact"]
+    if plan.get("safety_flag", "ok") != "ok" or plan.get("clarifying_question"):
         return "respond"
-    if state["status"] != "in_progress":
-        return "respond"
-    if state["analysis"].get("intent") == "validate_draft" and state.get("draft"):
-        return "validate"
-    if state["analysis"].get("intent") == "edit_draft" and state.get("draft"):
-        return "edit"
-    return "generate"
 
-
-def _requirements_from_analysis(analysis: dict[str, Any]) -> dict[str, Any]:
-    """Build deterministic required and optional request parameters."""
-
-    maximum_words = _maximum_words(analysis.get("length"))
-    product_facts = analysis.get("product_facts", [])
-    fact_count = (
-        len(
-            {
-                fact.strip().casefold()
-                for fact in product_facts
-                if isinstance(fact, str) and fact.strip()
-            }
+    mode = plan.get("mode", "chat")
+    has_body = bool((artifact or {}).get("body", "").strip())
+    if mode == "revise":
+        return "revise" if has_body else "draft"
+    if mode == "critique":
+        return "critique" if has_body else "respond"
+    if mode == "draft":
+        substantive = (
+            artifact.get("topic")
+            or artifact.get("sources")
+            or plan.get("chosen_angle")
+            or len(state["user_message"]) > 40
         )
-        if isinstance(product_facts, list)
-        else 0
-    )
+        return "draft" if substantive else "brainstorm"
+    if mode == "brainstorm":
+        return "brainstorm"
+    return "respond"
+
+
+# ---------------------------------------------------------------------------
+# work nodes
+# ---------------------------------------------------------------------------
+
+def _brief(state: SignalState) -> dict[str, Any]:
+    plan = state["plan"]
+    artifact = state["artifact"]
+    length = plan.get("length")
     return {
-        "required": {
-            "product_name": bool(analysis.get("product_name")),
-            "minimum_product_facts": 3,
-            "product_fact_count": fact_count,
-            "maximum_words": maximum_words,
-        },
-        "optional": {
-            "tone": analysis.get("tone"),
-            "audience": analysis.get("audience"),
-            "call_to_action": analysis.get("call_to_action"),
-        },
+        "format": artifact.get("format", "linkedin_post"),
+        "product_mode": artifact.get("product_mode", "existing"),
+        "topic": artifact.get("topic") or plan.get("topic") or "",
+        "sources": artifact.get("sources", []),
+        "angle": plan.get("chosen_angle") or (artifact.get("angles") or [None])[0],
+        "outline": artifact.get("outline", []),
+        "tone": plan.get("tone"),
+        "audience": plan.get("audience"),
+        "cta": plan.get("cta"),
+        "length": length,
+        "max_words": max_words(length),
+        "open_questions": artifact.get("open_questions", []),
     }
 
 
-def _requirements_satisfied(state: SignalState) -> bool:
-    """Return whether the confirmed state is ready for draft generation."""
-
-    requirements = state.get("requirements", {})
-    required = requirements.get("required", {})
-    return (
-        required.get("product_name", False)
-        and required.get("product_fact_count", 0)
-        >= required.get("minimum_product_facts", 3)
-    )
-
-
-def _has_minimum_product_facts(analysis: dict[str, Any]) -> bool:
-    """Return whether the request contains three distinct product facts."""
-
-    product_facts = analysis.get("product_facts", [])
-    if not isinstance(product_facts, list):
-        return False
-    facts = {
-        fact.strip().casefold()
-        for fact in product_facts
-        if isinstance(fact, str) and fact.strip()
-    }
-    return len(facts) >= 3
-
-
-def _maximum_words(length: Any) -> int | None:
-    """Extract a deterministic maximum from a user length constraint."""
-
-    if not isinstance(length, str):
-        return None
-    match = re.search(r"\b(?:under|less than|max(?:imum)?(?: of)?|up to)\s*(\d+)", length.lower())
-    if match:
-        return max(1, int(match.group(1)))
-    match = re.search(r"\b(\d+)\s*words?\b", length.lower())
-    return int(match.group(1)) if match else None
-
-
-def _length_from_turns(turns: list[dict[str, str]]) -> str | None:
-    """Return the latest user wording containing an explicit word limit."""
-
-    for turn in reversed(turns):
-        if turn.get("role") != "user":
-            continue
-        content = turn.get("content", "")
-        if _maximum_words(content) is not None:
-            return content
-    return None
-
-
-def _draft_is_grounded(post: str, request: dict[str, Any]) -> bool:
-    """Ensure a non-empty draft is anchored to the requested product."""
-
-    if not post.strip() or not isinstance(request.get("product_name"), str):
-        return False
-    product_tokens = re.findall(r"[A-Za-z0-9]+", request["product_name"].lower())
-    draft_tokens = set(re.findall(r"[A-Za-z0-9]+", post.lower()))
-    return all(token in draft_tokens for token in product_tokens)
-
-
-def _normalize_text(value: Any) -> str:
-    """Normalize text for conservative, deterministic fact matching."""
-
-    return re.sub(r"[^a-z0-9]+", " ", str(value).casefold()).strip()
-
-
-def _draft_contains_required_facts(
-    post: str, request: dict[str, Any]
-) -> bool:
-    """Return whether every confirmed product fact appears in the draft."""
-
-    facts = request.get("product_facts", [])
-    if not isinstance(facts, list) or not facts:
-        return False
-    normalized_post = _normalize_text(post)
-    return all(
-        _normalize_text(fact) in normalized_post
-        for fact in facts
-        if isinstance(fact, str) and fact.strip()
-    )
-
-
-def _request_from_analysis(analysis: dict[str, Any]) -> dict[str, Any]:
-    """Select the confirmed fields passed to a writing capability."""
-
-    allowed = {
-        "company",
-        "product_name",
-        "product_description",
-        "product_facts",
-        "tone",
-        "length",
-        "audience",
-        "call_to_action",
-    }
+def _finish(
+    state: SignalState,
+    *,
+    node: str,
+    artifact: Artifact,
+    message: str,
+    status: str,
+) -> SignalState:
+    _emit_artifact(artifact)
+    _emit_reply(message)
     return {
-        key: value
-        for key, value in analysis.items()
-        if key in allowed and value
+        **state,
+        "artifact": artifact.model_dump(),
+        "assistant_message": message,
+        "status": status,
+        "turns": [*state.get("turns", []), {"role": "assistant", "content": message}],
+        "trajectory": [
+            *state.get("trajectory", []),
+            {"step": node, "status": status, "at": _now()},
+        ],
     }
 
 
-def _create_post(request: dict[str, Any]) -> str:
-    """Create a post through DeepAgents for live models.
-
-    Deterministic tests inject lightweight fake models that are intentionally
-    not chat-model instances; those tests retain the direct capability seam.
-    """
-
-    model = _model()
-    if isinstance(model, BaseChatModel):
-        return create_post_with_deep_agent(model, request, create_linkedin_post)
-    return create_linkedin_post(request)
-
-
-def _edit_post(
-    request: dict[str, Any],
-    draft: str,
-    instruction: str,
-) -> str:
-    """Edit a post through DeepAgents for live models."""
-
-    model = _model()
-    if isinstance(model, BaseChatModel):
-        return edit_post_with_deep_agent(
-            model,
-            request,
-            draft,
-            instruction,
-            edit_linkedin_post,
-        )
-    return edit_linkedin_post(request, draft, instruction)
-
-
-def _validate_current_draft(state: SignalState) -> SignalState:
-    """Validate the persisted draft against current request constraints."""
-
-    draft = state.get("draft", "")
-    request = _request_from_analysis(state["analysis"])
-    requirements = state.get("requirements") or _requirements_from_analysis(
-        state["analysis"]
+def _brainstorm(state: SignalState) -> SignalState:
+    brief = _brief(state)
+    result = brainstorm(brief)
+    base = ensure_artifact(state["artifact"])
+    picked = bool(result["outline"])
+    artifact = base.model_copy(
+        update={
+            "kind": "outline" if picked else "idea_board",
+            "angles": dedupe([*base.angles, *result["angles"]]) if not picked else base.angles,
+            "outline": result["outline"] or base.outline,
+        }
     )
-    required = requirements.get("required", {})
-    maximum_words = required.get("maximum_words")
-    request_complete = _requirements_satisfied(
-        {**state, "requirements": requirements}
+    artifact = artifact.with_questions(result["open_questions"]).touched(
+        status="drafting" if picked else "exploring"
     )
-    draft_fact_coverage = _draft_contains_required_facts(draft, request)
-    word_count_valid = (
-        maximum_words is None or len(draft.split()) <= maximum_words
-    )
-    valid = (
-        request_complete
-        and bool(draft.strip())
-        and _draft_is_grounded(draft, request)
-        and word_count_valid
-    )
-    policy_decision = check_output(
-        draft,
-        request,
-        grounded=_draft_is_grounded(draft, request),
-    )
-    valid = valid and policy_decision.allowed
-    validation = {
-        "status": "passed" if valid else "failed",
-        "request_complete": request_complete,
-        "product_anchor": _draft_is_grounded(draft, request),
-        "required_facts_present": request_complete,
-        "draft_fact_coverage": draft_fact_coverage,
-        "word_count": len(draft.split()),
-        "maximum_words": maximum_words,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }
-    if valid:
+    if picked:
         message = (
-            "I validated the current draft against the confirmed product "
-            "facts and requested constraints.\n\n"
-            f"{draft}"
+            f"Outlined the {artifact.format.replace('_', ' ')} — "
+            f"{len(artifact.outline)} beats on the board. Say the word and I'll draft it."
         )
-        status = "complete"
     else:
         message = (
-            "I could not validate the current draft against the confirmed "
-            "product facts and requested constraints. Please provide any "
-            "missing product facts or constraints before we finalize it."
+            f"Put {len(result['angles'])} angles on the board. "
+            "Tell me which to run with (or mix two) and I'll outline it."
         )
-        status = "needs_clarification"
+    return _finish(state, node="brainstorm", artifact=artifact, message=message,
+                   status=artifact.status)
+
+
+def _write_stream(state: SignalState, *, revise: bool) -> Artifact:
+    brief = _brief(state)
+    base = ensure_artifact(state["artifact"])
+    fmt = brief["format"]
+
+    if revise:
+        stream = revise_content(
+            fmt, brief, base.body, state["plan"].get("revise_instruction", "")
+        )
+    else:
+        stream = write_content(fmt, brief)
+
+    parts: list[str] = []
+    since_flush = 0
+    for delta in stream:
+        parts.append(delta)
+        since_flush += 1
+        if since_flush >= _ARTIFACT_STREAM_EVERY:
+            since_flush = 0
+            _emit_artifact(
+                base.model_copy(update={"kind": "draft", "body": "".join(parts),
+                                        "status": "drafting"})
+            )
+    body = enforce_max_words("".join(parts).strip(), brief["max_words"])
+
+    notes = grounding_notes(body, base.sources, base.product_mode)
+    artifact = base.model_copy(update={"kind": "draft", "body": body})
+    artifact = artifact.with_questions(notes).touched(status="refining")
+    return artifact
+
+
+def _writer_failed(state: SignalState, node: str) -> SignalState:
+    message = (
+        "The draft came back empty. Tell me a bit more about the angle or the "
+        "key point you want and I'll try again."
+    )
+    artifact = ensure_artifact(state["artifact"])
+    _emit_reply(message)
+    return {
+        **state,
+        "assistant_message": message,
+        "status": "needs_input",
+        "turns": [*state.get("turns", []), {"role": "assistant", "content": message}],
+        "trajectory": [
+            *state.get("trajectory", []),
+            {"step": node, "status": "needs_input", "at": _now()},
+        ],
+    }
+
+
+def _draft(state: SignalState) -> SignalState:
+    artifact = _write_stream(state, revise=False)
+    if not check_draft(artifact.body).allowed:
+        return _writer_failed(state, "draft")
+    flags = len(artifact.open_questions)
+    message = f"Drafted a first pass ({word_count(artifact.body)} words)."
+    if flags:
+        message += f" Flagged {flags} thing{'s' if flags != 1 else ''} to confirm — see open questions."
+    message += " Want it punchier, shorter, or a different angle?"
+    return _finish(state, node="draft", artifact=artifact, message=message,
+                   status="refining")
+
+
+def _revise(state: SignalState) -> SignalState:
+    artifact = _write_stream(state, revise=True)
+    if not check_draft(artifact.body).allowed:
+        return _writer_failed(state, "revise")
+    instruction = state["plan"].get("revise_instruction") or "your notes"
+    message = (
+        f"Revised for {instruction!r} (v{artifact.version}, "
+        f"{word_count(artifact.body)} words). Take a look."
+    )
+    return _finish(state, node="revise", artifact=artifact, message=message,
+                   status="refining")
+
+
+def _critique(state: SignalState) -> SignalState:
+    brief = _brief(state)
+    base = ensure_artifact(state["artifact"])
+    review = critique(brief["format"], brief, base.body)
+    artifact = base.model_copy(
+        update={"open_questions": dedupe([*base.open_questions, *review.points])}
+    ).touched(status="refining")
+    message = review.summary.strip() or "Reviewed the draft — notes are on the board."
+    return _finish(state, node="critique", artifact=artifact, message=message,
+                   status="refining")
+
+
+def _respond(state: SignalState) -> SignalState:
+    plan = state["plan"]
+    artifact = ensure_artifact(state["artifact"])
+
+    if plan.get("safety_flag") == "publish_request":
+        message = PUBLISH_REPLY
+        _emit_reply(message)
+    elif plan.get("safety_flag") == "disallowed":
+        message = DISALLOWED_REPLY
+        _emit_reply(message)
+    elif plan.get("clarifying_question"):
+        message = plan["clarifying_question"]
+        _emit_reply(message)
+    else:
+        parts: list[str] = []
+        for delta in chat_reply(
+            state.get("turns", [])[-settings.history_window :],
+            artifact.model_dump(),
+            plan.get("reply_gist"),
+        ):
+            parts.append(delta)
+            _emit_reply(delta)
+        message = "".join(parts).strip() or (
+            "Tell me what you'd like to work on and I'll get a first version on the board."
+        )
+
+    unresolved = plan.get("clarifying_question") or plan.get("safety_flag", "ok") != "ok"
+    status = "needs_input" if unresolved else artifact.status
+    _emit_artifact(artifact)
     return {
         **state,
         "assistant_message": message,
         "status": status,
-        "validation": validation,
+        "turns": [*state.get("turns", []), {"role": "assistant", "content": message}],
         "trajectory": [
             *state.get("trajectory", []),
-            {
-                "step": "validate_constraints",
-                "status": validation["status"],
-                "word_count": validation["word_count"],
-            },
+            {"step": "respond", "status": status, "at": _now()},
         ],
     }
 
 
-def _generate(state: SignalState) -> SignalState:
-    request = _request_from_analysis(state["analysis"])
-    post = _create_post(request)
-    maximum_words = _maximum_words(request.get("length"))
-    if maximum_words is not None:
-        post = " ".join(post.split()[:maximum_words])
-    if not _draft_is_grounded(post, request):
-        state["analysis"]["needs_clarification"] = True
-        state["analysis"]["clarification_question"] = (
-            "Please provide concrete product facts that may be included in the "
-            "post; I will not add unspecified features or benefits."
-        )
-        return {
-            **state,
-            "assistant_message": (
-                "I could not safely validate the draft against the confirmed "
-                "facts.\n\n"
-                f"{state['analysis']['clarification_question']}"
-            ),
-            "status": "needs_clarification",
-            "trajectory": [
-                *state.get("trajectory", []),
-                {
-                    "step": "validate_constraints",
-                    "status": "failed",
-                    "reason": "draft_missing_product_anchor",
-                },
-            ],
-        }
-    progress_update = (
-        "I created the draft and validated it against the confirmed product "
-        "facts and requested constraints."
-    )
-    if (
-        isinstance(_model(), BaseChatModel)
-        and maximum_words is not None
-        and len(f"{progress_update}\n\n{post}".split()) > maximum_words
-    ):
-        available_words = max(1, maximum_words - len(progress_update.split()))
-        post = " ".join(post.split()[:available_words])
-    version = state.get("draft_version", 0) + 1
-    validation_state = {
-        **state,
-        "draft": post,
-        "draft_version": version,
-        "draft_history": [
-            *state.get("draft_history", []),
-            {
-                "version": version,
-                "draft": post,
-                "source": "create",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            },
-        ],
-    }
-    validated = _validate_current_draft(validation_state)
-    return {
-        **validated,
-        "assistant_message": f"{progress_update}\n\n{post}"
-        if validated["status"] == "complete"
-        else validated["assistant_message"],
-        "completed_tasks": state.get("tasks", [])
-        if validated["status"] == "complete"
-        else state.get("completed_tasks", []),
-        "trajectory": [
-            *validated.get("trajectory", []),
-            {
-                "step": "capability",
-                "capability": "linkedin_post",
-                "status": "complete"
-                if validated["status"] == "complete"
-                else "blocked",
-            },
-        ],
-    }
+# ---------------------------------------------------------------------------
+# graph
+# ---------------------------------------------------------------------------
 
-
-def _edit(state: SignalState) -> SignalState:
-    request = _request_from_analysis(state["analysis"])
-    draft = _edit_post(
-        request,
-        state.get("draft", ""),
-        state["analysis"].get("edit_instruction", ""),
-    )
-    maximum_words = _maximum_words(request.get("length"))
-    if maximum_words is not None:
-        draft = " ".join(draft.split()[:maximum_words])
-    version = state.get("draft_version", 0) + 1
-    edited_state = {
-        **state,
-        "draft": draft,
-        "draft_version": version,
-        "draft_history": [
-            *state.get("draft_history", []),
-            {
-                "version": version,
-                "draft": draft,
-                "source": "edit",
-                "instruction": state["analysis"].get("edit_instruction", ""),
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            },
-        ],
-    }
-    validated = _validate_current_draft(edited_state)
-    if validated["status"] != "complete":
-        return validated
-    return {
-        **validated,
-        "assistant_message": (
-            "I revised the draft according to your request and validated "
-            "the new version against the confirmed facts and constraints.\n\n"
-            f"{draft}"
-        ),
-        "completed_tasks": state.get("tasks", []),
-    }
-
-
-def _respond(state: SignalState) -> SignalState:
-    if state["analysis"].get("intent") == "greeting":
-        message = (
-            "Yes, I’m here and ready to help. I can create a LinkedIn post "
-            "from product information you provide."
-        )
-    elif state["analysis"].get("intent") == "planned_capability":
-        message = (
-            "I understand—you’re planning content for your product. Blog "
-            "posts are part of the broader content workflow we can add later; "
-            "right now I can create the LinkedIn version. Please share the "
-            "product name and three key product features, and I’ll help you "
-            "get started."
-        )
-    elif state["status"] == "out_of_scope":
-        message = (
-            "I’m happy to help with product content. Right now I can create "
-            "LinkedIn posts from information you provide, but I can’t handle "
-            "that request yet."
-        )
-    elif state["analysis"].get("intent") == "external_fact_request":
-        facts = state["analysis"].get("product_facts", [])
-        retained = (
-            "\n".join(f"- {fact}" for fact in facts if isinstance(fact, str))
-            if isinstance(facts, list)
-            else ""
-        )
-        message = (
-            "I understand this is the product information you’ve shared. "
-            "I can use these confirmed facts, but I can’t verify or research "
-            "additional specifications. Please share any new facts you want "
-            "included in the LinkedIn post."
-        )
-        if retained:
-            message = f"{message}\n\n{retained}"
-    else:
-        question = state["analysis"].get("clarification_question") or (
-            "What product should the LinkedIn post promote, and what is its "
-            "short description?"
-        )
-        progress_update = state["analysis"].get("progress_update") or (
-            "To create the post safely, I still need the following information:"
-        )
-        message = f"{progress_update}\n\n{question}"
-    return {
-        **state,
-        "assistant_message": message,
-        "trajectory": [
-            *state.get("trajectory", []),
-            {
-                "step": "respond",
-                "status": state["status"],
-            },
-        ],
-    }
-
-
-def _build_graph():
+def _builder() -> StateGraph:
     graph = StateGraph(SignalState)
-    graph.add_node("analyze", _analyze)
-    graph.add_node("generate", _generate)
-    graph.add_node("edit", _edit)
-    graph.add_node("validate", _validate_current_draft)
+    graph.add_node("interpret", _interpret)
+    graph.add_node("brainstorm", _brainstorm)
+    graph.add_node("draft", _draft)
+    graph.add_node("revise", _revise)
+    graph.add_node("critique", _critique)
     graph.add_node("respond", _respond)
-    graph.add_edge(START, "analyze")
+    graph.add_edge(START, "interpret")
     graph.add_conditional_edges(
-        "analyze",
+        "interpret",
         _route,
         {
-            "generate": "generate",
-            "edit": "edit",
-            "validate": "validate",
+            "brainstorm": "brainstorm",
+            "draft": "draft",
+            "revise": "revise",
+            "critique": "critique",
             "respond": "respond",
         },
     )
-    graph.add_edge("generate", END)
-    graph.add_edge("edit", END)
-    graph.add_edge("validate", END)
-    graph.add_edge("respond", END)
-    return graph.compile(checkpointer=MemorySaver())
+    for node in ("brainstorm", "draft", "revise", "critique", "respond"):
+        graph.add_edge(node, END)
+    return graph
 
 
-GRAPH = _build_graph()
+_GRAPH_BUILDER = _builder()
 
 
-def _validate_choice(
-    pending_input: dict[str, Any], choice_response: dict[str, Any]
-) -> dict[str, Any]:
-    """Validate and normalize a pending single-choice response."""
-    if not pending_input:
-        raise ValueError("No pending choice exists for this conversation")
-    if choice_response.get("id") != pending_input.get("id"):
-        raise ValueError("Choice response does not match the pending input")
-    option_ids = {
-        option.get("id")
-        for option in pending_input.get("options", [])
-        if isinstance(option, dict)
-    }
-    value = choice_response.get("value")
-    if value not in option_ids:
-        raise ValueError("Choice response contains an invalid option")
+def _compile(checkpointer: Any):
+    return _GRAPH_BUILDER.compile(checkpointer=checkpointer)
+
+
+# ---------------------------------------------------------------------------
+# entry points
+# ---------------------------------------------------------------------------
+
+def _thread_config(conversation_id: str) -> dict[str, Any]:
     return {
-        "id": pending_input["id"],
-        "field": pending_input["field"],
-        "value": value,
+        "configurable": {"thread_id": conversation_id},
+        "tags": ["signal", CURRENT_PROMPT_VERSION],
+        "metadata": {
+            "conversation_id": conversation_id,
+            "session_id": conversation_id,
+            "prompt_version": CURRENT_PROMPT_VERSION,
+        },
+    }
+
+
+async def astream_conversation(
+    *,
+    user_id: str,
+    conversation_id: str,
+    user_message: str,
+    client_artifact: dict[str, Any] | None = None,
+) -> AsyncIterator[dict[str, Any]]:
+    """Run one turn, yielding normalized events:
+
+    ``{"type": "artifact", "artifact": {...}}``
+    ``{"type": "reply", "delta": "..."}``
+    ``{"type": "status", "status": "...", "node": "..."}``
+    ``{"type": "final", "assistant_message", "artifact", "status", "plan"}``
+    """
+
+    if not user_message.strip():
+        raise ValueError("user_message must not be empty")
+
+    settings.db_path.parent.mkdir(parents=True, exist_ok=True)
+    memory = load_memory(user_id)
+
+    async with AsyncSqliteSaver.from_conn_string(str(settings.db_path)) as checkpointer:
+        graph = _compile(checkpointer)
+        config = _thread_config(conversation_id)
+
+        prior = await graph.aget_state(config)
+        prior_values = prior.values if prior else {}
+        turns = list(prior_values.get("turns", []))
+        turns.append({"role": "user", "content": user_message})
+
+        graph_input: SignalState = {
+            "user_id": user_id,
+            "conversation_id": conversation_id,
+            "user_message": user_message,
+            "client_artifact": client_artifact or {},
+            "memory": memory,
+            "turns": turns,
+            "summary": prior_values.get("summary", ""),
+            "artifact": prior_values.get("artifact", {}),
+            "trajectory": prior_values.get("trajectory", []),
+        }
+
+        async for mode, chunk in graph.astream(
+            graph_input, config, stream_mode=["custom", "updates"]
+        ):
+            if mode == "custom" and isinstance(chunk, dict):
+                if chunk.get("type") in {"artifact", "reply"}:
+                    yield chunk
+            elif mode == "updates" and isinstance(chunk, dict):
+                for node, update in chunk.items():
+                    if isinstance(update, dict) and update.get("status"):
+                        yield {
+                            "type": "status",
+                            "status": update["status"],
+                            "node": node,
+                        }
+
+        final = await graph.aget_state(config)
+        values = final.values if final else {}
+
+    save_memory(user_id, values.get("plan", {}), values.get("artifact", {}))
+    yield {
+        "type": "final",
+        "assistant_message": values.get("assistant_message", ""),
+        "artifact": values.get("artifact", {}),
+        "status": values.get("status", ""),
+        "plan": values.get("plan", {}),
+        "trajectory": values.get("trajectory", []),
     }
 
 
@@ -1001,133 +579,44 @@ def run_conversation(
     user_id: str,
     conversation_id: str,
     user_message: str,
-    choice_response: dict[str, Any] | None = None,
-    progress_callback: Callable[[dict[str, Any]], None] | None = None,
+    client_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Run one backend conversation turn through the LangGraph workflow."""
+    """Synchronous one-turn entry point (CLI + deterministic tests)."""
 
-    if not user_message.strip():
-        raise ValueError("user_message must not be empty")
-    user_id = _safe_id(user_id)
-    conversation_id = _safe_id(conversation_id)
-    conversation_file = _conversation_path(conversation_id)
-    memory_file = _memory_path(user_id)
-    conversation = _read_json(
-        conversation_file,
-        {"conversation_id": conversation_id, "turns": []},
-    )
-    memory = _read_json(memory_file, {"user_id": user_id, "facts": []})
-    pending_input = conversation.get("pending_input", {})
-    normalized_choice = (
-        _validate_choice(pending_input, choice_response)
-        if choice_response
-        else {}
-    )
-    if normalized_choice:
-        user_message = (
-            f"Selected {normalized_choice['field']}: "
-            f"{normalized_choice['value']}"
-        )
-    state: SignalState = {
-        "user_id": user_id,
-        "conversation_id": conversation_id,
-        "user_message": user_message,
-        "turns": [
-            *conversation.get("turns", []),
-            {"role": "user", "content": user_message},
-        ],
-        "memory": memory,
-        "previous_analysis": conversation.get("analysis", {}),
-        "draft": conversation.get("draft", ""),
-        "draft_version": conversation.get("draft_version", 0),
-        "draft_history": conversation.get("draft_history", []),
-        "validation": conversation.get("validation", {}),
-        "requirements": conversation.get("requirements", {}),
-        "pending_input": pending_input if not normalized_choice else {},
-        "choice_response": normalized_choice,
-        "trajectory": conversation.get("trajectory", []),
-    }
-    result: dict[str, Any] = {}
-    for update in GRAPH.stream(
-        state,
-        config={
-            "configurable": {"thread_id": conversation_id},
-            "tags": ["signal", "linkedin_post"],
-            "metadata": {
-                "user_id": user_id,
-                "conversation_id": conversation_id,
-                "session_id": conversation_id,
-                "prompt_version": CURRENT_PROMPT_VERSION,
-            },
-        },
-    ):
-        for step, step_state in update.items():
-            if not isinstance(step_state, dict):
-                continue
-            result.update(step_state)
-            progress_callback and progress_callback(
-                {
-                    "stage": step,
-                    "label": f"LangGraph completed {step}",
-                    "status": step_state.get("status"),
-                    "completed_steps": [
-                        item.get("step")
-                        for item in step_state.get("trajectory", [])
-                        if isinstance(item, dict) and item.get("step")
-                    ],
-                    "tasks": step_state.get("tasks", []),
-                    "completed_tasks": step_state.get("completed_tasks", []),
-                }
-            )
+    async def _collect() -> dict[str, Any]:
+        final: dict[str, Any] = {}
+        async for event in astream_conversation(
+            user_id=user_id,
+            conversation_id=conversation_id,
+            user_message=user_message,
+            client_artifact=client_artifact,
+        ):
+            if event["type"] == "final":
+                final = event
+        return final
 
-    assistant_message = result["assistant_message"]
-    memory = _update_memory(
-        memory,
-        result.get("analysis", {}),
-        conversation_id,
-    )
-    turns = [
-        *state["turns"],
-        {"role": "assistant", "content": assistant_message},
-    ]
-    conversation.update(
-        {
-            "conversation_id": conversation_id,
-            "user_id": user_id,
-            "turns": turns,
-            "status": result["status"],
-            "analysis": result.get("analysis", {}),
-            "tasks": result.get("tasks", []),
-            "completed_tasks": result.get("completed_tasks", []),
-            "planned_capabilities": result.get("planned_capabilities", []),
-            "draft": result.get("draft", ""),
-            "draft_version": result.get("draft_version", 0),
-            "draft_history": result.get("draft_history", []),
-            "validation": result.get("validation", {}),
-            "requirements": result.get("requirements", {}),
-            "pending_input": result.get("pending_input", {}),
-            "trajectory": result.get("trajectory", []),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "prompt_version": CURRENT_PROMPT_VERSION,
-        }
-    )
-    _write_json(conversation_file, conversation)
-    _write_json(memory_file, memory)
+    final = asyncio.run(_collect())
+    plan = final.get("plan", {})
     return {
-        "assistant_message": assistant_message,
-        "response": assistant_message,
+        "assistant_message": final.get("assistant_message", ""),
+        "response": final.get("assistant_message", ""),
         "conversation_id": conversation_id,
-        "status": result["status"],
-        "pending_questions": (
-            [assistant_message] if result["status"] == "needs_clarification" else []
-        ),
-        "tasks": result.get("tasks", []),
-        "completed_tasks": result.get("completed_tasks", []),
-        "planned_capabilities": result.get("planned_capabilities", []),
-        "draft": result.get("draft", ""),
-        "draft_version": result.get("draft_version", 0),
-        "validation": result.get("validation", {}),
-        "requirements": result.get("requirements", {}),
-        "pending_input": result.get("pending_input", {}),
-        "trajectory": result.get("trajectory", []),
+        "status": final.get("status", ""),
+        "artifact": final.get("artifact", {}),
+        "plan": plan,
+        "mode": plan.get("mode"),
+        "pending_question": plan.get("clarifying_question"),
+        "trajectory": final.get("trajectory", []),
     }
+
+
+async def aget_thread_state(conversation_id: str) -> dict[str, Any]:
+    settings.db_path.parent.mkdir(parents=True, exist_ok=True)
+    async with AsyncSqliteSaver.from_conn_string(str(settings.db_path)) as checkpointer:
+        graph = _compile(checkpointer)
+        snapshot = await graph.aget_state(_thread_config(conversation_id))
+    return snapshot.values if snapshot else {}
+
+
+def get_thread_state(conversation_id: str) -> dict[str, Any]:
+    return asyncio.run(aget_thread_state(conversation_id))

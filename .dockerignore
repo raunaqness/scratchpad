@@ -5,9 +5,10 @@ __pycache__
 .pytest_cache
 .deepeval
 .deepeval-runs
-data/conversations/*
 data/logs/*
 data/memory/*
+data/signal.db
+data/signal.db-*
 frontend/node_modules
 frontend/.next
 frontend/.git

@@ -5,12 +5,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
+
+pytest.importorskip("deepeval")
+
 from deepeval import assert_test
 from deepeval.metrics import (
     ConversationCompletenessMetric,
     ConversationalGEval,
     GoalAccuracyMetric,
     KnowledgeRetentionMetric,
+    RoleAdherenceMetric,
 )
 from deepeval.test_case import ConversationalTestCase, MultiTurnParams, Turn
 
@@ -22,9 +26,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SCENARIOS_PATH = PROJECT_ROOT / "product_deepeval_scenarios.json"
 RUN_LOG_PATH = PROJECT_ROOT / "data" / "logs" / "deepeval-runs.jsonl"
 ROLE = (
-    "You are Signal, a constrained LinkedIn marketing assistant. "
-    "Use only user-provided product information, do not invent claims, "
-    "and do not perform tasks outside LinkedIn post creation."
+    "You are Signal, a creative thinking-pad for content. You help the user "
+    "brainstorm and write LinkedIn posts, LinkedIn articles, and blog posts, "
+    "keep a live artifact updated as you talk, use only facts the user "
+    "provides, and mark anything unverified as an open question. You never "
+    "publish or send anything."
 )
 
 
@@ -43,6 +49,10 @@ def metric_for(model, metric_name: str, threshold: float = 0.7):
         )
     if metric_name == "goal_accuracy":
         return GoalAccuracyMetric(
+            model=model, threshold=threshold, async_mode=False
+        )
+    if metric_name == "role_adherence":
+        return RoleAdherenceMetric(
             model=model, threshold=threshold, async_mode=False
         )
     if metric_name == "tone_adherence":
@@ -90,11 +100,9 @@ def write_run_log(scenario: dict, test_case, metric, status: str, error=None):
 
 
 @pytest.fixture
-def isolated_data_dir(tmp_path):
-    original_data_dir = settings.data_dir
-    settings.data_dir = tmp_path
-    yield
-    settings.data_dir = original_data_dir
+def isolated_data_dir(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "data_dir", tmp_path)
+    monkeypatch.setattr(settings, "db_path", tmp_path / "signal.db")
 
 
 def build_fixed_test_case(scenario: dict) -> ConversationalTestCase:

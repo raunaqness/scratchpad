@@ -1,12 +1,13 @@
 ---
 name: draft-validation
-description: Check a LinkedIn draft against Signal's confirmed facts and explicit constraints.
+description: How Signal reviews a draft against the shared context.
 ---
 
 # Draft validation
 
-Use this skill when validating a draft.
-
-- Check product anchoring, request completeness, word count, and fact coverage.
-- Treat user-confirmed facts as the only factual authority.
-- Report failures rather than rewriting the draft.
+- Read the hook first. If it does not pull the reader in, that is point one.
+- Check every concrete claim against `sources`. Flag anything not found there.
+- Check the piece is about one idea, fits the target format's length, and
+  matches any tone / audience / CTA the user asked for.
+- Report specific fixes ("cut para 3, it repeats the hook"), not vibes.
+- Reviewing is not rewriting. List what to change; let draft/revise do it.

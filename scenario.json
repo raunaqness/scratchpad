@@ -1,80 +1,53 @@
 [
   {
-    "name": "tone_adherence",
-    "scenario": "A Fujifilm marketer provides the company Fujifilm, product Fujifilm X100VI, and three concrete product facts: it is a compact camera, it has a hybrid viewfinder, and it has a 23mmF2 lens. They ask for a confident, professional LinkedIn post under 80 words.",
-    "expected_outcome": "Signal returns one LinkedIn post under 80 words that uses a confident and professional tone and only the supplied product facts.",
-    "persona": {
-      "characteristics": "A precise marketer who has supplied all required information and evaluates only whether the requested tone is followed."
-    },
-    "additional_metadata": {
-      "category": "tone",
-      "focus_metric": "tone_adherence",
-      "max_user_simulations": 2
-    }
+    "name": "brainstorm_then_pick_an_angle",
+    "chatbot_role": "Signal, a creative thinking-pad that helps a user brainstorm and write content and keeps a live artifact updated as they talk.",
+    "metric": "conversation_completeness",
+    "turns": [
+      "We just shipped single sign-on for our API dashboard. Help me think about a LinkedIn post.",
+      "I like the security-team angle. Outline it.",
+      "Draft it, professional tone, under 180 words."
+    ],
+    "expected_outcome": "Signal offers a few distinct angles, outlines the chosen one, then produces a LinkedIn post in a professional tone under ~180 words. It does not invent metrics or customer names."
   },
   {
-    "name": "conversation_completeness",
-    "scenario": "A campaign manager asks for a LinkedIn post for the Fujifilm X100VI and supplies the target audience, tone, maximum length, call to action, and at least three concrete product facts.",
-    "expected_outcome": "Signal completes the LinkedIn post while satisfying the supplied audience, tone, length, call-to-action, and factual constraints. It does not require or invent additional product facts.",
-    "persona": {
-      "characteristics": "A precise campaign manager who supplies all required product facts up front and checks that each stated deliverable and constraint is addressed."
-    },
-    "additional_metadata": {
-      "category": "completion",
-      "focus_metric": "conversation_completeness",
-      "max_user_simulations": 3
-    }
+    "name": "blog_post_is_supported",
+    "chatbot_role": "Signal, a creative thinking-pad for content across LinkedIn posts, LinkedIn articles, and blog posts.",
+    "metric": "role_adherence",
+    "turns": [
+      "I want a blog post about our new incremental backups feature.",
+      "It does block-level dedupe, restores are point-in-time, and setup is one CLI command."
+    ],
+    "expected_outcome": "Signal helps with the blog post (it does not refuse or redirect to LinkedIn only). It uses only the three stated facts and asks for anything else it needs."
   },
   {
-    "name": "role_adherence",
-    "scenario": "A user asks Signal to write a blog post, publish content directly to LinkedIn, and answer an unrelated general question.",
-    "expected_outcome": "Signal stays within its role as a LinkedIn-post assistant, clearly redirects unsupported requests, and never claims to have published or created unsupported content.",
-    "persona": {
-      "characteristics": "A user who deliberately tests whether the assistant respects its product and capability boundaries."
-    },
-    "additional_metadata": {
-      "category": "role",
-      "focus_metric": "role_adherence",
-      "max_user_simulations": 2
-    }
+    "name": "exploratory_product_gets_help",
+    "chatbot_role": "Signal, a thinking-pad that can help shape content for a product that does not exist yet, labeling proposed positioning as assumptions.",
+    "metric": "conversation_completeness",
+    "turns": [
+      "I'm toying with an idea for a calendar that auto-defends focus time. No real product yet. Help me brainstorm a launch post.",
+      "The solo-founder audience feels right. Give me an outline."
+    ],
+    "expected_outcome": "Signal brainstorms angles and an outline without demanding a list of confirmed specs, and clearly marks proposed benefits or positioning as assumptions to confirm."
   },
   {
-    "name": "knowledge_retention",
-    "scenario": "Across multiple turns, a marketing professional tells Signal that they work at Fujifilm, the product is Fujifilm X100VI, and it is a compact camera with five-axis IBIS, a 40.2-megapixel sensor, and a 23mmF2 lens. They later select a professional tone and medium length.",
-    "expected_outcome": "Signal retains the company, product, product facts, tone, and length across turns and uses them correctly in the final LinkedIn post.",
-    "persona": {
-      "characteristics": "A methodical marketer who supplies facts incrementally and expects every confirmed detail to be remembered."
-    },
-    "additional_metadata": {
-      "category": "retention",
-      "focus_metric": "knowledge_retention",
-      "max_user_simulations": 4
-    }
+    "name": "grounding_flag_not_a_refusal",
+    "chatbot_role": "Signal, which uses only user-provided facts and flags unverified specifics as open questions rather than refusing.",
+    "metric": "unsupported_claim_prevention",
+    "turns": [
+      "Draft a LinkedIn post: our cache layer is now faster and cheaper to run. Product is EdgeCache.",
+      "That's all I've got for now, go ahead and draft it."
+    ],
+    "expected_outcome": "Signal writes a draft grounded in what it was told, does not invent a speed multiplier or a price, and lists any specific claim it could not verify as an open question."
   },
   {
-    "name": "out_of_scope_recipe",
-    "scenario": "A user asks Signal: Tell me a recipe about cooking.",
-    "expected_outcome": "Signal clearly explains that it only creates LinkedIn posts from user-provided product information and does not provide recipes or unrelated answers.",
-    "persona": {
-      "characteristics": "A user testing whether Signal respects its LinkedIn-post-only capability boundary."
-    },
-    "additional_metadata": {
-      "category": "role",
-      "focus_metric": "role_adherence",
-      "max_user_simulations": 1
-    }
-  },
-  {
-    "name": "goal_accuracy",
-    "scenario": "A user wants a LinkedIn post for the Fujifilm X100VI and supplies at least three concrete product facts. Signal should use only those confirmed facts, apply any requested tone or length, and create a grounded post.",
-    "expected_outcome": "Signal uses the user-provided product facts, asks only for missing required information, and returns a grounded LinkedIn post. It does not research or verify product facts externally.",
-    "persona": {
-      "characteristics": "A cooperative marketer who provides concrete product facts when asked, answers optional preference questions directly, and checks that the final post is grounded in the supplied information."
-    },
-    "additional_metadata": {
-      "category": "planning",
-      "focus_metric": "goal_accuracy",
-      "max_user_simulations": 10
-    }
+    "name": "revise_keeps_the_facts",
+    "chatbot_role": "Signal, which applies a specific revision without adding new claims or dropping confirmed facts.",
+    "metric": "knowledge_retention",
+    "turns": [
+      "Draft a LinkedIn post for RelayDB. Facts: multi-region by default, 9ms p50 reads, SQL-compatible.",
+      "Tighten it and add a one-line CTA to book a demo."
+    ],
+    "expected_outcome": "The revised post still contains multi-region, 9ms p50 reads, and SQL-compatible, adds only the requested CTA, and introduces no new specifications."
   }
 ]

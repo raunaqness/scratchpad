@@ -1,6 +1,11 @@
-"""DeepEval checks for Signal's helpful conversational tone."""
+"""DeepEval checks for Signal's helpful, collaborative tone."""
+
+from __future__ import annotations
 
 import pytest
+
+pytest.importorskip("deepeval")
+
 from deepeval import assert_test
 from deepeval.metrics import ConversationalGEval
 from deepeval.test_case import ConversationalTestCase, MultiTurnParams, Turn
@@ -14,71 +19,70 @@ CASES = [
     {
         "name": "greeting",
         "user": "Hey, is this thing on?",
-        "required": "Yes",
         "criteria": (
-            "The assistant warmly acknowledges the user, confirms it is "
-            "available, and briefly explains how it can help. It does not "
-            "respond with a generic refusal or an unrelated capability list."
+            "The assistant warmly acknowledges the user, confirms it is here, "
+            "and briefly says it can help brainstorm and write content. It does "
+            "not respond with a generic refusal or a wall of rules."
         ),
     },
     {
-        "name": "future_blog_request",
+        "name": "blog_request_is_helped",
         "user": (
-            "Help me write a blog post for a product I am launching: "
+            "Help me write a blog post for a product I'm launching: the "
             "Marshall Emberton Bluetooth speaker."
         ),
-        "required": "blog posts",
         "criteria": (
-            "The assistant acknowledges the user's broader content goal "
-            "helpfully, explains that blog creation is planned but not yet "
-            "available, preserves the product context, and gives a useful "
-            "next step for the currently available LinkedIn workflow. It "
-            "does not sound abrupt or repeat a generic refusal."
+            "The assistant engages with the blog-post request directly - it "
+            "does NOT say blog posts are unavailable or redirect to LinkedIn "
+            "only. It offers a direction or asks one focused question, and "
+            "keeps the product context."
         ),
     },
     {
-        "name": "missing_product_facts",
-        "user": "I want a LinkedIn post for the Marshall Emberton speaker.",
-        "required": "three",
+        "name": "vague_request_gets_angles",
+        "user": "I want a LinkedIn post about our new caching layer. Not sure what to say.",
         "criteria": (
-            "The assistant is warm and helpful, acknowledges the product "
-            "request, and asks for the missing product name or three key "
-            "product features in a clear next step. It does not claim to "
-            "research facts or sound like a generic policy error."
+            "The assistant proposes 2-3 concrete angles rather than one generic "
+            "take, recommends one, and asks which to pursue or for a missing "
+            "detail. It does not demand a fixed number of facts before helping "
+            "and does not claim to research the product."
+        ),
+    },
+    {
+        "name": "publish_request_is_honest",
+        "user": "Perfect. Now publish this to LinkedIn for me.",
+        "criteria": (
+            "The assistant clearly says it cannot publish, schedule, or post "
+            "anywhere, and offers to get the text ready to paste instead. It "
+            "does not claim the post was published."
         ),
     },
 ]
 
 
 @pytest.fixture
-def isolated_data_dir(tmp_path):
-    """Keep conversational tone tests from modifying local application data."""
-
-    original_data_dir = settings.data_dir
-    settings.data_dir = tmp_path
-    yield
-    settings.data_dir = original_data_dir
+def isolated_data_dir(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "data_dir", tmp_path)
+    monkeypatch.setattr(settings, "db_path", tmp_path / "signal.db")
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda case: case["name"])
 def test_helpful_assistant_tone(case, isolated_data_dir):
-    """Evaluate helpful acknowledgements with DeepEval and a basic contract."""
-
     result = app.run_conversation(
         user_id=f"tone-{case['name']}",
         conversation_id=f"tone-{case['name']}",
         user_message=case["user"],
     )
     response = result["assistant_message"]
-    assert case["required"].casefold() in response.casefold()
+    assert response.strip()
 
     test_case = ConversationalTestCase(
         scenario=case["user"],
         expected_outcome=case["criteria"],
         chatbot_role=(
-            "A warm, concise Signal assistant that helps users create "
-            "grounded LinkedIn posts and explains future capabilities "
-            "helpfully."
+            "A warm, concise creative thinking-pad that helps users brainstorm "
+            "and write posts, articles, and blog posts, and is honest about "
+            "not being able to publish."
         ),
         turns=[
             Turn(role="user", content=case["user"]),

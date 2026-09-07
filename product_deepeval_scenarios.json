@@ -1,55 +1,57 @@
 [
   {
-    "name": "xt50_fixed_completeness",
+    "name": "xt50_brainstorm_to_draft",
     "product_file": "amazon_products/1.json",
     "metric": "conversation_completeness",
-    "scenario": "A marketer requests a grounded LinkedIn post for the Fujifilm X-T50 using supplied product facts.",
-    "expected_outcome": "Signal returns a LinkedIn post using the supplied X-T50 facts without inventing product details.",
+    "scenario": "A marketer wants help thinking through and then drafting a LinkedIn post for the Fujifilm X-T50.",
+    "expected_outcome": "Signal offers a few distinct angles, then on request drafts a LinkedIn post using only the supplied X-T50 facts, without inventing specs or claims.",
     "user_turns": [
-      "Create a LinkedIn post for the Fujifilm X-T50. Use these facts: it has a 40.2 MP APS-C X-Trans CMOS 5 HR sensor, 7-stop in-body image stabilization, 6.2K/30p video recording, and 20 Film Simulation modes. Use a professional tone."
+      "Help me brainstorm a LinkedIn post about the Fujifilm X-T50. Facts I can use: 40.2 MP APS-C X-Trans CMOS 5 HR sensor, 7-stop in-body image stabilization, 6.2K/30p video, 20 Film Simulation modes.",
+      "Go with the film-simulation-for-video angle and draft it. Professional tone, under 180 words."
     ]
   },
   {
-    "name": "sandisk_fixed_retention",
+    "name": "sandisk_blog_post_supported",
     "product_file": "amazon_products/2.json",
-    "metric": "knowledge_retention",
-    "scenario": "A marketer provides three SanDisk Extreme SD card facts, then adds more facts and asks Signal to revise the post using all confirmed information.",
-    "expected_outcome": "Signal retains the initial SanDisk facts, incorporates the later facts, and uses all confirmed information in the revised post without repeating clarification questions.",
+    "metric": "role_adherence",
+    "scenario": "A marketer asks for a blog post (not a LinkedIn post) about the SanDisk Extreme SD card.",
+    "expected_outcome": "Signal helps with the blog post rather than refusing or redirecting to LinkedIn, and uses only the supplied facts.",
     "user_turns": [
-      "Create a LinkedIn post for the SanDisk Extreme SD UHS-I 128GB Card using these three facts: it has 128 GB storage capacity, supports up to 180 MB/s read speeds, and supports up to 90 MB/s write speeds.",
-      "Revise the post using the same confirmed facts and add these facts: it has UHS-I U3 and V30 speed classes and is suitable for 4K UHD video recording."
+      "I need a blog post about the SanDisk Extreme SD UHS-I 128GB Card. Facts: 128 GB capacity, up to 180 MB/s read, up to 90 MB/s write, UHS-I U3 and V30, good for 4K UHD video.",
+      "Lead with the 'ran out of card space mid-shoot' problem, then bring in the product."
     ]
   },
   {
-    "name": "marshall_fixed_tone",
+    "name": "marshall_revise_keeps_facts",
     "product_file": "amazon_products/3.json",
-    "metric": "tone_adherence",
-    "scenario": "A marketer requests a professional LinkedIn post for Marshall Willen II using supplied product facts.",
-    "expected_outcome": "Signal returns a professional LinkedIn post using only the supplied Marshall product facts.",
+    "metric": "knowledge_retention",
+    "scenario": "A marketer drafts a Marshall Willen II post, then asks for a tightening pass.",
+    "expected_outcome": "The revised post still contains the originally supplied Marshall facts and adds no new specifications.",
     "user_turns": [
-      "Create a professional LinkedIn post for the Marshall Willen II. Use these facts: it provides 17+ hours of portable playtime, has IP67 dust and waterproof protection, includes a built-in microphone for hands-free calls, supports Bluetooth LE Audio, and has a rubber fastening strap."
+      "Draft a professional LinkedIn post for the Marshall Willen II under 90 words. Facts: 17+ hours playtime, IP67 dust and waterproof, built-in mic for calls, Bluetooth LE Audio, rubber fastening strap.",
+      "Tighten it and add a single CTA line to visit the product page."
     ]
   },
   {
-    "name": "xt50_fixed_goal",
-    "product_file": "amazon_products/1.json",
-    "metric": "goal_accuracy",
-    "threshold": 0.5,
-    "scenario": "A marketer wants Signal to create a grounded LinkedIn post for the Fujifilm X-T50. Signal may generate an initial draft as soon as the required facts are available, then continue refining or validating that draft as the conversation progresses.",
-    "expected_outcome": "Signal uses the supplied X-T50 facts and ultimately returns a grounded LinkedIn post with an explicit confirmation that the final draft was validated. Generating an earlier draft is acceptable and should not count against goal completion.",
-    "user_turns": [
-      "Create a LinkedIn post for the Fujifilm X-T50 using these confirmed facts: it has a 40.2 MP APS-C X-Trans CMOS 5 HR sensor, 7-stop in-body image stabilization, and 6.2K/30p video recording.",
-      "Please validate the current draft against the confirmed facts."
-    ]
-  },
-  {
-    "name": "sandisk_fixed_grounding",
+    "name": "sandisk_grounding_flags",
     "product_file": "amazon_products/2.json",
     "metric": "unsupported_claim_prevention",
-    "scenario": "A fact-conscious marketer requests a SanDisk Extreme SD card post using only supplied product facts.",
-    "expected_outcome": "Signal uses only the supplied SanDisk facts and does not add unsupported specifications or performance claims.",
+    "scenario": "A marketer asks for a post but has only vague benefits, no numbers.",
+    "expected_outcome": "Signal drafts from what it was told and flags any specific speed or capacity claim it was not given as an open question, instead of inventing one.",
     "user_turns": [
-      "Write a LinkedIn post for the SanDisk Extreme SD UHS-I 128GB Card using only these facts: 128 GB storage capacity, up to 180 MB/s read speed, up to 90 MB/s write speed, UHS-I U3 and V30 speed classes, and suitability for 4K UHD video recording."
+      "Write a LinkedIn post: the SanDisk Extreme card is fast and reliable for creators. Product name is SanDisk Extreme SD Card.",
+      "That's all I have, draft it."
+    ]
+  },
+  {
+    "name": "xt50_exploratory_positioning",
+    "product_file": "amazon_products/1.json",
+    "metric": "tone_adherence",
+    "scenario": "A marketer is still deciding how to position a camera and wants an upbeat, confident LinkedIn post once an angle is chosen.",
+    "expected_outcome": "Signal proposes positioning angles, marks anything not in the supplied facts as an assumption, and when asked writes a confident, upbeat post.",
+    "user_turns": [
+      "I'm not sure how to pitch the Fujifilm X-T50 yet - help me find an angle. Confirmed facts: 40.2 MP sensor, 7-stop IBIS, tilting LCD.",
+      "Take the 'travel camera that keeps up' angle and write a confident, upbeat post."
     ]
   }
 ]

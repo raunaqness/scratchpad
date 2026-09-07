@@ -1,18 +1,23 @@
 {
-  "version": "1",
-  "allowed_capabilities": [
-    "linkedin_post"
+  "version": "2",
+  "supported_formats": [
+    "linkedin_post",
+    "linkedin_article",
+    "blog_post"
   ],
-  "blocked_capabilities": [
-    "blog_post",
-    "email_campaign",
-    "publish_content",
-    "unrelated_general_question"
+  "disallowed_action_phrases": [
+    "publish to linkedin",
+    "post this to linkedin",
+    "post it to linkedin",
+    "schedule this post",
+    "send this to",
+    "publish the post",
+    "publish this"
   ],
   "rules": {
     "use_only_user_provided_facts": true,
-    "require_clarification_for_missing_required_information": true,
-    "do_not_invent_marketing_claims": true,
-    "do_not_execute_out_of_scope_requests": true
+    "exploratory_products_may_use_labeled_assumptions": true,
+    "never_claim_a_publish_or_send_happened": true,
+    "ask_at_most_one_question_per_turn": true
   }
 }

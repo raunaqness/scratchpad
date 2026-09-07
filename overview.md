@@ -1,56 +1,63 @@
 # Signal — overview
 
-Signal is a small, constrained **LinkedIn post assistant**. You give it confirmed
-product facts; it drafts (and can edit/validate) a LinkedIn post. It does not
-research products, publish content, write blogs, or answer general questions.
+Signal is a **creative thinking-pad for content**. You bring a product, a
+feature, or a half-formed idea; Signal helps you brainstorm angles, shape an
+outline, and write the piece — a LinkedIn post, a LinkedIn article, or a blog
+post. A **live artifact** evolves as you talk, and you can edit it and hand it
+back.
 
 ## Core loop
 
-Each call to `run_conversation()` is one turn:
+Each turn runs one pass through a LangGraph graph:
 
-1. **Load** conversation + memory JSON  
-2. **Guard** out-of-scope requests (`guardrails.json`)  
-3. **Analyze** the turn with an OpenRouter LLM  
-4. **Merge** new facts into confirmed memory  
-5. **Require** a product name + ≥3 facts before writing  
-6. **Route** (LangGraph): clarify · generate · edit · validate  
-7. **Write** via `capabilities/social_media.py` when ready  
-8. **Validate** the draft, then **persist** transcript, draft history, and trajectory  
+```
+interpret ─► route ─► brainstorm | draft | revise | critique | respond ─► END
+```
 
-## Why this shape
+1. **interpret** — one structured-output call (temp 0) produces a `TurnPlan`
+   (mode, format, product mode, new facts, constraints, one optional question).
+   A deterministic safety check runs alongside it.
+2. **route** — trusts the plan. No regex overrides.
+3. **work node** — updates the shared `Artifact` (angles → outline → draft),
+   streaming each version and, for the draft, the prose token-by-token.
+4. **grounding** — a cheap non-blocking pass flags claims the confirmed
+   `sources` don't support; they land in `open_questions`, they don't stop the
+   draft.
 
-- Factual grounding stays in application state, not only in the model.  
-- The LLM proposes turn analysis; the app owns requirements, routing, and storage.  
-- Guardrails sit in front of the model so policy is not left to prompting alone.
+## What changed from the old Signal
+
+| Old | Now |
+| --- | --- |
+| One capability: "write one LinkedIn post" | brainstorm / draft / revise / critique |
+| Blog posts hard-blocked | LinkedIn post, LinkedIn article, blog post |
+| Refused until ≥3 product facts | works from whatever you have; `exploratory` products allowed with labelled `[assumption]`s |
+| `_analyze`: ~200 lines of regex overrides on top of an LLM call | one trusted `TurnPlan`, thin router |
+| Artifact = final post, produced once at the end | artifact updated every node, streamed |
+| MemorySaver **and** conversation JSON | one SQLite checkpointer; JSON only for per-user memory |
+| DeepAgents wrapper (planning + subagents disabled) | removed; plain LangGraph + structured output |
+| Grounding = "product name appears in the draft" | claim-level flags in `open_questions` |
+| One 180-word prohibition-list prompt reused everywhere | sectioned prompts, one per job, rules stated once, versioned (`THINKPAD_V3`) |
 
 ## Stack
 
-Python · LangGraph · OpenRouter · local JSON under `data/` · pytest + DeepEval.
+Python · LangGraph (`AsyncSqliteSaver`) · OpenRouter via `langchain-openai` ·
+AG-UI (`backend/agent.py`) · pytest + DeepEval.
 
 ## Run
 
 ```bash
 pip install -r backend/requirements.txt
-cp .env.example .env   # set OPENROUTER_API_KEY + OPENROUTER_MODEL
+cp .env.example .env          # set OPENROUTER_API_KEY + OPENROUTER_MODEL
+python -m backend.terminal_chat            # CLI
+uvicorn backend.agent:app --port 8001      # AG-UI endpoint
 ```
 
 ```python
 from backend.app import run_conversation
-print(run_conversation("user", "thread", "Write a post for X… with three facts.")["assistant_message"])
+print(run_conversation(
+    user_id="u", conversation_id="t",
+    user_message="help me brainstorm a launch post for our new caching layer",
+)["assistant_message"])
 ```
 
-## Tests
-
-| Suite | Role |
-| --- | --- |
-| `tests/test_backend.py` | Deterministic, no remote model |
-| DeepEval / scenario tests | Conversation quality (nondeterministic judges) |
-| `./run_deepeval_matrix.sh` | Bundled DeepEval run + artifacts |
-
-## Limits (current)
-
-Simulator-driven DeepEval tests can drift; fixed turns are better for acceptance.
-Validation hard-gates completeness and word count, not every fact phrase.
-Local JSON is MVP storage, not multi-process production.
-
-**Full design:** [`system-design-note.md`](./system-design-note.md) · **Setup detail:** [`README.md`](./README.md)
+**Full design:** [`system-design-note.md`](./system-design-note.md)

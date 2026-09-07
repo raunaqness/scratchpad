@@ -1,65 +1,63 @@
 # Signal
 
-Signal is a constrained LinkedIn-post assistant. It turns product information
-you explicitly supply into a grounded LinkedIn draft — then supports edit and
-validate cycles. It is intentionally **not** a research agent, publisher, blog
-writer, or general Q&A bot.
+Signal is a **creative thinking-pad for content**. Bring a product, a feature,
+or a rough idea; Signal helps you brainstorm angles, shape an outline, and write
+the piece — a **LinkedIn post, a LinkedIn article, or a blog post**. A live
+artifact evolves as you talk, and you can edit it and hand it back.
+
+It is **not** a research agent, a publisher, or a general Q&A bot.
 
 ## What it does
 
-1. Collects confirmed product facts from the conversation (needs a product name
-   and at least three distinct facts before drafting).
-2. Generates a LinkedIn post from those facts only (no external research).
-3. Supports iterative draft lifecycle: create → validate → edit → validate.
-4. Persists conversation, memory, draft history, validation, and trajectory as
-   local JSON.
-5. Evaluates behavior with deterministic backend tests and DeepEval conversation
-   metrics.
+- **Brainstorm** — 3-5 distinct angles for the piece, with a recommendation.
+- **Draft** — a full post / article / blog post, streamed as it's written.
+- **Revise** — a targeted change to the current draft, nothing else.
+- **Critique** — an editor's read, with fixes added to the artifact's open
+  questions.
+- **Stays grounded** — uses only facts you've confirmed; flags unverified
+  specifics as open questions instead of inventing them. For a product that
+  doesn't exist yet, it proposes positioning and labels it `[assumption]`.
 
 ## Architecture (short)
 
-```text
-User message
-    → guardrails
-    → LLM turn analysis (OpenRouter)
-    → merge confirmed memory + requirements
-    → LangGraph route: respond | generate | edit | validate
-    → social_media capability (create / edit post)
-    → draft validation
-    → persist JSON + return assistant message + structured result
+```
+user turn
+  → interpret        (one structured TurnPlan, temperature 0)
+  → route            (trusts the plan; deterministic safety check alongside)
+  → brainstorm | draft | revise | critique | respond
+  → artifact + reply streamed out; thread state saved to SQLite
 ```
 
-Entry point: `run_conversation(user_id, conversation_id, user_message)` in
-`backend/app.py`.
+Entry points in `backend/app.py`:
 
-For a deeper walkthrough, see [`system-design-note.md`](./system-design-note.md).
-For a one-page summary, see [`overview.md`](./overview.md).
+- `run_conversation(user_id, conversation_id, user_message)` — sync, one turn.
+- `astream_conversation(...)` — async generator of `artifact` / `reply` /
+  `status` / `final` events (used by the AG-UI adapter).
+
+See [`system-design-note.md`](./system-design-note.md) for the full design and
+[`overview.md`](./overview.md) for a one-pager.
 
 ## Stack
 
 | Piece | Choice |
 | --- | --- |
-| Orchestration | LangGraph |
-| LLM access | OpenRouter via `langchain-openai` |
-| Writing | `backend/capabilities/social_media.py` |
-| Config | `backend/config.py` + `.env` |
-| Prompts | versioned in `backend/prompts.py` |
-| Policy | `backend/guardrails.json` |
-| Persistence | `data/conversations/`, `data/memory/` |
+| Orchestration | LangGraph (`AsyncSqliteSaver` checkpointer) |
+| LLM access | OpenRouter via `langchain-openai`, one factory in `backend/llm.py` |
+| Generation | `backend/capabilities/writing.py` |
+| Prompts | sectioned + versioned in `backend/prompts.py` (`THINKPAD_V3`) |
+| Safety | `backend/policy.py` (publish/empty-draft only) |
+| Web | `backend/agent.py` — AG-UI / CopilotKit-compatible SSE |
+| Persistence | SQLite for threads, `data/memory/*.json` for per-user memory |
 | Eval | pytest + DeepEval |
 
 ## Quick start
 
 ```bash
 cd signal_v2
-python -m venv .venv
-source .venv/bin/activate
+python -m venv .venv && source .venv/bin/activate
 pip install -r backend/requirements.txt
-cp .env.example .env
-# set OPENROUTER_API_KEY and OPENROUTER_MODEL in .env
+cp .env.example .env      # set OPENROUTER_API_KEY and OPENROUTER_MODEL
 ```
-
-Minimal usage:
 
 ```python
 from backend.app import run_conversation
@@ -67,155 +65,71 @@ from backend.app import run_conversation
 result = run_conversation(
     user_id="demo-user",
     conversation_id="demo-thread",
-    user_message=(
-        "Write a LinkedIn post for Fujifilm X100VI. "
-        "Facts: compact body, 40.2MP sensor, hybrid viewfinder."
-    ),
+    user_message="Help me brainstorm a LinkedIn post about our new caching layer.",
 )
 print(result["assistant_message"])
+print(result["artifact"]["angles"])
+```
+
+CLI (prints the artifact after each turn):
+
+```bash
+python -m backend.terminal_chat
 ```
 
 ## Web app
 
-Run the AG-UI adapter and frontend in separate terminals:
-
 ```bash
-uvicorn backend.agent:app --reload --port 8001
-cd frontend && npm run dev
+uvicorn backend.agent:app --reload --port 8001   # AG-UI endpoint at /agent
+cd frontend && npm run dev                        # http://localhost:3000/app
 ```
 
-The landing page is at `http://localhost:3000`; the writing room is at
-`http://localhost:3000/app`. For a containerized run, use
-`docker compose up --build`; the containerized frontend is available on
-`http://localhost:5173`.
+`SIGNAL_CORS_ORIGINS` controls which origins may call `/agent`
+(default `http://localhost:3000,http://localhost:5173`). For a containerized
+run, `docker compose up --build`.
 
-To run an isolated development stack alongside production, use:
-
-```bash
-docker compose -p signal-test -f docker-compose.test.yml up -d --build
-```
-
-The development frontend is available locally on `http://localhost:5174` and
-the backend on `http://localhost:8002`. Its frontend service is
-`signal-test-frontend:5173` on the shared Cloudflare network. To expose it
-through the existing tunnel, add a `/dev` ingress route targeting
-`http://signal-test-frontend:5173`; production continues targeting
-`http://signal-frontend:5173`.
+> Note: the frontend artifact panel still reads the old `draft` / `requirements`
+> shape. The backend emits the new `artifact.{angles,outline,body,open_questions,
+> version}` (plus `draft` / `draft_version` mirrors for compatibility); updating
+> the panel to the new shape is a separate frontend change.
 
 ## Environment
 
-Copy [`.env.example`](./.env.example). Required for live runs:
-
 | Variable | Purpose |
 | --- | --- |
-| `OPENROUTER_API_KEY` | OpenRouter API key |
-| `OPENROUTER_MODEL` | Model id (default in example: `anthropic/claude-sonnet-4.6`) |
-
-Useful optional vars:
-
-| Variable | Purpose |
-| --- | --- |
-| `OPENROUTER_TEMPERATURE` | Generation temperature |
-| `OPENROUTER_MAX_TOKENS` | Max completion tokens |
-| `LANGSMITH_TRACING` / `LANGSMITH_API_KEY` | LangSmith traces |
-| `SIGNAL_DATA_DIR` | Override local JSON data root |
-
-## Project layout
-
-```text
-signal_v2/
-├── backend/
-│   ├── app.py                  # LangGraph app + run_conversation()
-│   ├── config.py               # Settings from env
-│   ├── prompts.py              # System prompt contract
-│   ├── guardrails.json         # Allowed / blocked capabilities
-│   └── capabilities/
-│       └── social_media.py     # LinkedIn create + edit
-├── data/
-│   ├── conversations/          # Per-conversation transcripts + drafts
-│   └── memory/                 # Per-user confirmed memory
-├── tests/
-│   ├── test_backend.py         # Deterministic tests (no remote model)
-│   ├── test_conversations.py   # DeepEval ConversationSimulator scenarios
-│   ├── test_product_deepeval.py
-│   └── test_product_scenarios.py
-├── scenario.json               # Simulator goldens
-├── product_scenarios.json      # Fixed product scenarios
-├── product_deepeval_scenarios.json
-├── run_deepeval_matrix.sh      # Bundled DeepEval pytest run + artifacts
-├── system-design-note.md       # Full system design
-└── overview.md                 # One-page summary
-```
-
-## Workflow rules
-
-**Required before drafting**
-
-- Product name
-- At least three distinct product facts
-
-**Optional unless the user specifies them**
-
-- Tone, audience, CTA, max word count
-
-**Blocked by guardrails**
-
-- Blog posts, email campaigns, direct publishing, unrelated general questions
-
-**Grounding**
-
-- Only use explicit user-provided / confirmed facts
-- Do not invent benefits, specs, or claims
-- Do not research the product externally
+| `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` | required for live runs |
+| `SIGNAL_INTERPRET_TEMPERATURE` | turn interpreter temp (default 0.0) |
+| `SIGNAL_DATA_DIR` | root for `signal.db` and `memory/` |
+| `SIGNAL_DB_PATH` | override the checkpointer DB path |
+| `SIGNAL_CORS_ORIGINS` | comma-separated allowed origins for `/agent` |
+| `SIGNAL_HISTORY_WINDOW`, `SIGNAL_SUMMARIZE_AFTER` | transcript windowing |
+| `LANGSMITH_TRACING`, `LANGSMITH_API_KEY` | optional tracing |
 
 ## Testing
 
-### Deterministic backend (no remote LLM)
+Deterministic (no key):
 
 ```bash
-pytest -q tests/test_backend.py
+pytest -q tests/test_backend.py tests/test_streaming.py tests/test_agent_events.py
 ```
 
-These cover requirements extraction, fact thresholds, grounding helpers,
-routing, and persistence with fake models.
-
-### DeepEval / conversation suites
-
-Needs a valid OpenRouter key (and whatever DeepEval judge config you use):
+DeepEval / conversation suites (need a live OpenRouter key; skip otherwise):
 
 ```bash
-pytest -q -s tests/test_conversations.py
-pytest -q -s tests/test_product_deepeval.py
-pytest -q -s tests/test_product_scenarios.py
-```
-
-Or run the matrix helper (writes artifacts under `.deepeval-runs/`):
-
-```bash
+pytest -q -s tests/test_conversations.py tests/test_product_deepeval.py tests/test_helpful_tone_deepeval.py
 ./run_deepeval_matrix.sh
 ```
 
-**Note:** DeepEval metrics are LLM-as-judge. Scores can vary across runs.
-Default `ConversationSimulator` scenarios are exploratory; fixed-turn / product
-scenarios are better for workflow acceptance. See
-[`conversation-simulator-diagnostics.md`](./conversation-simulator-diagnostics.md).
+DeepEval metrics are LLM-as-judge; scores vary across runs. Conversation tests
+use **fixed user turns** and the real backend — the nondeterministic
+`ConversationSimulator` is not used.
 
-## Status and known limits
+## Workflow rules
 
-- Draft create/edit/validate works and persists locally.
-- Requirements are deterministic; analyzer/generator output is not.
-- Validation gates request completeness, product-name anchoring, and word count;
-  literal fact-by-fact inclusion is diagnostic, not a hard gate yet.
-- Local JSON is fine for MVP / local eval, not multi-writer production storage.
-
-See **Known design risks** and **Recommended evolution** in
-[`system-design-note.md`](./system-design-note.md).
-
-## Related docs
-
-| Doc | Contents |
-| --- | --- |
-| [`overview.md`](./overview.md) | One-page summary of this README |
-| [`system-design-note.md`](./system-design-note.md) | Full architecture and eval design |
-| [`conversation-simulator-diagnostics.md`](./conversation-simulator-diagnostics.md) | Simulator mode guidance |
-| [`goal-accuracy-failure-report.md`](./goal-accuracy-failure-report.md) | GoalAccuracy failure notes |
+- **Formats:** LinkedIn post, LinkedIn article, blog post.
+- **Grounding:** only user-confirmed facts; unverified specifics become
+  `open_questions`; `[assumption]` framing is allowed for exploratory products;
+  no external research.
+- **Safety:** Signal never publishes, schedules, or sends; it says so plainly.
+- **Questions:** at most one per turn, and only when it can't otherwise make
+  progress.

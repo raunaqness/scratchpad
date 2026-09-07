@@ -1,14 +1,16 @@
 ---
 name: linkedin-writing
-description: Create concise, professional LinkedIn posts from confirmed product facts.
+description: Craft notes for LinkedIn posts and articles from confirmed facts.
 ---
 
 # LinkedIn writing
 
-Use this skill when creating a LinkedIn post.
-
-- Use only facts in the validated Signal request.
-- Preserve every explicit audience, tone, call-to-action, and word-count constraint.
-- Do not add prices, dates, specifications, benefits, testimonials, or hashtags that
-  are not supplied or explicitly requested.
-- Return one post, not analysis or a workflow explanation.
+- Open with a line that stands alone in the feed. No "Excited to share", no
+  restating the headline.
+- One idea per post. If two ideas are fighting, cut one or split the post.
+- Write like you talk. Short paragraphs, whitespace, no adjective pile-ups.
+- Specifics beat superlatives: a real number, a real before/after, a real quote
+  (only if it is in `sources`).
+- Hashtags: 0-3, only when they genuinely widen reach. CTA: at most one line.
+- For an article, the subheads should tell the story if someone reads nothing
+  else.

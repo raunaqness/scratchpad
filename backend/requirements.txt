@@ -1,9 +1,11 @@
 deepeval
-deepagents
 langchain-openai
 langgraph
+langgraph-checkpoint-sqlite
+aiosqlite
 langsmith
 pydantic
+pydantic-settings
 python-dotenv
 pytest
 fastapi

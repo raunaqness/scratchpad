@@ -31,6 +31,7 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_AGUI_AGENT_URL: /agent
+        NEXT_PUBLIC_APP_ENV: development
         SIGNAL_BACKEND_URL: http://signal-test-backend:8001
     depends_on:
       signal-test-backend:

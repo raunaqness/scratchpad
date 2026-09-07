@@ -412,6 +412,24 @@ body:has(.app-workspace) {
   position: relative;
 }
 
+.environment-badge {
+  align-items: center;
+  background: #b91c1c;
+  border-radius: 999px;
+  color: white;
+  display: flex;
+  font-size: 0.65rem;
+  font-weight: 800;
+  height: 1.75rem;
+  justify-content: center;
+  left: 1rem;
+  letter-spacing: 0.12em;
+  position: absolute;
+  top: 1rem;
+  width: 3.25rem;
+  z-index: 10;
+}
+
 .artifact-panel {
   background: color-mix(in srgb, var(--card) 55%, var(--background));
   display: flex;

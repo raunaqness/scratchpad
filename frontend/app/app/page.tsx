@@ -252,6 +252,18 @@ function NewThreadButton() {
   );
 }
 
+function EnvironmentBadge() {
+  if (process.env.NEXT_PUBLIC_APP_ENV !== "development") {
+    return null;
+  }
+
+  return (
+    <div className="environment-badge" aria-label="Development environment">
+      DEV
+    </div>
+  );
+}
+
 export default function AppPage() {
   const aui = useAui();
   const config = AuiConfig({
@@ -275,6 +287,7 @@ export default function AppPage() {
     <AuiProvider extends={aui} config={config}>
       <main className="app-workspace">
         <section className="app-chat">
+          <EnvironmentBadge />
           <NewThreadButton />
           <Thread />
         </section>

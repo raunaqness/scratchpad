@@ -30,12 +30,12 @@ Python · LangGraph · OpenRouter · local JSON under `data/` · pytest + DeepEv
 ## Run
 
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 cp .env.example .env   # set OPENROUTER_API_KEY + OPENROUTER_MODEL
 ```
 
 ```python
-from app import run_conversation
+from backend.app import run_conversation
 print(run_conversation("user", "thread", "Write a post for X… with three facts.")["assistant_message"])
 ```
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { MyRuntimeProvider } from "@/app/MyRuntimeProvider";
+
+import { SiteNav } from "@/components/site-nav";
 
 import "./globals.css";
 
@@ -18,7 +19,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-dvh">
       <body className="h-dvh font-sans">
-        <MyRuntimeProvider>{children}</MyRuntimeProvider>
+        <SiteNav />
+        <div className="site-page">{children}</div>
       </body>
     </html>
   );

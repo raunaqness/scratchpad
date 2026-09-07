@@ -2,8 +2,8 @@
 
 import json
 
-import app
-from config import settings
+import backend.app as app
+from backend.config import settings
 
 
 class FakeResponse:

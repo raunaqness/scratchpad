@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-import app
-from config import settings
+import backend.app as app
+from backend.config import settings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SCENARIOS_PATH = PROJECT_ROOT / "product_scenarios.json"

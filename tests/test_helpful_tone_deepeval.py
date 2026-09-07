@@ -5,8 +5,8 @@ from deepeval import assert_test
 from deepeval.metrics import ConversationalGEval
 from deepeval.test_case import ConversationalTestCase, MultiTurnParams, Turn
 
-import app
-from config import settings
+import backend.app as app
+from backend.config import settings
 from tests.conftest import openrouter_eval_model
 
 

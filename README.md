@@ -30,7 +30,7 @@ User message
 ```
 
 Entry point: `run_conversation(user_id, conversation_id, user_message)` in
-`app.py`.
+`backend/app.py`.
 
 For a deeper walkthrough, see [`system-design-note.md`](./system-design-note.md).
 For a one-page summary, see [`overview.md`](./overview.md).
@@ -41,10 +41,10 @@ For a one-page summary, see [`overview.md`](./overview.md).
 | --- | --- |
 | Orchestration | LangGraph |
 | LLM access | OpenRouter via `langchain-openai` |
-| Writing | `capabilities/social_media.py` |
-| Config | `config.py` + `.env` |
-| Prompts | versioned in `prompts.py` |
-| Policy | `guardrails.json` |
+| Writing | `backend/capabilities/social_media.py` |
+| Config | `backend/config.py` + `.env` |
+| Prompts | versioned in `backend/prompts.py` |
+| Policy | `backend/guardrails.json` |
 | Persistence | `data/conversations/`, `data/memory/` |
 | Eval | pytest + DeepEval |
 
@@ -54,7 +54,7 @@ For a one-page summary, see [`overview.md`](./overview.md).
 cd signal_v2
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 cp .env.example .env
 # set OPENROUTER_API_KEY and OPENROUTER_MODEL in .env
 ```
@@ -62,7 +62,7 @@ cp .env.example .env
 Minimal usage:
 
 ```python
-from app import run_conversation
+from backend.app import run_conversation
 
 result = run_conversation(
     user_id="demo-user",
@@ -74,6 +74,19 @@ result = run_conversation(
 )
 print(result["assistant_message"])
 ```
+
+## Web app
+
+Run the AG-UI adapter and frontend in separate terminals:
+
+```bash
+uvicorn backend.agent:app --reload --port 8001
+cd frontend && npm run dev
+```
+
+The landing page is at `http://localhost:3000`; the writing room is at
+`http://localhost:3000/app`. For a containerized run, use
+`docker compose up --build`.
 
 ## Environment
 
@@ -97,12 +110,13 @@ Useful optional vars:
 
 ```text
 signal_v2/
-├── app.py                      # LangGraph app + run_conversation()
-├── config.py                   # Settings from env
-├── prompts.py                  # System prompt contract
-├── guardrails.json             # Allowed / blocked capabilities
-├── capabilities/
-│   └── social_media.py         # LinkedIn create + edit
+├── backend/
+│   ├── app.py                  # LangGraph app + run_conversation()
+│   ├── config.py               # Settings from env
+│   ├── prompts.py              # System prompt contract
+│   ├── guardrails.json         # Allowed / blocked capabilities
+│   └── capabilities/
+│       └── social_media.py     # LinkedIn create + edit
 ├── data/
 │   ├── conversations/          # Per-conversation transcripts + drafts
 │   └── memory/                 # Per-user confirmed memory

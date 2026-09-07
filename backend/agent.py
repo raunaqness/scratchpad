@@ -3,9 +3,9 @@ Simple AG-UI Protocol Agent for testing assistant-ui integration.
 
 Usage:
     pip install fastapi uvicorn openai python-dotenv
-    python server/agent.py
+    python -m backend.agent
 
-Set OPENAI_API_KEY in .env.local or environment.
+Set the OpenRouter variables in .env or the environment.
 """
 
 import asyncio
@@ -25,9 +25,9 @@ from fastapi.responses import StreamingResponse
 # Load environment variables from .env.local
 load_dotenv(".env.local")
 load_dotenv(".env")
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-SIGNAL_ROOT = Path(__file__).resolve().parents[2]
+SIGNAL_ROOT = Path(__file__).resolve().parent.parent
 if str(SIGNAL_ROOT) not in sys.path:
     sys.path.insert(0, str(SIGNAL_ROOT))
 
@@ -152,7 +152,7 @@ async def signal_agent(
         )
 
     try:
-        from app import run_conversation
+        from backend.app import run_conversation
 
         result = await asyncio.to_thread(
             run_conversation,

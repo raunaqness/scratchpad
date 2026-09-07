@@ -8,7 +8,7 @@ from typing import Any, Callable
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
-from policy import check_request, check_publish
+from backend.policy import check_request, check_publish
 
 
 class CreatePostInput(BaseModel):

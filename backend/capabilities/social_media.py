@@ -8,8 +8,8 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
-from config import settings
-from prompts import CURRENT_SYSTEM_PROMPT
+from backend.config import settings
+from backend.prompts import CURRENT_SYSTEM_PROMPT
 
 
 def _model() -> ChatOpenAI:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from app import run_conversation
+from backend.app import run_conversation
 
 
 def main() -> None:

@@ -1,0 +1,105 @@
+"use client";
+
+import {
+  AuiConfig,
+  AuiProvider,
+  Suggestions,
+  Tools,
+  defineToolkit,
+  useAui,
+} from "@assistant-ui/react";
+import { PlusIcon } from "lucide-react";
+
+import { Thread } from "@/components/assistant-ui/elements/thread.aui";
+
+const toolkit = defineToolkit({
+  browser_alert: {
+    description: "Display a native browser alert dialog to the user.",
+    parameters: {
+      type: "object",
+      properties: {
+        message: {
+          type: "string",
+          description: "Text to display inside the alert dialog.",
+        },
+      },
+      required: ["message"],
+    },
+    execute: async ({ message }) => {
+      alert(message);
+      return { status: "shown" };
+    },
+    render: ({ args, result }) => (
+      <div className="mt-3 w-full max-w-(--thread-max-width) rounded-lg border px-4 py-3 text-sm">
+        <p className="text-muted-foreground font-semibold">browser_alert</p>
+        <p className="mt-1">
+          Requested alert with message:
+          <span className="text-foreground ml-1 font-mono">
+            {JSON.stringify(args.message)}
+          </span>
+        </p>
+        {result?.status === "shown" && (
+          <p className="text-foreground/70 mt-2 text-xs">
+            Alert displayed in this tab.
+          </p>
+        )}
+      </div>
+    ),
+  },
+});
+
+function NewThreadButton() {
+  const aui = useAui();
+
+  return (
+    <button
+      type="button"
+      onClick={() => aui.threads.switchToNewThread()}
+      className="bg-background hover:bg-accent absolute top-4 right-4 z-10 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors"
+    >
+      <PlusIcon className="size-4" />
+      New Thread
+    </button>
+  );
+}
+
+function ThreadWithSuggestions() {
+  const aui = useAui();
+  const config = AuiConfig({
+    suggestions: Suggestions([
+      {
+        title: "Draft a LinkedIn post",
+        label: "from three product facts",
+        prompt:
+          "Write a LinkedIn post for Fujifilm X100VI. Facts: compact body, 40.2MP sensor, hybrid viewfinder.",
+      },
+      {
+        title: "Learn what Signal needs",
+        label: "before drafting",
+        prompt: "What information do you need to create my LinkedIn post?",
+      },
+    ]),
+  });
+
+  return (
+    <AuiProvider extends={aui} config={config}>
+      <Thread />
+    </AuiProvider>
+  );
+}
+
+export default function AppPage() {
+  const aui = useAui();
+  const config = AuiConfig({
+    tools: Tools({ toolkit }),
+  });
+
+  return (
+    <AuiProvider extends={aui} config={config}>
+      <main className="relative h-[calc(100dvh-4rem)]">
+        <NewThreadButton />
+        <ThreadWithSuggestions />
+      </main>
+    </AuiProvider>
+  );
+}

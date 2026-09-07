@@ -16,15 +16,15 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
 
-from capabilities.social_media import create_linkedin_post, edit_linkedin_post
-from config import settings
-from deep_agent_runner import (
+from backend.capabilities.social_media import create_linkedin_post, edit_linkedin_post
+from backend.config import settings
+from backend.deep_agent_runner import (
     analyze_with_deep_agent,
     create_post_with_deep_agent,
     edit_post_with_deep_agent,
 )
-from policy import check_output, preflight
-from prompts import CURRENT_PROMPT_VERSION, CURRENT_SYSTEM_PROMPT
+from backend.policy import check_output, preflight
+from backend.prompts import CURRENT_PROMPT_VERSION, CURRENT_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 GUARDRAILS_PATH = Path(__file__).resolve().parent / "guardrails.json"

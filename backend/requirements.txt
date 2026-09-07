@@ -6,3 +6,6 @@ langsmith
 pydantic
 python-dotenv
 pytest
+fastapi
+uvicorn
+openai

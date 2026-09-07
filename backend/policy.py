@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from signal_models import PolicyDecision, SignalRequest
+from backend.signal_models import PolicyDecision, SignalRequest
 
 GUARDRAILS_PATH = Path(__file__).resolve().parent / "guardrails.json"
 

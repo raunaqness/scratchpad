@@ -1,8 +1,8 @@
 """Local tests for the DeepAgents replacement boundaries."""
 
-import app
-from policy import check_output, check_publish, check_request, preflight
-from signal_tools import create_tools
+import backend.app as app
+from backend.policy import check_output, check_publish, check_request, preflight
+from backend.signal_tools import create_tools
 
 
 def test_policy_blocks_unsupported_capabilities():

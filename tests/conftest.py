@@ -3,7 +3,7 @@
 import pytest
 from deepeval.models import OpenAIModel
 
-from config import settings
+from backend.config import settings
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 

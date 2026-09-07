@@ -14,8 +14,8 @@ from deepeval.metrics import (
 )
 from deepeval.test_case import ConversationalTestCase, MultiTurnParams, Turn
 
-import app
-from config import settings
+import backend.app as app
+from backend.config import settings
 from tests.conftest import openrouter_eval_model
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

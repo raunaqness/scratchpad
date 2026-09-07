@@ -19,7 +19,7 @@ from deepeval.metrics import (
 from deepeval.simulator import ConversationSimulator
 from deepeval.test_case import MultiTurnParams, Turn
 
-from app import run_conversation
+from backend.app import run_conversation
 from tests.conftest import openrouter_eval_model
 from tests.goldens import load_goldens
 

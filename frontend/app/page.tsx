@@ -1,103 +1,47 @@
-"use client";
+import Link from "next/link";
+import { ArrowUpRight, Check, CircleDot } from "lucide-react";
 
-import {
-  defineToolkit,
-  useAui,
-  AuiProvider,
-  AuiConfig,
-  Suggestions,
-  Tools,
-} from "@assistant-ui/react";
-import { Thread } from "@/components/assistant-ui/elements/thread.aui";
-import { PlusIcon } from "lucide-react";
-
-const toolkit = defineToolkit({
-  browser_alert: {
-    description: "Display a native browser alert dialog to the user.",
-    parameters: {
-      type: "object",
-      properties: {
-        message: {
-          type: "string",
-          description: "Text to display inside the alert dialog.",
-        },
-      },
-      required: ["message"],
-    },
-    execute: async ({ message }) => {
-      alert(message);
-      return { status: "shown" };
-    },
-    render: ({ args, result }) => (
-      <div className="mt-3 w-full max-w-(--thread-max-width) rounded-lg border px-4 py-3 text-sm">
-        <p className="text-muted-foreground font-semibold">browser_alert</p>
-        <p className="mt-1">
-          Requested alert with message:
-          <span className="text-foreground ml-1 font-mono">
-            {JSON.stringify(args.message)}
-          </span>
+export default function HomePage() {
+  return (
+    <main className="landing-page">
+      <section className="landing-hero">
+        <div className="eyebrow">
+          <CircleDot size={12} strokeWidth={3} />
+          Grounded content, clearly written
+        </div>
+        <h1>
+          Turn product truth
+          <span> into a signal.</span>
+        </h1>
+        <p className="landing-intro">
+          Signal helps you shape the facts you already know into a confident
+          LinkedIn post—without inventing a single claim.
         </p>
-        {result?.status === "shown" && (
-          <p className="text-foreground/70 mt-2 text-xs">
-            Alert displayed in this tab.
-          </p>
-        )}
-      </div>
-    ),
-  },
-});
+        <Link href="/app" className="primary-action">
+          Start writing
+          <ArrowUpRight size={18} />
+        </Link>
+        <p className="landing-note">Bring a product name and three facts.</p>
+      </section>
 
-function NewThreadButton() {
-  const aui = useAui();
-
-  return (
-    <button
-      type="button"
-      onClick={() => aui.threads.switchToNewThread()}
-      className="bg-background hover:bg-accent absolute top-4 right-4 z-10 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors"
-    >
-      <PlusIcon className="size-4" />
-      New Thread
-    </button>
-  );
-}
-
-function ThreadWithSuggestions() {
-  const aui = useAui();
-  const config = AuiConfig({
-    suggestions: Suggestions([
-      {
-        title: "Draft a LinkedIn post",
-        label: "from three product facts",
-        prompt:
-          "Write a LinkedIn post for Fujifilm X100VI. Facts: compact body, 40.2MP sensor, hybrid viewfinder.",
-      },
-      {
-        title: "Learn what Signal needs",
-        label: "before drafting",
-        prompt: "What information do you need to create my LinkedIn post?",
-      },
-    ]),
-  });
-  return (
-    <AuiProvider extends={aui} config={config}>
-      <Thread />
-    </AuiProvider>
-  );
-}
-
-export default function Home() {
-  const aui = useAui();
-  const config = AuiConfig({
-    tools: Tools({ toolkit }),
-  });
-
-  return (
-    <AuiProvider extends={aui} config={config}>
-      <main className="relative h-dvh">
-        <NewThreadButton />
-        <ThreadWithSuggestions />
-      </main>
-    </AuiProvider>
+      <section className="landing-details" aria-label="How Signal works">
+        <div className="detail-heading">
+          <span className="detail-kicker">The Signal method</span>
+          <h2>A smaller brief makes a stronger post.</h2>
+        </div>
+        <div className="detail-list">
+          {[
+            "Share the facts you can stand behind.",
+            "Choose the tone and audience.",
+            "Review a draft that stays on brief.",
+          ].map((item) => (
+            <div className="detail-item" key={item}>
+              <Check size={16} />
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
   );
 }

@@ -1,4 +1,4 @@
-"""DeepEval checks for Signal's helpful, collaborative tone."""
+"""DeepEval checks for Scratchpad's helpful, collaborative tone."""
 
 from __future__ import annotations
 
@@ -21,26 +21,22 @@ CASES = [
         "user": "Hey, is this thing on?",
         "criteria": (
             "The assistant warmly acknowledges the user, confirms it is here, "
-            "and briefly says it can help brainstorm and write content. It does "
-            "not respond with a generic refusal or a wall of rules."
+            "and briefly says it is a scratchpad for working through ideas. It "
+            "does not respond with a generic refusal or a wall of rules."
         ),
     },
     {
-        "name": "blog_request_is_helped",
-        "user": (
-            "Help me write a blog post for a product I'm launching: the "
-            "Marshall Emberton Bluetooth speaker."
-        ),
+        "name": "jot_is_captured",
+        "user": "Jot this down: we just shipped single sign-on for our API dashboard.",
         "criteria": (
-            "The assistant engages with the blog-post request directly - it "
-            "does NOT say blog posts are unavailable or redirect to LinkedIn "
-            "only. It offers a direction or asks one focused question, and "
-            "keeps the product context."
+            "The assistant captures the note and offers a concrete next step "
+            "(develop it, or a few angles). It does NOT immediately turn the "
+            "note into a finished post, and does not add a headline or hashtags."
         ),
     },
     {
         "name": "vague_request_gets_angles",
-        "user": "I want a LinkedIn post about our new caching layer. Not sure what to say.",
+        "user": "I want to think about our new caching layer. Not sure what to say.",
         "criteria": (
             "The assistant proposes 2-3 concrete angles rather than one generic "
             "take, recommends one, and asks which to pursue or for a missing "
@@ -53,8 +49,18 @@ CASES = [
         "user": "Perfect. Now publish this to LinkedIn for me.",
         "criteria": (
             "The assistant clearly says it cannot publish, schedule, or post "
-            "anywhere, and offers to get the text ready to paste instead. It "
-            "does not claim the post was published."
+            "anywhere, and offers to get something ready to paste instead. It "
+            "does not claim anything was published."
+        ),
+    },
+    {
+        "name": "build_request_is_engaged",
+        "user": "Turn this into a blog outline.",
+        "criteria": (
+            "The assistant engages with the build request — it either produces "
+            "an outline or, if there is nothing on the scratchpad yet, asks the "
+            "user to jot something down first. It does not say blog outlines are "
+            "unavailable."
         ),
     },
 ]
@@ -80,9 +86,11 @@ def test_helpful_assistant_tone(case, isolated_data_dir):
         scenario=case["user"],
         expected_outcome=case["criteria"],
         chatbot_role=(
-            "A warm, concise creative thinking-pad that helps users brainstorm "
-            "and write posts, articles, and blog posts, and is honest about "
-            "not being able to publish."
+            "A warm, concise thinking partner for a freeform scratchpad. It "
+            "captures and reworks raw ideas, offers a few angles when a request "
+            "is vague, builds a blog outline / social post / marketing campaign "
+            "from the scratchpad on request, and is honest that it cannot "
+            "publish."
         ),
         turns=[
             Turn(role="user", content=case["user"]),

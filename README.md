@@ -263,22 +263,33 @@ run, `docker compose up --build`.
 
 ## Testing
 
-Deterministic (no key):
+Deterministic contract tests (no key, run in CI): the graph routing, scratchpad
+ops, `build` isolation (a skill never touches the scratchpad or its version
+list), unknown-skill → "which one?", grounding-on-output, and the linear version
+history.
 
 ```bash
 pytest -q tests/test_backend.py tests/test_streaming.py tests/test_agent_events.py
 ```
 
-DeepEval / conversation suites (need a live OpenRouter key; skip otherwise):
+DeepEval suites (need a live OpenRouter key; skip otherwise):
 
 ```bash
-pytest -q -s tests/test_conversations.py tests/test_product_deepeval.py tests/test_helpful_tone_deepeval.py
+pytest -q -s tests/test_conversations.py tests/test_skills_deepeval.py tests/test_helpful_tone_deepeval.py
 ./run_deepeval_matrix.sh
 ```
 
-DeepEval metrics are LLM-as-judge; scores vary across runs. Conversation tests
-use **fixed user turns** and the real backend — the nondeterministic
-`ConversationSimulator` is not used.
+- `tests/test_conversations.py` + `scenario.json` — scratchpad conversation
+  quality (capture, develop, grounding, subject rename, thinking-partner role).
+- `tests/test_skills_deepeval.py` + `skill_scenarios.json` — each skill's
+  **derived artifact** judged on `GEval` (well-formed for its type) and
+  `FaithfulnessMetric` (grounded in the scratchpad body + sources).
+- `tests/test_helpful_tone_deepeval.py` — tone.
+
+DeepEval metrics are LLM-as-judge; scores vary across runs. Scenarios use
+**fixed user turns** and the real backend. `run_deepeval_matrix.sh` snapshots
+each run's log to `.deepeval-runs/<ts>/` so a `SCRATCHPAD_V4 → V5` prompt change
+ties to a score delta.
 
 ## Workflow rules
 

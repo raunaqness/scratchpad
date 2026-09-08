@@ -1,14 +1,17 @@
-"""Signal's LangGraph backend — a creative thinking-pad for content.
+"""Scratchpad's LangGraph backend — a freeform thinking surface + skills.
 
 One turn = one run through the graph:
 
-    interpret ─► route ─► brainstorm | draft | revise | critique | respond ─► END
+    interpret ─► route ─► note | expand | tighten | brainstorm | critique
+                                  | build | respond ─► END
 
 ``interpret`` produces a validated :class:`TurnPlan` (structured output, temp 0)
-and the router trusts it — there are no regex overrides. Every work node returns
-an updated artifact; ``astream_conversation`` streams each version (and the
-reply tokens) to the AG-UI layer. Thread state is the SQLite checkpointer; the
-only JSON left is per-user durable memory.
+and the router trusts it — no regex overrides. Scratchpad nodes return an updated
+:class:`Scratchpad`; the ``build`` node runs a skill against a scratchpad
+snapshot and appends a :class:`DerivedArtifact` (a tab) without touching the
+scratchpad. ``astream_conversation`` streams each version, the derived artifact,
+and the reply tokens to the AG-UI layer. Thread state is the SQLite checkpointer;
+the scratchpad version list is a table in the same DB; per-user memory is JSON.
 """
 
 from __future__ import annotations
@@ -26,29 +29,36 @@ from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
 
-from backend.artifact import Artifact, apply_client_edits, ensure_artifact
+from backend.artifact import (
+    DerivedArtifact,
+    Scratchpad,
+    apply_client_edits,
+    ensure_scratchpad,
+)
+from backend.capabilities.skills import run_skill
 from backend.capabilities.writing import (
     brainstorm,
     chat_reply,
     critique,
+    expand,
     grounding_notes,
-    revise_content,
-    write_content,
+    tighten,
 )
 from backend.config import settings
 from backend.llm import get_chat_model
-from backend.memory_store import compact as compact_memory
 from backend.memory_store import load_memory, save_memory
-from backend.policy import check_draft, preflight
+from backend.policy import check_output, check_skill, preflight
 from backend.prompts import (
     CURRENT_PROMPT_VERSION,
     DISALLOWED_REPLY,
     PUBLISH_REPLY,
-    THINKPAD_SYSTEM_PROMPT,
+    SCRATCHPAD_SYSTEM_PROMPT,
     interpret_prompt,
+    skill_menu_reply,
 )
 from backend.signal_models import TurnPlan
-from backend.textutil import dedupe, enforce_max_words, max_words, word_count
+from backend.skills.registry import get_skill
+from backend.textutil import dedupe, word_count
 from backend.versions import (
     append_version,
     artifact_changed,
@@ -59,7 +69,7 @@ from backend.versions import (
 
 logger = logging.getLogger(__name__)
 
-_ARTIFACT_STREAM_EVERY = 24  # tokens between mid-draft artifact snapshots
+_STREAM_EVERY = 24  # tokens between mid-stream snapshots
 
 
 class SignalState(TypedDict, total=False):
@@ -73,7 +83,8 @@ class SignalState(TypedDict, total=False):
     summary: str
 
     plan: dict[str, Any]
-    artifact: dict[str, Any]
+    scratchpad: dict[str, Any]
+    derived: list[dict[str, Any]]
     assistant_message: str
     status: str
     trajectory: list[dict[str, Any]]
@@ -94,8 +105,8 @@ def _emit(payload: dict[str, Any]) -> None:
         writer(payload)
 
 
-def _emit_artifact(artifact: Artifact) -> None:
-    _emit({"type": "artifact", "artifact": artifact.model_dump()})
+def _emit_scratchpad(scratchpad: Scratchpad) -> None:
+    _emit({"type": "scratchpad", "scratchpad": scratchpad.model_dump()})
 
 
 def _emit_reply(text: str) -> None:
@@ -103,13 +114,13 @@ def _emit_reply(text: str) -> None:
         _emit({"type": "reply", "delta": text})
 
 
-def _emit_choice(choice_id: str, question: str, options: list[str]) -> None:
-    """Ask the client to render a picker (radio buttons) for a set of options.
+def _emit_derived(derived: dict[str, Any]) -> None:
+    _emit({"type": "derived", "derived": derived})
 
-    Consumed by the AG-UI layer, which turns it into a ``request_choice`` tool
-    call; the client renders it and a selection comes back as a normal user turn.
-    Silently no-ops for fewer than two real options.
-    """
+
+def _emit_choice(choice_id: str, question: str, options: list[str]) -> None:
+    """Ask the client to render a picker; consumed by the AG-UI layer as a
+    ``request_choice`` tool call. No-ops for fewer than two real options."""
 
     opts = [o.strip() for o in options if isinstance(o, str) and o.strip()]
     if len(opts) < 2:
@@ -129,8 +140,6 @@ def _now() -> str:
 
 
 def _norm(text: str | None) -> str:
-    """Loose comparison key for subject strings."""
-
     return " ".join((text or "").lower().split())
 
 
@@ -151,9 +160,9 @@ def _rollup(summary: str, turns: list[dict[str, Any]]) -> str:
             [
                 SystemMessage(
                     content=(
-                        "Summarize this content-brainstorming conversation so far "
-                        "in 4-6 sentences: the product/idea, confirmed facts, "
-                        "chosen direction, and open questions. No preamble."
+                        "Summarize this idea-development conversation so far in "
+                        "4-6 sentences: the subject, confirmed facts, the "
+                        "direction taking shape, and open questions. No preamble."
                     )
                 ),
                 HumanMessage(content=json.dumps(older, ensure_ascii=False)),
@@ -165,18 +174,16 @@ def _rollup(summary: str, turns: list[dict[str, Any]]) -> str:
         return summary
 
 
-def _seed_artifact(state: SignalState, plan: TurnPlan) -> Artifact:
-    """Carry the artifact forward, folding in client edits and plan hints."""
+def _seed_scratchpad(state: SignalState, plan: TurnPlan) -> Scratchpad:
+    """Carry the scratchpad forward, folding in client edits and plan hints."""
 
-    artifact = ensure_artifact(state.get("artifact"))
-    artifact = apply_client_edits(artifact, state.get("client_artifact"))
+    scratch = ensure_scratchpad(state.get("scratchpad"))
+    scratch = apply_client_edits(scratch, state.get("client_artifact"))
 
-    # Subject rename mid-conversation: rebase the artifact onto the new subject.
-    # Title/topic follow the new subject; context scoped to the old one
-    # (facts, open questions, angles, outline) is dropped. This turn's
-    # `confirmed_facts` are re-added below, so anything restated survives.
-    if plan.subject_changed and plan.topic and _norm(plan.topic) != _norm(artifact.topic):
-        artifact = artifact.model_copy(
+    # Subject rename mid-conversation: rebase onto the new subject and drop
+    # context scoped to the old one. This turn's confirmed_facts are re-added.
+    if plan.subject_changed and plan.topic and _norm(plan.topic) != _norm(scratch.topic):
+        scratch = scratch.model_copy(
             update={
                 "topic": plan.topic,
                 "title": plan.topic,
@@ -184,34 +191,43 @@ def _seed_artifact(state: SignalState, plan: TurnPlan) -> Artifact:
                 "open_questions": [],
                 "angles": [],
                 "outline": [],
+                "tags": [],
             }
         )
 
     update: dict[str, Any] = {}
-    if plan.format:
-        update["format"] = plan.format
     if plan.product_mode:
         update["product_mode"] = plan.product_mode
     if plan.topic:
         update["topic"] = plan.topic
-        if not artifact.title:
+        if not scratch.title:
             update["title"] = plan.topic
     if update:
-        artifact = artifact.model_copy(update=update)
+        scratch = scratch.model_copy(update=update)
     if plan.confirmed_facts:
-        artifact = artifact.with_sources(plan.confirmed_facts)
-    if artifact.status == "empty" and (artifact.sources or artifact.topic):
-        artifact = artifact.model_copy(update={"status": "exploring"})
-    return artifact
+        scratch = scratch.with_sources(plan.confirmed_facts)
+    if scratch.status == "empty" and (scratch.sources or scratch.topic or scratch.body):
+        scratch = scratch.model_copy(update={"status": "notes"})
+    return scratch
+
+
+_INTERPRET_STATUS = {
+    "note": "notes",
+    "expand": "developing",
+    "tighten": "developing",
+    "brainstorm": "notes",
+    "critique": "developing",
+    "build": "developing",
+    "chat": "notes",
+}
 
 
 def _interpret(state: SignalState) -> SignalState:
     turns = state.get("turns", [])
     summary = _rollup(state.get("summary", ""), turns)
-    memory_view = compact_memory(state.get("memory", {}))
 
-    prior_artifact = apply_client_edits(
-        ensure_artifact(state.get("artifact")), state.get("client_artifact")
+    prior = apply_client_edits(
+        ensure_scratchpad(state.get("scratchpad")), state.get("client_artifact")
     )
 
     plan = TurnPlan(mode="chat", reply_gist="acknowledge and offer a next step")
@@ -222,13 +238,13 @@ def _interpret(state: SignalState) -> SignalState:
         structured = model.with_structured_output(TurnPlan)
         result = structured.invoke(
             [
-                SystemMessage(content=THINKPAD_SYSTEM_PROMPT),
+                SystemMessage(content=SCRATCHPAD_SYSTEM_PROMPT),
                 HumanMessage(
                     content=interpret_prompt(
                         summary=summary,
                         turns=turns[-settings.history_window :],
-                        artifact=prior_artifact.model_dump(),
-                        memory=memory_view,
+                        scratchpad=prior.model_dump(),
+                        memory=state.get("memory", {}),
                         user_message=state["user_message"],
                     )
                 ),
@@ -241,20 +257,15 @@ def _interpret(state: SignalState) -> SignalState:
     except Exception as error:  # pragma: no cover - defensive
         logger.warning("turn interpretation failed, defaulting to chat: %s", error)
 
-    # Deterministic safety gate — not left to the model.
     decision = preflight(state["user_message"])
     if decision.flag != "ok":
         plan.safety_flag = decision.flag
 
-    artifact = _seed_artifact(state, plan)
+    scratch = _seed_scratchpad(state, plan)
 
-    status = {
-        "brainstorm": "exploring",
-        "draft": "drafting",
-        "revise": "refining",
-        "critique": "refining",
-        "chat": artifact.status if artifact.status != "empty" else "exploring",
-    }.get(plan.mode, "exploring")
+    status = _INTERPRET_STATUS.get(plan.mode, "notes")
+    if scratch.status not in ("empty",) and plan.mode in ("chat", "critique", "build"):
+        status = scratch.status
     if plan.clarifying_question or plan.safety_flag != "ok":
         status = "needs_input"
 
@@ -262,7 +273,7 @@ def _interpret(state: SignalState) -> SignalState:
         **state,
         "summary": summary,
         "plan": plan.model_dump(),
-        "artifact": artifact.model_dump(),
+        "scratchpad": scratch.model_dump(),
         "status": status,
         "trajectory": [
             *state.get("trajectory", []),
@@ -273,26 +284,25 @@ def _interpret(state: SignalState) -> SignalState:
 
 def _route(state: SignalState) -> str:
     plan = state["plan"]
-    artifact = state["artifact"]
+    scratch = state.get("scratchpad", {}) or {}
     if plan.get("safety_flag", "ok") != "ok" or plan.get("clarifying_question"):
         return "respond"
 
     mode = plan.get("mode", "chat")
-    has_body = bool((artifact or {}).get("body", "").strip())
-    if mode == "revise":
-        return "revise" if has_body else "draft"
-    if mode == "critique":
-        return "critique" if has_body else "respond"
-    if mode == "draft":
-        substantive = (
-            artifact.get("topic")
-            or artifact.get("sources")
-            or plan.get("chosen_angle")
-            or len(state["user_message"]) > 40
-        )
-        return "draft" if substantive else "brainstorm"
+    has_body = bool((scratch.get("body") or "").strip())
+
+    if mode == "note":
+        return "note"
+    if mode == "expand":
+        return "expand"
+    if mode == "tighten":
+        return "tighten" if has_body else "note"
     if mode == "brainstorm":
         return "brainstorm"
+    if mode == "critique":
+        return "critique" if has_body else "respond"
+    if mode == "build":
+        return "build"
     return "respond"
 
 
@@ -302,21 +312,15 @@ def _route(state: SignalState) -> str:
 
 def _brief(state: SignalState) -> dict[str, Any]:
     plan = state["plan"]
-    artifact = state["artifact"]
-    length = plan.get("length")
+    scratch = state.get("scratchpad", {}) or {}
     return {
-        "format": artifact.get("format", "linkedin_post"),
-        "product_mode": artifact.get("product_mode", "existing"),
-        "topic": artifact.get("topic") or plan.get("topic") or "",
-        "sources": artifact.get("sources", []),
-        "angle": plan.get("chosen_angle") or (artifact.get("angles") or [None])[0],
-        "outline": artifact.get("outline", []),
-        "tone": plan.get("tone"),
-        "audience": plan.get("audience"),
-        "cta": plan.get("cta"),
-        "length": length,
-        "max_words": max_words(length),
-        "open_questions": artifact.get("open_questions", []),
+        "product_mode": scratch.get("product_mode", "existing"),
+        "topic": scratch.get("topic") or plan.get("topic") or "",
+        "body": scratch.get("body", ""),
+        "sources": scratch.get("sources", []),
+        "angle": plan.get("chosen_angle") or (scratch.get("angles") or [None])[0],
+        "outline": scratch.get("outline", []),
+        "open_questions": scratch.get("open_questions", []),
     }
 
 
@@ -324,15 +328,15 @@ def _finish(
     state: SignalState,
     *,
     node: str,
-    artifact: Artifact,
+    scratch: Scratchpad,
     message: str,
     status: str,
 ) -> SignalState:
-    _emit_artifact(artifact)
+    _emit_scratchpad(scratch)
     _emit_reply(message)
     return {
         **state,
-        "artifact": artifact.model_dump(),
+        "scratchpad": scratch.model_dump(),
         "assistant_message": message,
         "status": status,
         "turns": [*state.get("turns", []), {"role": "assistant", "content": message}],
@@ -343,77 +347,11 @@ def _finish(
     }
 
 
-def _brainstorm(state: SignalState) -> SignalState:
-    brief = _brief(state)
-    result = brainstorm(brief)
-    base = ensure_artifact(state["artifact"])
-    picked = bool(result["outline"])
-    artifact = base.model_copy(
-        update={
-            "kind": "outline" if picked else "idea_board",
-            "angles": dedupe([*base.angles, *result["angles"]]) if not picked else base.angles,
-            "outline": result["outline"] or base.outline,
-        }
-    )
-    artifact = artifact.with_questions(result["open_questions"]).touched(
-        status="drafting" if picked else "exploring"
-    )
-    if picked:
-        message = (
-            f"Outlined the {artifact.format.replace('_', ' ')} — "
-            f"{len(artifact.outline)} beats on the board. Say the word and I'll draft it."
-        )
-    else:
-        message = (
-            f"Put {len(result['angles'])} angles on the board. "
-            "Tell me which to run with (or mix two) and I'll outline it."
-        )
-        _emit_choice(
-            f"angle-v{artifact.version}",
-            "Which angle should I run with?",
-            artifact.angles,
-        )
-    return _finish(state, node="brainstorm", artifact=artifact, message=message,
-                   status=artifact.status)
-
-
-def _write_stream(state: SignalState, *, revise: bool) -> Artifact:
-    brief = _brief(state)
-    base = ensure_artifact(state["artifact"])
-    fmt = brief["format"]
-
-    if revise:
-        stream = revise_content(
-            fmt, brief, base.body, state["plan"].get("revise_instruction", "")
-        )
-    else:
-        stream = write_content(fmt, brief)
-
-    parts: list[str] = []
-    since_flush = 0
-    for delta in stream:
-        parts.append(delta)
-        since_flush += 1
-        if since_flush >= _ARTIFACT_STREAM_EVERY:
-            since_flush = 0
-            _emit_artifact(
-                base.model_copy(update={"kind": "draft", "body": "".join(parts),
-                                        "status": "drafting"})
-            )
-    body = enforce_max_words("".join(parts).strip(), brief["max_words"])
-
-    notes = grounding_notes(body, base.sources, base.product_mode)
-    artifact = base.model_copy(update={"kind": "draft", "body": body})
-    artifact = artifact.with_questions(notes).touched(status="refining")
-    return artifact
-
-
-def _writer_failed(state: SignalState, node: str) -> SignalState:
+def _op_failed(state: SignalState, node: str) -> SignalState:
     message = (
-        "The draft came back empty. Tell me a bit more about the angle or the "
-        "key point you want and I'll try again."
+        "That came back empty. Tell me a bit more about what you want on the "
+        "scratchpad and I'll try again."
     )
-    artifact = ensure_artifact(state["artifact"])
     _emit_reply(message)
     return {
         **state,
@@ -427,59 +365,187 @@ def _writer_failed(state: SignalState, node: str) -> SignalState:
     }
 
 
-def _draft(state: SignalState) -> SignalState:
-    artifact = _write_stream(state, revise=False)
-    if not check_draft(artifact.body).allowed:
-        return _writer_failed(state, "draft")
-    flags = len(artifact.open_questions)
-    message = f"Drafted a first pass ({word_count(artifact.body)} words)."
+def _rebase_note(state: SignalState, scratch: Scratchpad) -> str:
     if state["plan"].get("subject_changed"):
-        message = (
-            f"Rebased the piece onto {artifact.topic or 'the new subject'} and cleared "
-            f"the old fact list — re-share any specs you want me to use. " + message
+        return (
+            f"Rebased the scratchpad onto {scratch.topic or 'the new subject'} and "
+            "cleared the old fact list — re-share anything you want kept. "
         )
-    if flags:
-        message += f" Flagged {flags} thing{'s' if flags != 1 else ''} to confirm — see open questions."
-    message += " Want it punchier, shorter, or a different angle?"
-    return _finish(state, node="draft", artifact=artifact, message=message,
-                   status="refining")
+    return ""
 
 
-def _revise(state: SignalState) -> SignalState:
-    artifact = _write_stream(state, revise=True)
-    if not check_draft(artifact.body).allowed:
-        return _writer_failed(state, "revise")
-    instruction = state["plan"].get("revise_instruction") or "your notes"
-    if state["plan"].get("subject_changed"):
+def _note(state: SignalState) -> SignalState:
+    scratch = ensure_scratchpad(state["scratchpad"])
+    text = (state["plan"].get("note_text") or state["user_message"]).strip()
+    body = f"{scratch.body}\n\n{text}".strip() if scratch.body else text
+    scratch = scratch.model_copy(update={"body": body}).touched(status="notes")
+    message = (
+        _rebase_note(state, scratch)
+        + "Added that to the scratchpad. Want me to develop it, or put a few "
+        "angles on the board?"
+    )
+    return _finish(state, node="note", scratch=scratch, message=message, status="notes")
+
+
+def _develop(state: SignalState, *, node: str, streamer) -> SignalState:
+    base = ensure_scratchpad(state["scratchpad"])
+    instruction = state["plan"].get("edit_instruction") or state["user_message"]
+
+    parts: list[str] = []
+    since_flush = 0
+    for delta in streamer(base.model_dump(), instruction):
+        parts.append(delta)
+        since_flush += 1
+        if since_flush >= _STREAM_EVERY:
+            since_flush = 0
+            _emit_scratchpad(
+                base.model_copy(update={"body": "".join(parts), "status": "developing"})
+            )
+    body = "".join(parts).strip()
+    if not check_output(body).allowed:
+        return _op_failed(state, node)
+
+    notes = grounding_notes(body, base.sources, base.product_mode)
+    scratch = base.model_copy(update={"body": body}).with_questions(notes)
+    scratch = scratch.touched(status="developing")
+
+    verb = "Developed" if node == "expand" else "Tightened"
+    message = _rebase_note(state, scratch) + f"{verb} the scratchpad ({word_count(body)} words)."
+    if notes:
+        message += f" Flagged {len(notes)} thing{'s' if len(notes) != 1 else ''} to confirm."
+    return _finish(state, node=node, scratch=scratch, message=message, status="developing")
+
+
+def _expand(state: SignalState) -> SignalState:
+    return _develop(state, node="expand", streamer=expand)
+
+
+def _tighten(state: SignalState) -> SignalState:
+    return _develop(state, node="tighten", streamer=tighten)
+
+
+def _brainstorm(state: SignalState) -> SignalState:
+    brief = _brief(state)
+    result = brainstorm(brief)
+    base = ensure_scratchpad(state["scratchpad"])
+    picked = bool(result["outline"])
+    scratch = base.model_copy(
+        update={
+            "angles": dedupe([*base.angles, *result["angles"]]) if not picked else base.angles,
+            "outline": result["outline"] or base.outline,
+        }
+    )
+    scratch = scratch.with_questions(result["open_questions"]).touched(status="notes")
+
+    if picked:
         message = (
-            f"Rebased the piece onto {artifact.topic or 'the new subject'} (v{artifact.version}, "
-            f"{word_count(artifact.body)} words) and cleared the old fact list — "
-            "re-share any specs you want me to use."
+            f"Outlined it — {len(scratch.outline)} beats on the board. "
+            "Want me to develop any of them on the scratchpad?"
         )
     else:
         message = (
-            f"Revised for {instruction!r} (v{artifact.version}, "
-            f"{word_count(artifact.body)} words). Take a look."
+            f"Put {len(result['angles'])} angles on the board. "
+            "Tell me which to run with (or mix two)."
         )
-    return _finish(state, node="revise", artifact=artifact, message=message,
-                   status="refining")
+        _emit_choice(f"angle-v{scratch.version}", "Which angle should I run with?", scratch.angles)
+    return _finish(state, node="brainstorm", scratch=scratch, message=message, status="notes")
 
 
 def _critique(state: SignalState) -> SignalState:
-    brief = _brief(state)
-    base = ensure_artifact(state["artifact"])
-    review = critique(brief["format"], brief, base.body)
-    artifact = base.model_copy(
+    base = ensure_scratchpad(state["scratchpad"])
+    review = critique(base.model_dump())
+    scratch = base.model_copy(
         update={"open_questions": dedupe([*base.open_questions, *review.points])}
-    ).touched(status="refining")
-    message = review.summary.strip() or "Reviewed the draft — notes are on the board."
-    return _finish(state, node="critique", artifact=artifact, message=message,
-                   status="refining")
+    ).touched(status=base.status if base.status != "empty" else "developing")
+    message = review.summary.strip() or "Reviewed the scratchpad — notes are on the board."
+    return _finish(state, node="critique", scratch=scratch, message=message, status=scratch.status)
+
+
+def _build(state: SignalState) -> SignalState:
+    plan = state["plan"]
+    skill_id = plan.get("skill_id")
+    scratch = ensure_scratchpad(state["scratchpad"])
+
+    if not check_skill(skill_id).allowed:
+        message = skill_menu_reply()
+        _emit_reply(message)
+        return {
+            **state,
+            "assistant_message": message,
+            "status": "needs_input",
+            "turns": [*state.get("turns", []), {"role": "assistant", "content": message}],
+            "trajectory": [
+                *state.get("trajectory", []),
+                {"step": "build", "status": "needs_input", "at": _now()},
+            ],
+        }
+
+    skill = get_skill(skill_id)
+    hints = {
+        k: plan.get(k) for k in ("tone", "length", "audience", "cta") if plan.get(k)
+    }
+    # One tab per skill: a stable id so a re-run replaces that tab's content
+    # rather than opening a new one.
+    derived_id = f"d-{skill.id}"
+    from_version = scratch.version
+
+    def _snapshot(body: str, open_questions: list[str] | None = None) -> dict[str, Any]:
+        return DerivedArtifact(
+            id=derived_id,
+            skill_id=skill.id,
+            skill_name=skill.name,
+            title=skill.name,
+            body=body,
+            from_version=from_version,
+            open_questions=open_questions or [],
+        ).model_dump()
+
+    parts: list[str] = []
+    since_flush = 0
+    for delta in run_skill(skill, scratch.model_dump(), hints):
+        parts.append(delta)
+        since_flush += 1
+        if since_flush >= _STREAM_EVERY:
+            since_flush = 0
+            _emit_derived(_snapshot("".join(parts)))
+
+    body = "".join(parts).strip()
+    if not check_output(body).allowed:
+        return _op_failed(state, "build")
+
+    notes = grounding_notes(body, scratch.sources, scratch.product_mode)
+    derived = _snapshot(body, notes)
+    _emit_derived(derived)
+
+    message = f"Built a {skill.name.lower()} from v{from_version} — see the {skill.name} tab."
+    if notes:
+        message += (
+            f" {len(notes)} claim{'s' if len(notes) != 1 else ''} in it "
+            "aren't in your sources — listed on the tab."
+        )
+    _emit_reply(message)
+    status = scratch.status if scratch.status != "empty" else "notes"
+    prior = state.get("derived", [])
+    if any(d.get("skill_id") == skill.id for d in prior):
+        next_derived = [derived if d.get("skill_id") == skill.id else d for d in prior]
+    else:
+        next_derived = [*prior, derived]
+    return {
+        **state,
+        "derived": next_derived,
+        "assistant_message": message,
+        "status": status,
+        "turns": [*state.get("turns", []), {"role": "assistant", "content": message}],
+        "trajectory": [
+            *state.get("trajectory", []),
+            {"step": "build", "status": status, "skill": skill.id, "at": _now()},
+        ],
+    }
 
 
 def _respond(state: SignalState) -> SignalState:
     plan = state["plan"]
-    artifact = ensure_artifact(state["artifact"])
+    scratch = ensure_scratchpad(state["scratchpad"])
 
     if plan.get("safety_flag") == "publish_request":
         message = PUBLISH_REPLY
@@ -494,18 +560,18 @@ def _respond(state: SignalState) -> SignalState:
         parts: list[str] = []
         for delta in chat_reply(
             state.get("turns", [])[-settings.history_window :],
-            artifact.model_dump(),
+            scratch.model_dump(),
             plan.get("reply_gist"),
         ):
             parts.append(delta)
             _emit_reply(delta)
         message = "".join(parts).strip() or (
-            "Tell me what you'd like to work on and I'll get a first version on the board."
+            "Tell me what you're thinking about and I'll get it onto the scratchpad."
         )
 
     unresolved = plan.get("clarifying_question") or plan.get("safety_flag", "ok") != "ok"
-    status = "needs_input" if unresolved else artifact.status
-    _emit_artifact(artifact)
+    status = "needs_input" if unresolved else (scratch.status if scratch.status != "empty" else "notes")
+    _emit_scratchpad(scratch)
     return {
         **state,
         "assistant_message": message,
@@ -525,24 +591,31 @@ def _respond(state: SignalState) -> SignalState:
 def _builder() -> StateGraph:
     graph = StateGraph(SignalState)
     graph.add_node("interpret", _interpret)
-    graph.add_node("brainstorm", _brainstorm)
-    graph.add_node("draft", _draft)
-    graph.add_node("revise", _revise)
-    graph.add_node("critique", _critique)
-    graph.add_node("respond", _respond)
+    for name, fn in (
+        ("note", _note),
+        ("expand", _expand),
+        ("tighten", _tighten),
+        ("brainstorm", _brainstorm),
+        ("critique", _critique),
+        ("build", _build),
+        ("respond", _respond),
+    ):
+        graph.add_node(name, fn)
     graph.add_edge(START, "interpret")
     graph.add_conditional_edges(
         "interpret",
         _route,
         {
+            "note": "note",
+            "expand": "expand",
+            "tighten": "tighten",
             "brainstorm": "brainstorm",
-            "draft": "draft",
-            "revise": "revise",
             "critique": "critique",
+            "build": "build",
             "respond": "respond",
         },
     )
-    for node in ("brainstorm", "draft", "revise", "critique", "respond"):
+    for node in ("note", "expand", "tighten", "brainstorm", "critique", "build", "respond"):
         graph.add_edge(node, END)
     return graph
 
@@ -580,16 +653,17 @@ async def astream_conversation(
 ) -> AsyncIterator[dict[str, Any]]:
     """Run one turn, yielding normalized events:
 
-    ``{"type": "artifact", "artifact": {...}}``
+    ``{"type": "scratchpad", "scratchpad": {...}}``
     ``{"type": "reply", "delta": "..."}``
+    ``{"type": "derived", "derived": {...}}``
     ``{"type": "ui_choice", "id", "question", "options": [{"id", "label"}]}``
     ``{"type": "status", "status": "...", "node": "..."}``
-    ``{"type": "final", "assistant_message", "artifact", "status", "plan",
-       "versions", "head"}``
+    ``{"type": "final", "assistant_message", "scratchpad", "derived", "status",
+       "plan", "versions", "head"}``
 
-    ``base_version`` (1-based) is the version the client was previewing when it
-    sent. If it points before the tip, the run continues from that snapshot and
-    every later version is discarded.
+    ``base_version`` (1-based) is the scratchpad version the client was previewing
+    when it sent. If it points before the tip, the run continues from that
+    snapshot and every later version is discarded.
     """
 
     if not user_message.strip():
@@ -600,7 +674,7 @@ async def astream_conversation(
 
     versions = await load_versions(conversation_id)
     branching = base_version is not None and 1 <= base_version < len(versions)
-    base_artifact = versions[base_version - 1]["artifact"] if branching else None
+    base_scratch = versions[base_version - 1]["artifact"] if branching else None
 
     async with AsyncSqliteSaver.from_conn_string(str(settings.db_path)) as checkpointer:
         graph = _compile(checkpointer)
@@ -611,7 +685,7 @@ async def astream_conversation(
         turns = list(prior_values.get("turns", []))
         turns.append({"role": "user", "content": user_message})
 
-        seed_artifact = base_artifact if branching else prior_values.get("artifact", {})
+        seed = base_scratch if branching else prior_values.get("scratchpad", {})
 
         graph_input: SignalState = {
             "user_id": user_id,
@@ -621,7 +695,8 @@ async def astream_conversation(
             "memory": memory,
             "turns": turns,
             "summary": prior_values.get("summary", ""),
-            "artifact": seed_artifact or {},
+            "scratchpad": seed or {},
+            "derived": prior_values.get("derived", []),
             "trajectory": prior_values.get("trajectory", []),
         }
 
@@ -629,39 +704,45 @@ async def astream_conversation(
             graph_input, config, stream_mode=["custom", "updates"]
         ):
             if mode == "custom" and isinstance(chunk, dict):
-                if chunk.get("type") in {"artifact", "reply", "ui_choice"}:
+                if chunk.get("type") in {"scratchpad", "reply", "ui_choice", "derived"}:
                     yield chunk
             elif mode == "updates" and isinstance(chunk, dict):
                 for node, update in chunk.items():
                     if isinstance(update, dict) and update.get("status"):
-                        yield {
-                            "type": "status",
-                            "status": update["status"],
-                            "node": node,
-                        }
+                        yield {"type": "status", "status": update["status"], "node": node}
 
         final = await graph.aget_state(config)
         values = final.values if final else {}
 
-    save_memory(user_id, values.get("plan", {}), values.get("artifact", {}))
+    # Persistence side-effects are best-effort: a failure here (e.g. disk full)
+    # must not lose the turn the user just watched happen.
+    try:
+        save_memory(user_id, values.get("plan", {}), values.get("scratchpad", {}))
+    except Exception:  # noqa: BLE001
+        logger.exception("save_memory failed for %s", user_id)
 
-    new_artifact = values.get("artifact", {})
-    prev_artifact = (
-        base_artifact if branching else (versions[-1]["artifact"] if versions else {})
+    new_scratch = values.get("scratchpad", {})
+    prev_scratch = (
+        base_scratch if branching else (versions[-1]["artifact"] if versions else {})
     )
-    if artifact_changed(prev_artifact, new_artifact):
-        versions = append_version(
+    if artifact_changed(prev_scratch, new_scratch):
+        candidate = append_version(
             versions,
-            new_artifact,
+            new_scratch,
             user_message,
             base_seq=base_version if branching else None,
         )
-        await replace_versions(conversation_id, versions)
+        try:
+            await replace_versions(conversation_id, candidate)
+            versions = candidate
+        except Exception:  # noqa: BLE001
+            logger.exception("replace_versions failed for %s", conversation_id)
 
     yield {
         "type": "final",
         "assistant_message": values.get("assistant_message", ""),
-        "artifact": new_artifact,
+        "scratchpad": new_scratch,
+        "derived": values.get("derived", []),
         "status": values.get("status", ""),
         "plan": values.get("plan", {}),
         "trajectory": values.get("trajectory", []),
@@ -700,9 +781,11 @@ def run_conversation(
         "response": final.get("assistant_message", ""),
         "conversation_id": conversation_id,
         "status": final.get("status", ""),
-        "artifact": final.get("artifact", {}),
+        "scratchpad": final.get("scratchpad", {}),
+        "derived": final.get("derived", []),
         "plan": plan,
         "mode": plan.get("mode"),
+        "skill_id": plan.get("skill_id"),
         "pending_question": plan.get("clarifying_question"),
         "trajectory": final.get("trajectory", []),
         "versions": final.get("versions", []),

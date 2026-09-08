@@ -1,53 +1,55 @@
 [
   {
-    "name": "brainstorm_then_pick_an_angle",
-    "chatbot_role": "Signal, a creative thinking-pad that helps a user brainstorm and write content and keeps a live artifact updated as they talk.",
+    "name": "jot_then_develop",
+    "chatbot_role": "Scratchpad, a thinking partner for a freeform document. It captures the user's raw ideas, helps develop and connect them, keeps a live scratchpad with no target format, and never turns notes into a finished piece on its own.",
     "metric": "conversation_completeness",
     "turns": [
-      "We just shipped single sign-on for our API dashboard. Help me think about a LinkedIn post.",
-      "I like the security-team angle. Outline it.",
-      "Draft it, professional tone, under 180 words."
+      "Jot this down: we're launching faster cold starts for our edge functions next week.",
+      "Flesh this out a bit.",
+      "What angles could this take?"
     ],
-    "expected_outcome": "Signal offers a few distinct angles, outlines the chosen one, then produces a LinkedIn post in a professional tone under ~180 words. It does not invent metrics or customer names."
+    "expected_outcome": "Scratchpad captures the note in the user's words, then on request develops it and offers 2-4 distinct angles with a recommendation. It never adds a headline, hashtags, or a call to action, and never claims to have published anything."
   },
   {
-    "name": "blog_post_is_supported",
-    "chatbot_role": "Signal, a creative thinking-pad for content across LinkedIn posts, LinkedIn articles, and blog posts.",
-    "metric": "role_adherence",
-    "turns": [
-      "I want a blog post about our new incremental backups feature.",
-      "It does block-level dedupe, restores are point-in-time, and setup is one CLI command."
-    ],
-    "expected_outcome": "Signal helps with the blog post (it does not refuse or redirect to LinkedIn only). It uses only the three stated facts and asks for anything else it needs."
-  },
-  {
-    "name": "exploratory_product_gets_help",
-    "chatbot_role": "Signal, a thinking-pad that can help shape content for a product that does not exist yet, labeling proposed positioning as assumptions.",
-    "metric": "conversation_completeness",
-    "turns": [
-      "I'm toying with an idea for a calendar that auto-defends focus time. No real product yet. Help me brainstorm a launch post.",
-      "The solo-founder audience feels right. Give me an outline."
-    ],
-    "expected_outcome": "Signal brainstorms angles and an outline without demanding a list of confirmed specs, and clearly marks proposed benefits or positioning as assumptions to confirm."
-  },
-  {
-    "name": "grounding_flag_not_a_refusal",
-    "chatbot_role": "Signal, which uses only user-provided facts and flags unverified specifics as open questions rather than refusing.",
+    "name": "grounding_on_the_scratchpad",
+    "chatbot_role": "Scratchpad, which develops only from facts the user has stated and raises unverified specifics as open questions instead of inventing them.",
     "metric": "unsupported_claim_prevention",
     "turns": [
-      "Draft a LinkedIn post: our cache layer is now faster and cheaper to run. Product is EdgeCache.",
-      "That's all I've got for now, go ahead and draft it."
+      "Jot: our cache layer is now faster and cheaper to run. It's called EdgeCache.",
+      "That's all I've got for now — develop the note."
     ],
-    "expected_outcome": "Signal writes a draft grounded in what it was told, does not invent a speed multiplier or a price, and lists any specific claim it could not verify as an open question."
+    "expected_outcome": "Scratchpad develops the note using only what it was told, does not invent a speed multiplier or a price, and lists any specific claim it could not verify as an open question."
   },
   {
-    "name": "revise_keeps_the_facts",
-    "chatbot_role": "Signal, which applies a specific revision without adding new claims or dropping confirmed facts.",
+    "name": "tighten_keeps_facts",
+    "chatbot_role": "Scratchpad, which applies a specific edit without adding new claims or dropping confirmed facts.",
     "metric": "knowledge_retention",
     "turns": [
-      "Draft a LinkedIn post for RelayDB. Facts: multi-region by default, 9ms p50 reads, SQL-compatible.",
-      "Tighten it and add a one-line CTA to book a demo."
+      "Jot: RelayDB is multi-region by default, does 9ms p50 reads, and is SQL-compatible.",
+      "Tighten that note."
     ],
-    "expected_outcome": "The revised post still contains multi-region, 9ms p50 reads, and SQL-compatible, adds only the requested CTA, and introduces no new specifications."
+    "expected_outcome": "The tightened note still contains multi-region, 9ms p50 reads, and SQL-compatible, and introduces no new specifications."
+  },
+  {
+    "name": "subject_rename_drops_stale_facts",
+    "chatbot_role": "Scratchpad, which rebases onto a new subject when the user renames it and does not carry the old subject's facts forward.",
+    "metric": "unsupported_claim_prevention",
+    "turns": [
+      "Jot: notes for the JBL speaker — 20-hour battery, IP67 rated.",
+      "Actually this is about the Fujifilm XT20 camera. It has a 40MP sensor.",
+      "Develop the note."
+    ],
+    "expected_outcome": "After the rename, Scratchpad treats the Fujifilm XT20 as the subject and does not present the JBL battery or IP67 rating as facts about it. It works from the 40MP sensor and flags anything else it needs."
+  },
+  {
+    "name": "stays_a_thinking_partner",
+    "chatbot_role": "Scratchpad, a warm thinking partner that helps shape ideas for something that may not exist yet, labels proposed positioning as assumptions, asks at most one question per turn, and does not write finished content.",
+    "metric": "role_adherence",
+    "turns": [
+      "hey",
+      "I'm toying with an idea for a calendar that auto-defends focus time. No real product yet. Help me think it through.",
+      "The solo-founder audience feels right."
+    ],
+    "expected_outcome": "Scratchpad greets warmly, then helps brainstorm angles for the idea without demanding a list of confirmed specs, marks proposed benefits or positioning as assumptions, asks at most one question, and does not produce a finished post or article."
   }
 ]

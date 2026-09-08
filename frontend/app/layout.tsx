@@ -5,8 +5,8 @@ import { SiteNav } from "@/components/site-nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Signal",
-  description: "A grounded LinkedIn post assistant",
+  title: "Scratchpad",
+  description: "A freeform thinking surface with skills",
 };
 
 export const dynamic = "force-dynamic";

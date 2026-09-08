@@ -417,29 +417,70 @@ body:has(.app-workspace) {
 
 .app-chat {
   border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+}
+
+.app-chat-thread {
+  flex: 1;
+  min-height: 0;
   position: relative;
 }
 
-.environment-badge {
+/* persistent top bar of the chat pane */
+.chat-bar {
+  align-items: center;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.75rem;
+  justify-content: space-between;
+  min-height: 3.25rem;
+  padding: 0.5rem clamp(0.75rem, 3vw, 1.25rem);
+}
+
+.chat-bar-right {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chat-bar-dev {
   align-items: center;
   background: #b91c1c;
   border-radius: 999px;
   color: white;
   display: flex;
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 800;
-  height: 1.75rem;
+  height: 1.6rem;
   justify-content: center;
-  left: 1rem;
   letter-spacing: 0.12em;
-  position: absolute;
-  top: 1rem;
-  width: 3.25rem;
-  z-index: 10;
+  width: 3rem;
+}
+
+.chat-bar-new-thread {
+  align-items: center;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  color: var(--foreground);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.82rem;
+  font-weight: 550;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  transition: background-color 140ms ease;
+}
+
+.chat-bar-new-thread:hover {
+  background: var(--accent);
 }
 
 /* dev-only progress chip, pinned left of the New Thread button */
@@ -490,11 +531,20 @@ body:has(.app-workspace) {
   }
 }
 
-.artifact-panel {
-  background: color-mix(in srgb, var(--card) 55%, var(--background));
+.workspace-panel {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.artifact-panel {
+  background: color-mix(in srgb, var(--card) 55%, var(--background));
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -505,6 +555,112 @@ body:has(.app-workspace) {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+/* one tab strip for the whole panel: Scratchpad + one tab per derived artifact */
+.workspace-tabs {
+  align-items: flex-end;
+  background: color-mix(in srgb, var(--card) 55%, var(--background));
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0.3rem;
+  overflow-x: auto;
+  padding: 0.5rem clamp(1.25rem, 4vw, 3rem) 0;
+}
+
+.workspace-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 0.55rem 0.55rem 0 0;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.5rem 0.85rem;
+  white-space: nowrap;
+}
+
+.workspace-tab:hover:not(.is-active) {
+  color: var(--foreground);
+}
+
+.workspace-tab.is-active {
+  background: color-mix(in srgb, var(--card) 55%, var(--background));
+  border-color: var(--border);
+  color: var(--foreground);
+  margin-bottom: -1px;
+}
+
+.workspace-tab-meta {
+  font-weight: 500;
+  opacity: 0.6;
+}
+
+.derived-body {
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  padding: 1.5rem 0 0.5rem;
+  word-break: break-word;
+}
+
+/* derived output owns its own heading hierarchy — keep it compact */
+.derived-body.markdown-preview .aui-md h1 {
+  font-size: 1.3rem;
+  margin-top: 0;
+}
+
+.derived-body.markdown-preview .aui-md h2 {
+  font-size: 1.02rem;
+  margin: 1.1em 0 0.4em;
+}
+
+.derived-body.markdown-preview .aui-md h3 {
+  font-size: 0.95rem;
+  margin: 0.9em 0 0.35em;
+}
+
+/* skill buttons — "build from this" */
+.skill-bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.85rem 0 0.25rem;
+}
+
+.skill-bar-label {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  margin-right: 0.15rem;
+  text-transform: uppercase;
+}
+
+.skill-bar button {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--foreground);
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.skill-bar button:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--primary);
+}
+
+.skill-bar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .artifact-header {
@@ -757,8 +913,103 @@ body:has(.app-workspace) {
   font-size: 1rem;
   line-height: 1.65;
   padding: 1.5rem 0;
-  white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* rendered markdown inside the scratchpad / derived panes */
+.markdown-preview {
+  word-break: break-word;
+}
+
+.markdown-preview .aui-md > :first-child {
+  margin-top: 0;
+}
+
+.markdown-preview .aui-md > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-preview .aui-md h1,
+.markdown-preview .aui-md h2,
+.markdown-preview .aui-md h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+}
+
+.markdown-preview .aui-md h1 {
+  font-size: 1.35rem;
+}
+
+.markdown-preview .aui-md h2 {
+  font-size: 1.15rem;
+}
+
+.markdown-preview .aui-md h3 {
+  font-size: 1rem;
+}
+
+.markdown-preview .aui-md p,
+.markdown-preview .aui-md li {
+  line-height: 1.65;
+}
+
+.markdown-preview .aui-md ul,
+.markdown-preview .aui-md ol {
+  margin: 0.5em 0;
+  padding-left: 1.3em;
+}
+
+.markdown-preview .aui-md ul {
+  list-style: disc;
+}
+
+.markdown-preview .aui-md ol {
+  list-style: decimal;
+}
+
+.markdown-preview .aui-md li + li {
+  margin-top: 0.25em;
+}
+
+.markdown-preview .aui-md a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.markdown-preview .aui-md blockquote {
+  border-left: 2px solid var(--border);
+  color: var(--muted-foreground);
+  margin: 0.75em 0;
+  padding-left: 0.9em;
+}
+
+.markdown-preview .aui-md code {
+  background: var(--muted);
+  border-radius: 0.3rem;
+  font-size: 0.86em;
+  padding: 0.1em 0.35em;
+}
+
+.markdown-preview .aui-md pre {
+  overflow-x: auto;
+}
+
+.markdown-preview .aui-md table {
+  border-collapse: collapse;
+  display: block;
+  font-size: 0.9em;
+  margin: 0.75em 0;
+  overflow-x: auto;
+}
+
+.markdown-preview .aui-md th,
+.markdown-preview .aui-md td {
+  border: 1px solid var(--border);
+  padding: 0.4em 0.6em;
+  text-align: left;
 }
 
 /* blinking cursor while the draft is still streaming in */
@@ -1039,7 +1290,7 @@ body:has(.app-workspace) {
     height: auto;
   }
 
-  .artifact-panel {
+  .workspace-panel {
     flex: 1 1 40%;
     min-height: 0;
   }

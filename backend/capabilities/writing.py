@@ -1,8 +1,9 @@
-"""Generative primitives for Signal.
+"""Generative primitives for Scratchpad's own operations.
 
 Each function is one focused LLM call. Streaming functions ``yield`` plain string
-deltas; the graph nodes decide what to do with them (push artifact snapshots,
-forward reply tokens). Capabilities know nothing about LangGraph streaming.
+deltas; the graph nodes decide what to do with them. These know nothing about
+LangGraph streaming. Skills (which build derived artifacts) live in
+``backend/capabilities/skills.py``.
 """
 
 from __future__ import annotations
@@ -18,9 +19,9 @@ from backend.prompts import (
     BRAINSTORM_SYSTEM_PROMPT,
     CHAT_SYSTEM_PROMPT,
     CRITIQUE_SYSTEM_PROMPT,
+    EXPAND_SYSTEM_PROMPT,
     GROUNDING_SYSTEM_PROMPT,
-    REVISE_SYSTEM_PROMPT,
-    writer_system_prompt,
+    TIGHTEN_SYSTEM_PROMPT,
 )
 from backend.signal_models import Critique, GroundingNotes
 
@@ -30,11 +31,11 @@ def _text(chunk: Any) -> str:
     return content if isinstance(content, str) else ""
 
 
-def _brief_json(brief: dict[str, Any]) -> str:
-    return json.dumps(brief, ensure_ascii=False, indent=2)
+def _json(payload: dict[str, Any]) -> str:
+    return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
-# --- brainstorm -----------------------------------------------------------------
+# --- brainstorm --------------------------------------------------------------
 
 def brainstorm(brief: dict[str, Any]) -> dict[str, Any]:
     """Return {"angles": [...], "outline": [...], "open_questions": [...]}."""
@@ -43,7 +44,7 @@ def brainstorm(brief: dict[str, Any]) -> dict[str, Any]:
     response = model.invoke(
         [
             SystemMessage(content=BRAINSTORM_SYSTEM_PROMPT),
-            HumanMessage(content=_brief_json(brief)),
+            HumanMessage(content=_json(brief)),
         ]
     )
     raw = _text(response).strip()
@@ -53,7 +54,6 @@ def brainstorm(brief: dict[str, Any]) -> dict[str, Any]:
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        # Fall back to treating each non-empty line as an angle.
         data = {"angles": [ln.strip("-* ") for ln in raw.splitlines() if ln.strip()]}
     return {
         "angles": [a for a in data.get("angles", []) if isinstance(a, str)],
@@ -62,40 +62,19 @@ def brainstorm(brief: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# --- write / revise (streaming) ----------------------------------------------
+# --- expand / tighten (streaming) -----------------------------------------
 
-def write_content(content_format: str, brief: dict[str, Any]) -> Iterator[str]:
-    """Stream a fresh piece token-by-token."""
+def expand(scratchpad: dict[str, Any], instruction: str) -> Iterator[str]:
+    """Stream a developed version of the scratchpad body."""
 
-    model = get_chat_model(streaming=True, tags=["signal:write"])
-    messages = [
-        SystemMessage(content=writer_system_prompt(content_format)),
-        HumanMessage(content=_brief_json(brief)),
-    ]
-    for chunk in model.stream(messages):
-        piece = _text(chunk)
-        if piece:
-            yield piece
-
-
-def revise_content(
-    content_format: str,
-    brief: dict[str, Any],
-    current_body: str,
-    instruction: str,
-) -> Iterator[str]:
-    """Stream a revised piece token-by-token."""
-
-    model = get_chat_model(streaming=True, tags=["signal:write"])
+    model = get_chat_model(streaming=True, tags=["signal:expand"])
     payload = {
-        "format": content_format,
-        "instruction": instruction,
-        "current_draft": current_body,
-        "context": brief,
+        "instruction": instruction or "develop the notes further",
+        "scratchpad": scratchpad,
     }
     messages = [
-        SystemMessage(content=REVISE_SYSTEM_PROMPT),
-        HumanMessage(content=json.dumps(payload, ensure_ascii=False, indent=2)),
+        SystemMessage(content=EXPAND_SYSTEM_PROMPT),
+        HumanMessage(content=_json(payload)),
     ]
     for chunk in model.stream(messages):
         piece = _text(chunk)
@@ -103,17 +82,36 @@ def revise_content(
             yield piece
 
 
-# --- critique -----------------------------------------------------------------
+def tighten(scratchpad: dict[str, Any], instruction: str) -> Iterator[str]:
+    """Stream an edited version of the scratchpad body."""
 
-def critique(content_format: str, brief: dict[str, Any], body: str) -> Critique:
+    model = get_chat_model(streaming=True, tags=["signal:tighten"])
+    payload = {
+        "instruction": instruction or "tighten it",
+        "current_body": scratchpad.get("body", ""),
+        "sources": scratchpad.get("sources", []),
+        "open_questions": scratchpad.get("open_questions", []),
+    }
+    messages = [
+        SystemMessage(content=TIGHTEN_SYSTEM_PROMPT),
+        HumanMessage(content=_json(payload)),
+    ]
+    for chunk in model.stream(messages):
+        piece = _text(chunk)
+        if piece:
+            yield piece
+
+
+# --- critique -------------------------------------------------------------
+
+def critique(scratchpad: dict[str, Any]) -> Critique:
     model = get_chat_model(tags=["signal:critique"])
     try:
         structured = model.with_structured_output(Critique)
-        payload = {"format": content_format, "context": brief, "draft": body}
         result = structured.invoke(
             [
                 SystemMessage(content=CRITIQUE_SYSTEM_PROMPT),
-                HumanMessage(content=json.dumps(payload, ensure_ascii=False, indent=2)),
+                HumanMessage(content=_json({"scratchpad": scratchpad})),
             ]
         )
         if isinstance(result, Critique):
@@ -125,29 +123,25 @@ def critique(content_format: str, brief: dict[str, Any], body: str) -> Critique:
     return Critique(summary="", points=[])
 
 
-# --- grounding notes --------------------------------------------------------
+# --- grounding notes ----------------------------------------------------
 
 def grounding_notes(
-    body: str,
+    text: str,
     sources: list[str],
     product_mode: str = "existing",
 ) -> list[str]:
     """Cheap, non-blocking pass: claims not backed by `sources`."""
 
-    if not body.strip():
+    if not text.strip():
         return []
     model = get_chat_model(temperature=0.0, tags=["signal:grounding"])
-    payload = {
-        "product_mode": product_mode,
-        "sources": sources,
-        "draft": body,
-    }
+    payload = {"product_mode": product_mode, "sources": sources, "text": text}
     try:
         structured = model.with_structured_output(GroundingNotes)
         result = structured.invoke(
             [
                 SystemMessage(content=GROUNDING_SYSTEM_PROMPT),
-                HumanMessage(content=json.dumps(payload, ensure_ascii=False, indent=2)),
+                HumanMessage(content=_json(payload)),
             ]
         )
         if isinstance(result, GroundingNotes):
@@ -159,11 +153,11 @@ def grounding_notes(
     return []
 
 
-# --- chat reply (streaming) -------------------------------------------------
+# --- chat reply (streaming) ------------------------------------------------
 
 def chat_reply(
     turns: list[dict[str, Any]],
-    artifact: dict[str, Any],
+    scratchpad: dict[str, Any],
     reply_gist: str | None,
 ) -> Iterator[str]:
     """Stream a short conversational reply token-by-token."""
@@ -171,12 +165,12 @@ def chat_reply(
     model = get_chat_model(streaming=True, tags=["signal:reply"])
     payload = {
         "recent_turns": turns,
-        "artifact": artifact,
+        "scratchpad": scratchpad,
         "reply_should_convey": reply_gist or "a helpful, forward-moving reply",
     }
     messages = [
         SystemMessage(content=CHAT_SYSTEM_PROMPT),
-        HumanMessage(content=json.dumps(payload, ensure_ascii=False, indent=2)),
+        HumanMessage(content=_json(payload)),
     ]
     for chunk in model.stream(messages):
         piece = _text(chunk)

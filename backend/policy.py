@@ -1,9 +1,10 @@
 """Deterministic, application-owned policy checks.
 
 This is the safety boundary that does not live in a prompt. It is deliberately
-small: Signal is a writing tool, so the only hard rules are "don't act like you
-can publish" and "don't produce an empty draft". Scope (blog vs post vs article)
-is a routing decision, not a refusal.
+small: Scratchpad is a thinking + writing tool, so the only hard rules are
+"don't act like you can publish", "don't emit empty output", and "only run a
+skill that exists". Which skill / which scratchpad op is a routing decision, not
+a refusal.
 """
 
 from __future__ import annotations
@@ -26,16 +27,20 @@ def _rules() -> dict[str, Any]:
         return {}
 
 
-def supported_formats() -> list[str]:
-    return list(_rules().get("supported_formats", ["linkedin_post"]))
+def supported_skills() -> list[str]:
+    return list(_rules().get("supported_skills", []))
+
+
+def max_scratchpad_versions(default: int = 50) -> int:
+    value = _rules().get("max_scratchpad_versions", default)
+    return int(value) if isinstance(value, (int, float, str)) and str(value).isdigit() else default
 
 
 def preflight(message: str) -> PolicyDecision:
-    """Classify a turn for the two things the app refuses to do itself.
+    """Catch the one thing the app refuses to pretend it can do: publish.
 
-    Note: this does NOT block blog / article / brainstorm requests. It only
-    catches "publish this for me" (Signal has no publishing integration) so the
-    graph can answer honestly instead of pretending.
+    Does NOT block any scratchpad op or skill. It only catches "publish this for
+    me" so the graph can answer honestly instead of implying it happened.
     """
 
     lowered = message.casefold()
@@ -44,16 +49,26 @@ def preflight(message: str) -> PolicyDecision:
             return PolicyDecision(
                 allowed=True,
                 flag="publish_request",
-                reason="Signal has no publishing integration.",
+                reason="Scratchpad has no publishing integration.",
             )
     return PolicyDecision(allowed=True, flag="ok")
 
 
-def check_draft(text: str) -> PolicyDecision:
-    """A generated draft must be non-empty. That is the whole gate."""
+def check_skill(skill_id: str | None) -> PolicyDecision:
+    """A build turn must name a skill that exists in the registry."""
+
+    if skill_id and skill_id in supported_skills():
+        return PolicyDecision(allowed=True)
+    return PolicyDecision(
+        allowed=False,
+        reason="unknown or missing skill_id",
+        limits={"supported_skills": supported_skills()},
+    )
+
+
+def check_output(text: str) -> PolicyDecision:
+    """Generated output (an expansion or a skill artifact) must be non-empty."""
 
     if not text or not text.strip():
-        return PolicyDecision(
-            allowed=False, reason="The writer returned an empty draft."
-        )
+        return PolicyDecision(allowed=False, reason="The model returned nothing usable.")
     return PolicyDecision(allowed=True)

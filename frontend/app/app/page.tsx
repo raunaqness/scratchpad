@@ -22,24 +22,13 @@ import { useAgUiState } from "@assistant-ui/react-ag-ui";
 import { Check, PlusIcon } from "lucide-react";
 
 import { Thread } from "@/components/assistant-ui/elements/thread.aui";
+import { MarkdownPreview } from "@/components/markdown-preview";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-type ChoiceOption = {
-  id: string;
-  label: string;
-};
-
-type ChoiceArgs = {
-  id?: string;
-  question?: string;
-  options?: ChoiceOption[];
-};
-
-type ChoiceToolProps = {
-  args: ChoiceArgs;
-  result?: unknown;
-};
+type ChoiceOption = { id: string; label: string };
+type ChoiceArgs = { id?: string; question?: string; options?: ChoiceOption[] };
+type ChoiceToolProps = { args: ChoiceArgs; result?: unknown };
 
 type SignalProgress = {
   node?: string | null;
@@ -51,8 +40,6 @@ type SignalProgress = {
 
 type VersionItem = {
   seq: number;
-  kind?: string;
-  format?: string;
   title?: string;
   topic?: string;
   body?: string;
@@ -62,11 +49,21 @@ type VersionItem = {
   created_at?: string;
 };
 
-type SignalArtifact = {
+type DerivedItem = {
+  id: string;
+  skill_id: string;
+  skill_name: string;
+  title?: string;
+  body: string;
+  from_version: number;
+  open_questions?: string[];
+  created_at?: string;
+};
+
+type SignalState = {
   processing?: boolean;
   progress?: SignalProgress;
   status?: string;
-  kind?: "idea_board" | "outline" | "draft";
   title?: string;
   topic?: string;
   angles?: string[];
@@ -76,15 +73,16 @@ type SignalArtifact = {
   version?: number;
   versions?: VersionItem[];
   head?: number;
-  // back-compat mirrors still emitted by the backend
+  derived?: DerivedItem[];
+  active_tab?: string | null;
+  // back-compat mirrors
   draft?: string;
   draft_version?: number;
 };
 
 /**
  * Agent-generated picker. The backend emits a `request_choice` tool call
- * (e.g. brainstorm angles); we render radio buttons and a selection is sent
- * back as a normal user turn — the interpreter turns it into `chosen_angle`.
+ * (e.g. brainstorm angles); a selection is sent back as a normal user turn.
  */
 function ChoiceTool({ args, result }: ChoiceToolProps) {
   const aui = useAui();
@@ -95,7 +93,7 @@ function ChoiceTool({ args, result }: ChoiceToolProps) {
 
   if (done) {
     const label =
-      options.find((option) => option.id === selected)?.label ??
+      options.find((o) => o.id === selected)?.label ??
       (typeof result === "string" ? result : selected);
     return (
       <div className="choice-card choice-card-complete">
@@ -127,7 +125,7 @@ function ChoiceTool({ args, result }: ChoiceToolProps) {
         className="choice-proceed"
         disabled={!selected}
         onClick={() => {
-          const label = options.find((option) => option.id === selected)?.label;
+          const label = options.find((o) => o.id === selected)?.label;
           if (!label) return;
           setSubmitted(true);
           aui.thread.append(`Let's run with this angle: ${label}`);
@@ -146,77 +144,51 @@ const toolkit = defineToolkit({
       <ChoiceTool args={props.args as ChoiceArgs} result={props.result} />
     ),
   },
-  browser_alert: {
-    description: "Display a native browser alert dialog to the user.",
-    parameters: {
-      type: "object",
-      properties: {
-        message: {
-          type: "string",
-          description: "Text to display inside the alert dialog.",
-        },
-      },
-      required: ["message"],
-    },
-    execute: async ({ message }) => {
-      alert(message);
-      return { status: "shown" };
-    },
-    render: ({ args, result }) => (
-      <div className="mt-3 w-full max-w-(--thread-max-width) rounded-lg border px-4 py-3 text-sm">
-        <p className="text-muted-foreground font-semibold">browser_alert</p>
-        <p className="mt-1">
-          Requested alert with message:
-          <span className="text-foreground ml-1 font-mono">
-            {JSON.stringify(args.message)}
-          </span>
-        </p>
-        {result?.status === "shown" && (
-          <p className="text-foreground/70 mt-2 text-xs">
-            Alert displayed in this tab.
-          </p>
-        )}
-      </div>
-    ),
-  },
 });
 
-const KIND_TITLE: Record<string, string> = {
-  idea_board: "Idea board",
-  outline: "Outline",
-  draft: "Draft",
-};
-
 const STATUS_LABEL: Record<string, string> = {
-  exploring: "Exploring angles",
-  drafting: "Outline ready",
-  refining: "Draft in progress",
+  empty: "Empty",
+  notes: "Notes",
+  developing: "Developing",
   stable: "Stable",
-  empty: "No draft yet",
 };
 
-// A fixed, front-end-authored "something is happening" sequence. It is NOT
-// tied to which graph node runs — it just advances on a timer while a turn is
-// in flight and holds on the last phrase until the backend says it's done.
 const RITUAL_PHRASES = [
-  "Analyzing your message",
+  "Reading your message",
   "Thinking it through",
-  "Working on the draft",
+  "Working on the scratchpad",
   "Reviewing",
   "Finishing up",
 ];
 
+const SKILLS: { id: string; label: string; prompt: string }[] = [
+  {
+    id: "blog_outline",
+    label: "Blog outline",
+    prompt: "Generate a blog outline from the scratchpad.",
+  },
+  {
+    id: "social_post",
+    label: "Social post",
+    prompt: "Generate a social post from the scratchpad.",
+  },
+  {
+    id: "marketing_campaign",
+    label: "Marketing campaign",
+    prompt: "Generate a marketing campaign from the scratchpad.",
+  },
+];
+
 function ArtifactRitual() {
   const [index, setIndex] = useState(0);
-
   useEffect(() => {
     setIndex(0);
-    const id = setInterval(() => {
-      setIndex((prev) => Math.min(prev + 1, RITUAL_PHRASES.length - 1));
-    }, 1400);
+    const id = setInterval(
+      () => setIndex((p) => Math.min(p + 1, RITUAL_PHRASES.length - 1)),
+      1400,
+    );
     return () => clearInterval(id);
   }, []);
-
   return (
     <div className="artifact-ritual" aria-live="polite">
       <span className="artifact-ritual-dot" />
@@ -226,15 +198,15 @@ function ArtifactRitual() {
 }
 
 // ---------------------------------------------------------------------------
-// version history (linear list + preview + branch-with-confirmation)
+// version history (scratchpad only)
 // ---------------------------------------------------------------------------
 
 type HistoryValue = {
   count: number;
   versions: VersionItem[];
-  previewSeq: number | null; // null = viewing the live/head version
+  previewSeq: number | null;
   isPreviewing: boolean;
-  armedBase: number | null; // confirmed branch base, awaiting the next message
+  armedBase: number | null;
   displaySeq: number;
   step: (delta: number) => void;
   goToLatest: () => void;
@@ -242,16 +214,15 @@ type HistoryValue = {
 };
 
 const HistoryContext = createContext<HistoryValue | null>(null);
-
-function useHistory(): HistoryValue {
+const useHistory = (): HistoryValue => {
   const ctx = useContext(HistoryContext);
-  if (!ctx) throw new Error("useHistory used outside ArtifactHistoryProvider");
+  if (!ctx) throw new Error("useHistory outside provider");
   return ctx;
-}
+};
 
 function ArtifactHistoryProvider({ children }: { children: ReactNode }) {
   const aui = useAui();
-  const state = useAgUiState<SignalArtifact>();
+  const state = useAgUiState<SignalState>();
   const count = state?.head ?? 0;
   const versions = useMemo(() => state?.versions ?? [], [state?.versions]);
 
@@ -269,19 +240,15 @@ function ArtifactHistoryProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Any finished turn snaps the panel back to the latest version.
   useAuiEvent("thread.runEnd", () => {
     setPreviewSeq(null);
     clearBranch.current();
   });
-
-  // Switching threads resets history navigation.
   useAuiEvent("threads.selectionChanged", () => {
     setPreviewSeq(null);
     clearBranch.current();
   });
 
-  // Keep the preview pointer in range if the list shrank.
   useEffect(() => {
     if (previewSeq !== null && (previewSeq >= count || previewSeq < 1)) {
       setPreviewSeq(null);
@@ -349,9 +316,7 @@ function OverwriteModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  const discarded =
-    count - base === 1 ? `v${base + 1}` : `v${base + 1}–v${count}`;
-
+  const discarded = count - base === 1 ? `v${base + 1}` : `v${base + 1}–v${count}`;
   return (
     <div
       className="overwrite-modal-backdrop"
@@ -385,7 +350,6 @@ function OverwriteModal({
 function VersionNav() {
   const history = useHistory();
   if (history.count < 1) return null;
-
   return (
     <div className="version-nav">
       <button
@@ -449,7 +413,6 @@ function PreviewBanner() {
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
-
   return (
     <button
       type="button"
@@ -470,43 +433,55 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function ArtifactPanel() {
-  const state = useAgUiState<SignalArtifact>();
+function SkillBar() {
+  const aui = useAui();
+  const state = useAgUiState<SignalState>();
+  const history = useHistory();
+  const processing = Boolean(state?.processing);
+  const hasContent = Boolean(state?.body || (state?.angles?.length ?? 0));
+  const disabled = processing || history.isPreviewing || !hasContent;
+
+  return (
+    <div className="skill-bar">
+      <span className="skill-bar-label">Build from this:</span>
+      {SKILLS.map((skill) => (
+        <button
+          key={skill.id}
+          type="button"
+          disabled={disabled}
+          onClick={() => aui.thread.append(skill.prompt)}
+        >
+          {skill.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ScratchpadPane() {
+  const state = useAgUiState<SignalState>();
   const history = useHistory();
   const processing = Boolean(state?.processing);
   const previewing = history.isPreviewing;
+  const buildTurn = processing && state?.progress?.node === "build";
+  const showRitual = processing && !previewing && !buildTurn;
 
-  // While previewing a past version, everything is drawn from that snapshot.
   const preview = previewing
     ? history.versions[(history.previewSeq as number) - 1]
     : undefined;
 
-  const body = preview
-    ? preview.body ?? ""
-    : state?.body ?? state?.draft ?? "";
+  const body = preview ? preview.body ?? "" : state?.body ?? state?.draft ?? "";
   const angles = preview ? preview.angles ?? [] : state?.angles ?? [];
   const outline = preview ? preview.outline ?? [] : state?.outline ?? [];
   const openQuestions = preview
     ? preview.open_questions ?? []
     : state?.open_questions ?? [];
   const title = preview ? preview.title : state?.title;
-  const kind =
-    (preview?.kind as SignalArtifact["kind"]) ??
-    state?.kind ??
-    (body ? "draft" : outline.length ? "outline" : "idea_board");
-
-  const isOpen = Boolean(
-    processing || body || angles.length || outline.length || history.count,
-  );
-  if (!isOpen) {
-    return null;
-  }
 
   const hasContent = Boolean(body || outline.length || angles.length);
-  const showRitual = processing && !previewing;
 
   return (
-    <aside
+    <section
       className={cn(
         "artifact-panel",
         showRitual && "is-loading",
@@ -514,7 +489,7 @@ function ArtifactPanel() {
       )}
     >
       <div className="artifact-header">
-        <h2>{title || KIND_TITLE[kind ?? "draft"] || "Draft"}</h2>
+        <h2>{title || "Scratchpad"}</h2>
         <VersionNav />
       </div>
 
@@ -526,23 +501,25 @@ function ArtifactPanel() {
 
       {showRitual ? <ArtifactRitual /> : null}
       <PreviewBanner />
+      <SkillBar />
 
       <div className="artifact-body">
         {body ? (
-          <div className="artifact-copy">
-            {body}
-            {showRitual ? <span className="artifact-caret" /> : null}
-          </div>
+          <MarkdownPreview
+            text={body}
+            streaming={showRitual}
+            className="artifact-copy"
+          />
         ) : outline.length ? (
           <ol className="artifact-outline">
-            {outline.map((beat, index) => (
-              <li key={`${beat}-${index}`}>{beat}</li>
+            {outline.map((beat, i) => (
+              <li key={`${beat}-${i}`}>{beat}</li>
             ))}
           </ol>
         ) : angles.length ? (
           <ul className="artifact-angles">
-            {angles.map((angle, index) => (
-              <li key={`${angle}-${index}`}>{angle}</li>
+            {angles.map((angle, i) => (
+              <li key={`${angle}-${i}`}>{angle}</li>
             ))}
           </ul>
         ) : showRitual ? (
@@ -554,10 +531,10 @@ function ArtifactPanel() {
         ) : (
           <div className="artifact-empty">
             <div className="artifact-empty-mark">S</div>
-            <p>Your piece will take shape here.</p>
+            <p>Start jotting.</p>
             <span>
-              Share a product or an idea and Signal starts putting angles on the
-              board.
+              Dump a raw idea here and rework it. When it feels right, build
+              something from it.
             </span>
           </div>
         )}
@@ -566,8 +543,8 @@ function ArtifactPanel() {
           <div className="artifact-questions">
             <p className="artifact-questions-heading">Open questions</p>
             <ul>
-              {openQuestions.map((question, index) => (
-                <li key={`${question}-${index}`}>{question}</li>
+              {openQuestions.map((q, i) => (
+                <li key={`${q}-${i}`}>{q}</li>
               ))}
             </ul>
           </div>
@@ -581,17 +558,120 @@ function ArtifactPanel() {
             : processing
               ? "Working…"
               : hasContent
-                ? STATUS_LABEL[state?.status ?? ""] ?? "Draft in progress"
-                : "No draft yet"}
+                ? STATUS_LABEL[state?.status ?? ""] ?? "Notes"
+                : "Empty"}
         </span>
         <CopyButton text={body} />
       </div>
-    </aside>
+    </section>
+  );
+}
+
+function DerivedView({
+  derived,
+  building,
+}: {
+  derived: DerivedItem;
+  building: boolean;
+}) {
+  return (
+    <section className="artifact-panel derived-panel">
+      <div className="artifact-body">
+        <MarkdownPreview
+          text={derived.body}
+          streaming={building}
+          className="derived-body"
+        />
+        {derived.open_questions?.length ? (
+          <div className="artifact-questions">
+            <p className="artifact-questions-heading">Unverified in this output</p>
+            <ul>
+              {derived.open_questions.map((q, i) => (
+                <li key={`${q}-${i}`}>{q}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="artifact-footer">
+        <span>
+          {building
+            ? "Building…"
+            : `Built from scratchpad v${derived.from_version}`}
+        </span>
+        <CopyButton text={derived.body} />
+      </div>
+    </section>
+  );
+}
+
+function WorkspacePanel() {
+  const state = useAgUiState<SignalState>();
+  const derived = useMemo(() => state?.derived ?? [], [state?.derived]);
+  const building = Boolean(state?.processing) && state?.progress?.node === "build";
+
+  const [activeTab, setActiveTab] = useState<string>("scratchpad");
+  const ids = derived.map((d) => d.id).join("|");
+  useEffect(() => {
+    if (derived.length) setActiveTab(derived[derived.length - 1].id);
+  }, [ids, derived.length]);
+
+  const activeDerived = derived.find((d) => d.id === activeTab);
+  const onScratchpad = !activeDerived;
+
+  const isOpen = Boolean(
+    state?.processing ||
+      state?.body ||
+      state?.angles?.length ||
+      state?.outline?.length ||
+      state?.head ||
+      derived.length,
+  );
+  if (!isOpen) return null;
+
+  return (
+    <div className="workspace-panel">
+      {derived.length ? (
+        <div className="workspace-tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={onScratchpad}
+            className={cn("workspace-tab", onScratchpad && "is-active")}
+            onClick={() => setActiveTab("scratchpad")}
+          >
+            Scratchpad
+          </button>
+          {derived.map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              role="tab"
+              aria-selected={d.id === activeTab}
+              className={cn("workspace-tab", d.id === activeTab && "is-active")}
+              onClick={() => setActiveTab(d.id)}
+            >
+              {d.skill_name}
+              {building && d.id === activeTab ? (
+                <span className="workspace-tab-meta"> · building…</span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {onScratchpad ? (
+        <ScratchpadPane />
+      ) : (
+        <DerivedView derived={activeDerived} building={building} />
+      )}
+    </div>
   );
 }
 
 function ProgressChip() {
-  const state = useAgUiState<SignalArtifact>();
+  const state = useAgUiState<SignalState>();
   const processing = Boolean(state?.processing);
   const progress = state?.progress;
   const [visible, setVisible] = useState(false);
@@ -606,7 +686,6 @@ function ProgressChip() {
     return () => clearTimeout(timeout);
   }, [processing, progress]);
 
-  // dev-only: true under `next dev`, false in a production build
   const isDev =
     process.env.NODE_ENV === "development" ||
     process.env.NEXT_PUBLIC_APP_ENV === "development";
@@ -614,7 +693,6 @@ function ProgressChip() {
   if (!visible || !progress) return null;
 
   const steps = progress.steps?.length ? progress.steps.join(" → ") : undefined;
-
   return (
     <div
       className={cn("progress-chip", !processing && "is-done")}
@@ -631,12 +709,11 @@ function ProgressChip() {
 
 function NewThreadButton() {
   const aui = useAui();
-
   return (
     <button
       type="button"
+      className="chat-bar-new-thread"
       onClick={() => aui.threads.switchToNewThread()}
-      className="bg-background hover:bg-accent flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors"
     >
       <PlusIcon className="size-4" />
       New Thread
@@ -644,23 +721,24 @@ function NewThreadButton() {
   );
 }
 
-function TopRightControls() {
+function EnvBadge() {
+  if (process.env.NEXT_PUBLIC_APP_ENV !== "development") return null;
   return (
-    <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-      <ProgressChip />
-      <NewThreadButton />
-    </div>
+    <span className="chat-bar-dev" aria-label="Development environment">
+      DEV
+    </span>
   );
 }
 
-function EnvironmentBadge() {
-  if (process.env.NEXT_PUBLIC_APP_ENV !== "development") {
-    return null;
-  }
-
+/** Persistent bar across the top of the chat pane — never overlaps messages. */
+function ChatBar() {
   return (
-    <div className="environment-badge" aria-label="Development environment">
-      DEV
+    <div className="chat-bar">
+      <EnvBadge />
+      <div className="chat-bar-right">
+        <ProgressChip />
+        <NewThreadButton />
+      </div>
     </div>
   );
 }
@@ -670,15 +748,16 @@ export default function AppPage() {
   const config = AuiConfig({
     suggestions: Suggestions([
       {
-        title: "Draft a LinkedIn post",
-        label: "from three product facts",
+        title: "Jot down an idea",
+        label: "and start reworking it",
         prompt:
-          "Write a LinkedIn post for Fujifilm X100VI. Facts: compact body, 40.2MP sensor, hybrid viewfinder.",
+          "Jot this down: we're launching faster cold starts for our edge functions next week.",
       },
       {
-        title: "Learn what Signal needs",
-        label: "before drafting",
-        prompt: "What information do you need to create my LinkedIn post?",
+        title: "Think through a rough idea",
+        label: "with a few angles",
+        prompt:
+          "I have a rough idea for a calendar that auto-defends focus time. Help me think it through.",
       },
     ]),
     tools: Tools({ toolkit }),
@@ -689,11 +768,12 @@ export default function AppPage() {
       <ArtifactHistoryProvider>
         <main className="app-workspace">
           <section className="app-chat">
-            <EnvironmentBadge />
-            <TopRightControls />
-            <Thread />
+            <ChatBar />
+            <div className="app-chat-thread">
+              <Thread />
+            </div>
           </section>
-          <ArtifactPanel />
+          <WorkspacePanel />
         </main>
       </ArtifactHistoryProvider>
     </AuiProvider>

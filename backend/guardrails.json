@@ -1,23 +1,30 @@
 {
-  "version": "2",
-  "supported_formats": [
-    "linkedin_post",
-    "linkedin_article",
-    "blog_post"
+  "version": "3",
+  "supported_skills": [
+    "blog_outline",
+    "social_post",
+    "marketing_campaign"
   ],
+  "max_scratchpad_versions": 50,
   "disallowed_action_phrases": [
     "publish to linkedin",
     "post this to linkedin",
     "post it to linkedin",
+    "post it for me",
     "schedule this post",
+    "schedule it",
     "send this to",
+    "send it for me",
     "publish the post",
-    "publish this"
+    "publish this",
+    "publish it"
   ],
   "rules": {
     "use_only_user_provided_facts": true,
-    "exploratory_products_may_use_labeled_assumptions": true,
+    "exploratory_ideas_may_use_labeled_assumptions": true,
     "never_claim_a_publish_or_send_happened": true,
-    "ask_at_most_one_question_per_turn": true
+    "ask_at_most_one_question_per_turn": true,
+    "skills_read_only_a_scratchpad_snapshot": true,
+    "derived_artifacts_are_outputs_only": true
   }
 }

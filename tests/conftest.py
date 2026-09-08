@@ -87,28 +87,30 @@ class FakeModelScript:
         angles: list[str] | None = None,
         outline: list[str] | None = None,
         brainstorm_questions: list[str] | None = None,
-        draft: str = "A grounded first draft about the product.",
-        revised: str = "A tighter, revised draft about the product.",
+        expanded: str = "The idea, developed a little further with more detail.",
+        tightened: str = "The idea, said more tightly.",
+        skill_output: str = "# A built artifact\n\nGrounded in the scratchpad.",
         critique: Critique | None = None,
         grounding: list[str] | None = None,
         reply: str = "Here's where we are - tell me the next move.",
-        summary: str = "Earlier: the user is shaping a piece about their product.",
+        summary: str = "Earlier: the user is working an idea on the scratchpad.",
     ) -> None:
         self.plan = plan
-        self.draft = draft
-        self.revised = revised
+        self.expanded = expanded
+        self.tightened = tightened
+        self.skill_output = skill_output
         self.reply = reply
         self.summary = summary
         self._brainstorm_json = json.dumps(
             {
-                "angles": angles or ["Angle A - hook one", "Angle B - hook two"],
+                "angles": angles or ["Angle A - lens one", "Angle B - lens two"],
                 "outline": outline or [],
                 "open_questions": brainstorm_questions or [],
             }
         )
         self._critique = critique or Critique(
-            summary="Solid start; tighten the hook.",
-            points=["Cut the throat-clear opener."],
+            summary="A clear thread is forming; sharpen the second point.",
+            points=["Name the reader the second point speaks to."],
         )
         self._grounding = GroundingNotes(items=grounding or [])
 
@@ -124,9 +126,12 @@ class FakeModelScript:
             return FakeChat(structured=self.plan)
         if tag == "signal:brainstorm":
             return FakeChat(invoke_content=self._brainstorm_json)
-        if tag == "signal:write":
-            body = self.revised if self.plan.mode == "revise" else self.draft
-            return FakeChat(stream_chunks=_chunks(body))
+        if tag == "signal:expand":
+            return FakeChat(stream_chunks=_chunks(self.expanded))
+        if tag == "signal:tighten":
+            return FakeChat(stream_chunks=_chunks(self.tightened))
+        if tag == "signal:skill":
+            return FakeChat(stream_chunks=_chunks(self.skill_output))
         if tag == "signal:critique":
             return FakeChat(structured=self._critique)
         if tag == "signal:grounding":
@@ -153,12 +158,14 @@ def install_models(monkeypatch):
 
     def _install(script: "FakeModelScript") -> "FakeModelScript":
         import backend.app as app
+        import backend.capabilities.skills as skills
         import backend.capabilities.writing as writing
         import backend.llm as llm
 
         monkeypatch.setattr(llm, "get_chat_model", script)
         monkeypatch.setattr(app, "get_chat_model", script)
         monkeypatch.setattr(writing, "get_chat_model", script)
+        monkeypatch.setattr(skills, "get_chat_model", script)
         return script
 
     return _install

@@ -21,14 +21,15 @@ fi
     printf 'run_id=%s\n' "$RUN_ID"
     printf 'started_at=%s\n' "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     printf 'command=%q ' "$PYTEST_BIN"
-    printf '%q ' -q -s tests/test_conversations.py tests/test_product_deepeval.py
+    printf '%q ' -q -s tests/test_conversations.py tests/test_skills_deepeval.py tests/test_helpful_tone_deepeval.py
     printf '\n'
 } > "$RUN_DIR/run-info.txt"
 
 set +e
 "$PYTEST_BIN" -q -s \
     tests/test_conversations.py \
-    tests/test_product_deepeval.py \
+    tests/test_skills_deepeval.py \
+    tests/test_helpful_tone_deepeval.py \
     --maxfail=7 2>&1 | tee "$RUN_DIR/pytest.log"
 pytest_status="${PIPESTATUS[0]}"
 set -e

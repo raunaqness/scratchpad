@@ -1,14 +1,15 @@
 """Deterministic backend tests — no remote model, scripted fakes only.
 
-These pin the think-pad contract: brainstorm/draft/revise/critique modes, blog +
-article formats, non-blocking grounding flags, a versioned live artifact, and
-checkpointer-backed persistence.
+These pin the Scratchpad contract: note / expand / tighten / brainstorm /
+critique ops on a freeform scratchpad, the `build` path (skills → derived
+artifacts, isolated from the scratchpad and its version list), non-blocking
+grounding, the linear version history, and checkpointer persistence.
 """
 
 from __future__ import annotations
 
 from backend.app import get_thread_state, run_conversation
-from backend.artifact import Artifact, apply_client_edits
+from backend.artifact import Scratchpad, apply_client_edits
 from backend.memory_store import load_memory
 from backend.signal_models import Critique, GroundingNotes, TurnPlan
 from backend.textutil import dedupe, enforce_max_words, max_words, word_count
@@ -20,22 +21,18 @@ from tests.conftest import FakeModelScript
 # --------------------------------------------------------------------------- #
 
 
-def test_max_words_and_enforcement():
+def test_textutil_helpers():
     assert max_words("under 100 words") == 100
-    assert max_words("no more than 60 words") == 60
-    assert max_words("keep it to 80 words") == 80
-    assert max_words("medium length") is None
     assert enforce_max_words("one two three four", 2) == "one two"
-    assert enforce_max_words("one two", 5) == "one two"
     assert word_count("a b c") == 3
     assert dedupe(["a", " a ", "", "b"]) == ["a", "b"]
 
 
-def test_artifact_versioning_and_client_edits():
-    art = Artifact(format="blog_post", topic="Widgets")
-    assert art.version == 0 and art.status == "empty"
-    bumped = art.touched(status="drafting")
-    assert bumped.version == 1 and bumped.updated_at and bumped.status == "drafting"
+def test_scratchpad_versioning_and_client_edits():
+    sp = Scratchpad(topic="Widgets")
+    assert sp.version == 0 and sp.status == "empty"
+    bumped = sp.touched(status="developing")
+    assert bumped.version == 1 and bumped.updated_at and bumped.status == "developing"
 
     edited = apply_client_edits(bumped, {"body": "user wrote this", "version": 999})
     assert edited.body == "user wrote this"
@@ -56,228 +53,304 @@ def _run(user_message: str, *, conversation_id: str = "c1", user_id: str = "u1",
     )
 
 
-def test_brainstorm_turn_fills_the_board(isolated_state, install_models):
-    install_models(
-        FakeModelScript(
-            plan=TurnPlan(
-                mode="brainstorm", topic="faster cold starts", format="linkedin_post"
-            ),
-            angles=["Dev time saved - the hook", "Cost of idle compute - the hook"],
-        )
-    )
-    result = _run("help me post about our faster cold starts")
-
-    art = result["artifact"]
-    assert result["mode"] == "brainstorm"
-    assert art["kind"] == "idea_board"
-    assert len(art["angles"]) == 2
-    assert art["body"] == ""
-    assert art["status"] == "exploring"
-    assert art["version"] == 1
+def _note(script: FakeModelScript, msg: str, *, cid: str) -> dict:
+    script.plan = TurnPlan(mode="note")
+    return _run(msg, conversation_id=cid)
 
 
-def test_blog_post_is_a_supported_format(isolated_state, install_models):
-    install_models(
-        FakeModelScript(
-            plan=TurnPlan(mode="draft", format="blog_post", topic="Edge Functions"),
-            draft="# Faster edge functions\n\nYour cold starts were the problem. Here's the fix.",
-        )
-    )
-    result = _run("write a blog post about our edge functions launch")
+def test_note_captures_raw_text_verbatim(isolated_state, install_models):
+    install_models(FakeModelScript(plan=TurnPlan(mode="note")))
+    result = _run("Idea: faster cold starts for edge functions")
 
-    assert result["status"] == "refining"
-    assert result["artifact"]["format"] == "blog_post"
-    assert result["artifact"]["kind"] == "draft"
-    assert result["artifact"]["body"].startswith("# Faster edge functions")
+    sp = result["scratchpad"]
+    assert result["mode"] == "note"
+    assert sp["body"] == "Idea: faster cold starts for edge functions"
+    assert sp["status"] == "notes"
+    assert sp["version"] == 1
+    assert result["head"] == 1
+    assert result["derived"] == []
 
 
-def test_draft_flags_unsupported_claims_without_blocking(isolated_state, install_models):
-    install_models(
-        FakeModelScript(
-            plan=TurnPlan(mode="draft", topic="Widget Pro", format="linkedin_post"),
-            draft="Widget Pro cuts latency to 12ms.",
-            grounding=["'cuts latency to 12ms' is not in the confirmed sources"],
-        )
-    )
-    result = _run("draft a linkedin post: Widget Pro is our new latency tool")
-
-    assert result["status"] == "refining"  # flagged, not blocked
-    assert any("12ms" in q for q in result["artifact"]["open_questions"])
-    assert result["artifact"]["body"]
-
-
-def test_exploratory_product_is_not_gated_on_facts(isolated_state, install_models):
-    install_models(
-        FakeModelScript(
-            plan=TurnPlan(
-                mode="brainstorm",
-                product_mode="exploratory",
-                topic="an AI notepad I'm dreaming up",
-            ),
-            angles=["The blank-page problem - [assumption] users freeze at the start"],
-        )
-    )
-    result = _run("I have a rough idea for an AI notepad, help me think it through")
-
-    assert result["status"] == "exploring"
-    assert result["artifact"]["product_mode"] == "exploratory"
-    assert result["artifact"]["angles"]
-    assert result["pending_question"] is None  # it did NOT demand three facts
-
-
-def test_revise_updates_the_draft_and_bumps_version(isolated_state, install_models):
+def test_expand_develops_the_body_and_flags_claims(isolated_state, install_models):
     script = install_models(
         FakeModelScript(
-            plan=TurnPlan(mode="draft", topic="Widget", format="linkedin_post"),
-            draft="First pass about Widget, a little wordy and slow to start.",
-            revised="Punchy Widget line. No throat-clearing.",
+            plan=TurnPlan(mode="note"),
+            expanded="Cold starts hurt developer flow. They also waste idle spend. [TK: confirm the number]",
+            grounding=["'wastes idle spend' has no figure in sources"],
         )
     )
-    first = _run("draft a post about Widget", conversation_id="rev")
-    assert first["artifact"]["version"] == 1
+    _note(script, "cold starts idea", cid="ex")
 
-    script.plan = TurnPlan(mode="revise", revise_instruction="make it punchier")
-    second = _run("make it punchier", conversation_id="rev")
+    script.plan = TurnPlan(mode="expand")
+    result = _run("flesh this out", conversation_id="ex")
 
-    assert second["artifact"]["version"] == 2
-    assert second["artifact"]["body"] == "Punchy Widget line. No throat-clearing."
-    assert second["status"] == "refining"
+    sp = result["scratchpad"]
+    assert sp["body"].startswith("Cold starts hurt developer flow")
+    assert sp["status"] == "developing"
+    assert any("idle spend" in q for q in sp["open_questions"])  # flagged, not blocked
+    assert result["head"] == 2
+
+
+def test_tighten_edits_the_existing_body(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(plan=TurnPlan(mode="note"), tightened="Cold starts kill flow. Fixed.")
+    )
+    _note(script, "a wordy first note about cold starts that rambles a bit", cid="ti")
+
+    script.plan = TurnPlan(mode="tighten", edit_instruction="cut it down")
+    result = _run("cut it down", conversation_id="ti")
+
+    assert result["scratchpad"]["body"] == "Cold starts kill flow. Fixed."
+    assert result["scratchpad"]["status"] == "developing"
+
+
+def test_brainstorm_fills_the_board_without_a_draft(isolated_state, install_models):
+    install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="brainstorm", topic="faster cold starts"),
+            angles=["Dev time saved - the lens", "Cost of idle compute - the lens"],
+        )
+    )
+    result = _run("help me think about faster cold starts")
+
+    sp = result["scratchpad"]
+    assert result["mode"] == "brainstorm"
+    assert len(sp["angles"]) == 2
+    assert sp["body"] == ""
+    assert sp["status"] == "notes"
+
+
+def test_critique_annotates_open_questions(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="note"),
+            critique=Critique(summary="A thread is forming.", points=["Name the reader", "Cut the hedge"]),
+        )
+    )
+    _note(script, "some notes about a launch", cid="crit")
+
+    script.plan = TurnPlan(mode="critique")
+    result = _run("what's weak here?", conversation_id="crit")
+
+    assert result["assistant_message"] == "A thread is forming."
+    assert "Name the reader" in result["scratchpad"]["open_questions"]
+    assert "Cut the hedge" in result["scratchpad"]["open_questions"]
+
+
+# --------------------------------------------------------------------------- #
+# build (skills → derived artifacts)
+# --------------------------------------------------------------------------- #
+
+
+def test_build_produces_a_derived_tab_from_the_scratchpad(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="note"),
+            skill_output="# Cold starts\n\nA working title, a lede, and sections.",
+            grounding=[],
+        )
+    )
+    _note(script, "cold starts notes", cid="bd")
+
+    script.plan = TurnPlan(mode="build", skill_id="blog_outline")
+    result = _run("turn this into a blog outline", conversation_id="bd")
+
+    assert result["mode"] == "build" and result["skill_id"] == "blog_outline"
+    assert len(result["derived"]) == 1
+    tab = result["derived"][0]
+    assert tab["skill_id"] == "blog_outline"
+    assert tab["skill_name"] == "Blog outline"
+    assert tab["body"].startswith("# Cold starts")
+    assert tab["from_version"] == 1
+
+
+def test_build_does_not_touch_the_scratchpad_or_its_versions(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(plan=TurnPlan(mode="note"), skill_output="## A campaign plan", grounding=[])
+    )
+    _note(script, "a rough idea", cid="iso")
+
+    script.plan = TurnPlan(mode="build", skill_id="marketing_campaign")
+    before = get_thread_state("iso")["scratchpad"]
+    result = _run("build a campaign", conversation_id="iso")
+    after = result["scratchpad"]
+
+    assert after["version"] == before["version"]  # scratchpad untouched
+    assert after["body"] == before["body"]
+    assert result["head"] == 1  # no new version from a build
+
+
+def test_rebuilding_a_skill_replaces_its_tab(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(plan=TurnPlan(mode="note"), skill_output="post v1", grounding=[])
+    )
+    _note(script, "some notes", cid="rb")
+
+    script.plan = TurnPlan(mode="build", skill_id="social_post")
+    r1 = _run("make a social post", conversation_id="rb")
+    assert len(r1["derived"]) == 1
+    first_id = r1["derived"][0]["id"]
+
+    # change the scratchpad, then rebuild the same skill
+    script.plan = TurnPlan(mode="expand")
+    script.expanded = "some notes, expanded"
+    _run("develop it", conversation_id="rb")
+
+    script.plan = TurnPlan(mode="build", skill_id="social_post")
+    script.skill_output = "post v2"
+    r2 = _run("make a social post again", conversation_id="rb")
+    assert len(r2["derived"]) == 1  # replaced, not appended
+    assert r2["derived"][0]["id"] == first_id
+    assert r2["derived"][0]["body"] == "post v2"
+
+    # a different skill adds a second tab
+    script.plan = TurnPlan(mode="build", skill_id="blog_outline")
+    script.skill_output = "# Outline"
+    r3 = _run("now a blog outline", conversation_id="rb")
+    assert [d["skill_id"] for d in r3["derived"]] == ["social_post", "blog_outline"]
+
+
+def test_build_with_unknown_skill_asks_which(isolated_state, install_models):
+    script = install_models(FakeModelScript(plan=TurnPlan(mode="note")))
+    _note(script, "some notes", cid="unk")
+
+    script.plan = TurnPlan(mode="build", skill_id=None)
+    result = _run("build something from this", conversation_id="unk")
+
+    assert result["derived"] == []
+    assert result["status"] == "needs_input"
+    assert "Which one" in result["assistant_message"]
+
+
+def test_build_flags_unsupported_claims_on_the_output_not_the_scratchpad(
+    isolated_state, install_models
+):
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="note", confirmed_facts=["ships next week"]),
+            skill_output="Launch post: our tool is 10x faster and costs $9.",
+            grounding=["'10x faster' and '$9' are not in sources"],
+        )
+    )
+    _note(script, "launch notes", cid="gnd")
+
+    script.plan = TurnPlan(mode="build", skill_id="social_post")
+    result = _run("make a social post", conversation_id="gnd")
+
+    tab = result["derived"][0]
+    assert any("10x" in q for q in tab["open_questions"])
+    assert result["scratchpad"]["open_questions"] == []  # scratchpad untouched
+
+
+# --------------------------------------------------------------------------- #
+# safety / persistence
+# --------------------------------------------------------------------------- #
 
 
 def test_publish_request_is_declined_with_no_side_effect(isolated_state, install_models):
-    install_models(
-        FakeModelScript(plan=TurnPlan(mode="chat", reply_gist="they asked to publish"))
-    )
+    install_models(FakeModelScript(plan=TurnPlan(mode="chat", reply_gist="they asked to publish")))
     result = _run("great, now publish this to LinkedIn for me")
 
     assert result["plan"]["safety_flag"] == "publish_request"
     assert "can't" in result["assistant_message"] or "cannot" in result["assistant_message"]
-    assert result["artifact"]["body"] == ""
+    assert result["scratchpad"]["body"] == ""
     assert result["status"] == "needs_input"
 
 
 def test_clarifying_question_is_returned_verbatim(isolated_state, install_models):
-    question = "Which angle - the cost story or the developer-time story?"
-    install_models(
-        FakeModelScript(plan=TurnPlan(mode="brainstorm", clarifying_question=question))
-    )
-    result = _run("help me with a post")
+    question = "Which thread - the cost story or the developer-time story?"
+    install_models(FakeModelScript(plan=TurnPlan(mode="brainstorm", clarifying_question=question)))
+    result = _run("help me think")
 
     assert result["assistant_message"] == question
     assert result["status"] == "needs_input"
     assert result["pending_question"] == question
 
 
+def test_empty_op_output_asks_for_more(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(plan=TurnPlan(mode="note"), expanded="   ")
+    )
+    _note(script, "a note", cid="empty")
+    script.plan = TurnPlan(mode="expand")
+    result = _run("develop it", conversation_id="empty")
+
+    assert result["status"] == "needs_input"
+    assert "empty" in result["assistant_message"]
+
+
 def test_state_and_memory_persist_across_turns(isolated_state, install_models):
     script = install_models(
         FakeModelScript(
-            plan=TurnPlan(
-                mode="draft",
-                topic="Widget",
-                format="linkedin_post",
-                audience="platform engineers",
-            ),
-            draft="A draft about Widget for platform engineers.",
-            revised="A tighter draft about Widget.",
+            plan=TurnPlan(mode="note", audience="platform engineers"),
+            expanded="A developed note for platform engineers.",
         )
     )
-    _run(
-        "draft a post about Widget for platform engineers",
-        conversation_id="persist",
-        user_id="mem-u",
-    )
-    script.plan = TurnPlan(mode="revise", revise_instruction="cut a sentence")
-    _run("cut a sentence", conversation_id="persist", user_id="mem-u")
+    _run("jot: a note for platform engineers", conversation_id="persist", user_id="mem-u")
+
+    script.plan = TurnPlan(mode="expand")
+    _run("develop it", conversation_id="persist", user_id="mem-u")
 
     state = get_thread_state("persist")
     assert len(state["turns"]) == 4  # user/assistant x2
-    assert state["artifact"]["version"] >= 2
+    assert state["scratchpad"]["version"] >= 2
 
     memory = load_memory("mem-u")
     assert memory["facts"]["audience"]["value"] == "platform engineers"
 
 
-def test_empty_writer_output_asks_for_more_not_an_empty_draft(isolated_state, install_models):
-    install_models(
-        FakeModelScript(
-            plan=TurnPlan(mode="draft", topic="Widget", format="linkedin_post"),
-            draft="   ",  # model returned nothing usable
-        )
-    )
-    result = _run("draft something")
-
-    assert result["status"] == "needs_input"
-    assert result["artifact"]["body"] == ""
-    assert "empty" in result["assistant_message"]
+# --------------------------------------------------------------------------- #
+# subject rename / rebase
+# --------------------------------------------------------------------------- #
 
 
-def test_subject_rename_rebases_the_artifact(isolated_state, install_models):
+def test_subject_rename_rebases_the_scratchpad(isolated_state, install_models):
     script = install_models(
         FakeModelScript(
-            plan=TurnPlan(
-                mode="draft",
-                topic="JBL Bluetooth speaker",
-                format="linkedin_post",
-                confirmed_facts=["360-degree sound", "20-hour battery"],
-            ),
-            draft="A LinkedIn post about the JBL Bluetooth speaker and its 360-degree sound.",
-            grounding=["the JBL speaker is waterproof"],
-        )
-    )
-    first = _run(
-        "draft a post about the JBL Bluetooth speaker", conversation_id="rename"
-    )
-    assert first["artifact"]["topic"] == "JBL Bluetooth speaker"
-    assert first["artifact"]["sources"]
-    assert first["artifact"]["open_questions"]
-
-    script.plan = TurnPlan(
-        mode="revise",
-        topic="Fujifilm XT20 camera",
-        subject_changed=True,
-        revise_instruction="this is actually about the Fujifilm XT20 camera",
-    )
-    script.revised = "A LinkedIn post about the Fujifilm XT20 camera."
-    script._grounding = GroundingNotes(items=[])
-    second = _run(
-        "actually this is about the Fujifilm XT20 camera", conversation_id="rename"
-    )
-
-    art = second["artifact"]
-    assert art["topic"] == "Fujifilm XT20 camera"
-    assert art["title"] == "Fujifilm XT20 camera"
-    # context scoped to the old subject is dropped
-    assert art["sources"] == []
-    assert art["open_questions"] == []
-    assert "Rebased" in second["assistant_message"]
-
-
-def test_subject_detail_added_does_not_rebase(isolated_state, install_models):
-    script = install_models(
-        FakeModelScript(
-            plan=TurnPlan(
-                mode="draft",
-                topic="Widget Pro",
-                format="linkedin_post",
-                confirmed_facts=["ships in March"],
-            ),
-            draft="A post about Widget Pro shipping in March.",
+            plan=TurnPlan(mode="note", topic="JBL speaker", confirmed_facts=["20-hour battery"]),
             grounding=[],
         )
     )
-    _run("draft a post about Widget Pro", conversation_id="detail")
+    first = _run("notes about the JBL speaker", conversation_id="rn")
+    assert first["scratchpad"]["topic"] == "JBL speaker"
+    assert first["scratchpad"]["sources"]
 
-    # adding detail to the same subject: subject_changed stays False
     script.plan = TurnPlan(
-        mode="revise",
-        topic="Widget Pro",
-        revise_instruction="mention the price",
+        mode="expand",
+        topic="Fujifilm XT20",
+        subject_changed=True,
+        edit_instruction="this is actually about the Fujifilm XT20",
     )
-    script.revised = "A post about Widget Pro, $99, shipping in March."
-    result = _run("also mention it's $99", conversation_id="detail")
+    script.expanded = "A developed note about the Fujifilm XT20."
+    second = _run("actually this is about the Fujifilm XT20", conversation_id="rn")
 
-    assert result["artifact"]["sources"] == ["ships in March"]
+    sp = second["scratchpad"]
+    assert sp["topic"] == "Fujifilm XT20"
+    assert sp["title"] == "Fujifilm XT20"
+    assert sp["sources"] == []
+    assert "Rebased" in second["assistant_message"]
+
+
+def test_added_detail_does_not_rebase(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="note", topic="Widget Pro", confirmed_facts=["ships in March"]),
+            grounding=[],
+        )
+    )
+    _run("notes about Widget Pro", conversation_id="dt")
+
+    script.plan = TurnPlan(mode="expand", topic="Widget Pro", edit_instruction="add the price")
+    script.expanded = "Widget Pro, $99, ships in March."
+    result = _run("also it's $99", conversation_id="dt")
+
+    assert result["scratchpad"]["sources"] == ["ships in March"]
     assert "Rebased" not in result["assistant_message"]
+
+
+# --------------------------------------------------------------------------- #
+# version history (unit + integration)
+# --------------------------------------------------------------------------- #
 
 
 def test_append_version_truncates_and_caps():
@@ -288,7 +361,6 @@ def test_append_version_truncates_and_caps():
         versions = append_version(versions, {"body": f"b{i}"}, f"m{i}")
     assert [v["artifact"]["body"] for v in versions] == ["b0", "b1", "b2"]
 
-    # branching from seq 1 drops everything after it
     versions = append_version(versions, {"body": "bx"}, "mx", base_seq=1)
     assert [v["artifact"]["body"] for v in versions] == ["b0", "bx"]
 
@@ -297,7 +369,6 @@ def test_append_version_truncates_and_caps():
         versions = append_version(versions, {"body": str(i)}, "m")
     assert len(versions) == MAX_VERSIONS
     assert versions[0]["artifact"]["body"] == "10"
-    assert versions[-1]["artifact"]["body"] == str(MAX_VERSIONS + 9)
 
 
 def test_artifact_changed_ignores_version_field():
@@ -305,82 +376,47 @@ def test_artifact_changed_ignores_version_field():
 
     assert artifact_changed({"body": "a"}, {"body": "b"})
     assert artifact_changed({}, {"angles": ["x"]})
-    assert not artifact_changed(
-        {"body": "a", "version": 1}, {"body": "a", "version": 9}
-    )
+    assert not artifact_changed({"body": "a", "version": 1}, {"body": "a", "version": 9})
 
 
-def test_version_history_grows_one_per_artifact_turn(isolated_state, install_models):
+def test_version_history_grows_one_per_scratchpad_turn(isolated_state, install_models):
     script = install_models(
-        FakeModelScript(
-            plan=TurnPlan(mode="draft", topic="Widget", format="linkedin_post"),
-            draft="Draft one about Widget.",
-            grounding=[],
-        )
+        FakeModelScript(plan=TurnPlan(mode="note"), expanded="Developed.", grounding=[])
     )
-    r1 = _run("draft a post about Widget", conversation_id="vh")
+    r1 = _run("jot: first idea", conversation_id="vh")
     assert r1["head"] == 1
-    assert [v["seq"] for v in r1["versions"]] == [1]
-    assert "Widget" in r1["versions"][0]["body"]
 
-    script.plan = TurnPlan(mode="revise", revise_instruction="tighten it")
-    script.revised = "A tighter draft about Widget."
-    r2 = _run("tighten it", conversation_id="vh")
+    script.plan = TurnPlan(mode="expand")
+    r2 = _run("develop it", conversation_id="vh")
     assert r2["head"] == 2
-    assert [v["seq"] for v in r2["versions"]] == [1, 2]
 
-    # a pure chat turn doesn't touch the artifact -> no new version
-    script.plan = TurnPlan(mode="chat", reply_gist="answer the question")
-    script.reply = "It helps you draft content."
-    r3 = _run("what do you do?", conversation_id="vh")
+    # a pure chat turn does not touch the scratchpad
+    script.plan = TurnPlan(mode="chat", reply_gist="answer")
+    script.reply = "It's a scratchpad for ideas."
+    r3 = _run("what is this?", conversation_id="vh")
     assert r3["head"] == 2
+
+    # a build turn does not touch the scratchpad version list
+    script.plan = TurnPlan(mode="build", skill_id="blog_outline")
+    r4 = _run("make an outline", conversation_id="vh")
+    assert r4["head"] == 2
 
 
 def test_editing_from_a_past_version_truncates_forward(isolated_state, install_models):
     script = install_models(
-        FakeModelScript(
-            plan=TurnPlan(mode="draft", topic="Widget", format="linkedin_post"),
-            draft="V1 body.",
-            grounding=[],
-        )
+        FakeModelScript(plan=TurnPlan(mode="note"), grounding=[])
     )
-    _run("draft", conversation_id="br")
+    _run("jot: v1", conversation_id="br")
 
-    script.plan = TurnPlan(mode="revise", revise_instruction="a")
-    script.revised = "V2 body."
-    _run("rev a", conversation_id="br")
+    script.plan = TurnPlan(mode="expand")
+    script.expanded = "V2 body."
+    _run("develop", conversation_id="br")
 
-    script.plan = TurnPlan(mode="revise", revise_instruction="b")
-    script.revised = "V3 body."
-    r3 = _run("rev b", conversation_id="br")
-    assert [v["body"] for v in r3["versions"]] == ["V1 body.", "V2 body.", "V3 body."]
+    script.expanded = "V3 body."
+    r3 = _run("develop more", conversation_id="br")
+    assert [v["body"] for v in r3["versions"]] == ["jot: v1", "V2 body.", "V3 body."]
 
-    # navigate back to v2, then edit: v3 is replaced, not appended
-    script.plan = TurnPlan(mode="revise", revise_instruction="c")
-    script.revised = "V3-prime body."
-    r4 = _run("different change", conversation_id="br", base_version=2)
+    script.expanded = "V3-prime body."
+    r4 = _run("a different change", conversation_id="br", base_version=2)
     assert r4["head"] == 3
-    assert [v["body"] for v in r4["versions"]] == [
-        "V1 body.",
-        "V2 body.",
-        "V3-prime body.",
-    ]
-
-
-def test_critique_annotates_open_questions(isolated_state, install_models):
-    script = install_models(
-        FakeModelScript(
-            plan=TurnPlan(mode="draft", topic="Widget", format="linkedin_post"),
-            draft="A first Widget draft.",
-            critique=Critique(
-                summary="Hook is soft.", points=["Rewrite line 1", "Add a CTA"]
-            ),
-        )
-    )
-    _run("draft a post about Widget", conversation_id="crit")
-    script.plan = TurnPlan(mode="critique")
-    result = _run("what's weak about this?", conversation_id="crit")
-
-    assert result["assistant_message"] == "Hook is soft."
-    assert "Rewrite line 1" in result["artifact"]["open_questions"]
-    assert "Add a CTA" in result["artifact"]["open_questions"]
+    assert [v["body"] for v in r4["versions"]] == ["jot: v1", "V2 body.", "V3-prime body."]

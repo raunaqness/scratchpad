@@ -8,6 +8,7 @@ produces them, and ``RUN_FINISHED`` is always sent — including after an error.
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from typing import Any, AsyncGenerator, Iterator
 
@@ -31,12 +32,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from backend.app import astream_conversation
-from backend.artifact import Artifact
+from backend.artifact import Scratchpad
 from backend.config import settings
 from backend.prompts import CURRENT_PROMPT_VERSION
 from backend.versions import load_versions, version_items
 
-app = FastAPI(title="Signal AG-UI Agent")
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title="Scratchpad AG-UI Agent")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list or ["http://localhost:3000"],
@@ -49,10 +52,12 @@ app.add_middleware(
 # Human-readable label per graph node, for the dev progress indicator.
 _PROGRESS_LABELS = {
     "interpret": "Reading your turn",
-    "brainstorm": "Brainstorming angles",
-    "draft": "Drafting",
-    "revise": "Revising",
-    "critique": "Critiquing",
+    "note": "Jotting it down",
+    "expand": "Developing the notes",
+    "tighten": "Tightening",
+    "brainstorm": "Exploring angles",
+    "critique": "Reviewing",
+    "build": "Building",
     "respond": "Replying",
 }
 
@@ -136,13 +141,15 @@ def _user_id(input_data: RunAgentInput) -> str:
 
 def _client_artifact(input_data: RunAgentInput) -> dict[str, Any] | None:
     state = input_data.state if isinstance(input_data.state, dict) else {}
-    if isinstance(state.get("artifact"), dict) and state["artifact"]:
-        return state["artifact"]
+    for key in ("scratchpad", "artifact"):
+        if isinstance(state.get(key), dict) and state[key]:
+            return state[key]
     if "body" in state or "angles" in state or "outline" in state:
         return state
     forwarded = _forwarded(input_data)
-    if isinstance(forwarded.get("artifact"), dict):
-        return forwarded["artifact"]
+    for key in ("scratchpad", "artifact"):
+        if isinstance(forwarded.get(key), dict):
+            return forwarded[key]
     return None
 
 
@@ -171,33 +178,36 @@ def _empty_state(
     versions: list[dict[str, Any]] | None = None, head: int | None = None
 ) -> dict[str, Any]:
     return _state_snapshot(
-        Artifact().model_dump(),
+        Scratchpad().model_dump(),
         status="processing",
         processing=True,
         progress=_progress(None, "processing", [], done=False),
         versions=versions,
         head=head,
+        derived=[],
     )
 
 
 def _state_snapshot(
-    artifact: dict[str, Any],
+    scratchpad: dict[str, Any],
     *,
     status: str,
     processing: bool,
     progress: dict[str, Any] | None = None,
     versions: list[dict[str, Any]] | None = None,
     head: int | None = None,
+    derived: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    # `artifact.*` is the real shape; `draft` / `draft_version` are back-compat
-    # mirrors so an older panel still renders something.
+    # `scratchpad.*` is spread for convenience; `draft` / `draft_version` stay as
+    # back-compat mirrors so an older panel still renders something.
     snapshot = {
         "processing": processing,
         "status": status,
-        "draft": artifact.get("body", ""),
-        "draft_version": artifact.get("version", 0),
-        "artifact": artifact,
-        **artifact,
+        "draft": scratchpad.get("body", ""),
+        "draft_version": scratchpad.get("version", 0),
+        "scratchpad": scratchpad,
+        "artifact": scratchpad,
+        **scratchpad,
     }
     if progress is not None:
         snapshot["progress"] = progress
@@ -205,6 +215,9 @@ def _state_snapshot(
         snapshot["versions"] = versions
     if head is not None:
         snapshot["head"] = head
+    if derived is not None:
+        snapshot["derived"] = derived
+        snapshot["active_tab"] = derived[-1]["id"] if derived else None
     return snapshot
 
 
@@ -219,6 +232,8 @@ async def _signal_events(
     progress_steps: list[str] = []
     progress = _progress(None, last_status, progress_steps, done=False)
     pending_choice: dict[str, Any] | None = None
+    derived: list[dict[str, Any]] = []
+    last_scratchpad: dict[str, Any] = Scratchpad().model_dump()
 
     try:
         try:
@@ -270,20 +285,45 @@ async def _signal_events(
                     )
                 )
 
-            elif kind == "artifact":
-                # An artifact update between reply tokens would split the message.
+            elif kind == "scratchpad":
+                last_scratchpad = event["scratchpad"]
+                # A snapshot between reply tokens would split the message.
                 if message_open:
                     continue
                 yield encoder.encode(
                     StateSnapshotEvent(
                         type=EventType.STATE_SNAPSHOT,
                         snapshot=_state_snapshot(
-                            event["artifact"],
+                            last_scratchpad,
                             status=last_status,
                             processing=True,
                             progress=progress,
                             versions=versions,
                             head=head,
+                            derived=derived,
+                        ),
+                    )
+                )
+
+            elif kind == "derived":
+                item = event["derived"]
+                if any(d.get("id") == item.get("id") for d in derived):
+                    derived = [item if d.get("id") == item.get("id") else d for d in derived]
+                else:
+                    derived = [*derived, item]
+                if message_open:
+                    continue
+                yield encoder.encode(
+                    StateSnapshotEvent(
+                        type=EventType.STATE_SNAPSHOT,
+                        snapshot=_state_snapshot(
+                            last_scratchpad,
+                            status=last_status,
+                            processing=True,
+                            progress=progress,
+                            versions=versions,
+                            head=head,
+                            derived=derived,
                         ),
                     )
                 )
@@ -333,11 +373,13 @@ async def _signal_events(
                 if event.get("versions") is not None:
                     versions = event["versions"]
                     head = event.get("head", len(versions))
+                if event.get("derived") is not None:
+                    derived = event["derived"]
                 yield encoder.encode(
                     StateSnapshotEvent(
                         type=EventType.STATE_SNAPSHOT,
                         snapshot=_state_snapshot(
-                            event.get("artifact", {}),
+                            event.get("scratchpad") or last_scratchpad,
                             status=event.get("status", last_status),
                             processing=False,
                             progress=_progress(
@@ -348,6 +390,7 @@ async def _signal_events(
                             ),
                             versions=versions,
                             head=head,
+                            derived=derived,
                         ),
                     )
                 )
@@ -376,20 +419,34 @@ async def _signal_events(
             )
         )
 
-    except Exception as error:  # noqa: BLE001 - surface as an AG-UI error + finish
+    except Exception as error:  # noqa: BLE001 - surface as a terminal AG-UI error
+        logger.exception("scratchpad turn failed (thread=%s run=%s): %s", thread_id, run_id, error)
         if message_open:
             yield encoder.encode(
                 TextMessageEndEvent(type=EventType.TEXT_MESSAGE_END, messageId=message_id)
             )
+        # A non-processing snapshot so the panel stops its spinner and keeps
+        # showing the last good scratchpad / tabs.
         yield encoder.encode(
-            RunErrorEvent(type=EventType.RUN_ERROR, message="Signal hit an error on this turn.")
+            StateSnapshotEvent(
+                type=EventType.STATE_SNAPSHOT,
+                snapshot=_state_snapshot(
+                    last_scratchpad,
+                    status="error",
+                    processing=False,
+                    progress=_progress(progress.get("node"), "error", progress_steps, done=True),
+                    versions=versions,
+                    head=head,
+                    derived=derived,
+                ),
+            )
         )
+        # RUN_ERROR is itself terminal — do NOT send RUN_FINISHED after it
+        # (the AG-UI client rejects any event after a terminal one).
         yield encoder.encode(
-            RunFinishedEvent(
-                type=EventType.RUN_FINISHED,
-                threadId=thread_id,
-                runId=run_id,
-                result={"status": "error"},
+            RunErrorEvent(
+                type=EventType.RUN_ERROR,
+                message="Scratchpad hit an error on this turn — please try again.",
             )
         )
 

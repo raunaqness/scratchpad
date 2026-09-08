@@ -33,9 +33,9 @@ export function SiteNav() {
 
   return (
     <nav className="site-nav">
-      <Link href="/" className="site-brand" aria-label="Signal home">
+      <Link href="/" className="site-brand" aria-label="Scratchpad home">
         <span className="site-brand-mark">S</span>
-        <span>Signal</span>
+        <span>Scratchpad</span>
       </Link>
       <div className="site-nav-actions">
         <Link href="/about" className="site-nav-link">

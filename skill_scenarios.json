@@ -1,0 +1,42 @@
+[
+  {
+    "name": "blog_outline_grounded",
+    "skill_id": "blog_outline",
+    "setup_turns": [
+      "Jot this down: RelayDB is a database. Facts: multi-region by default, 9ms p50 reads, SQL-compatible, one CLI command to set up."
+    ],
+    "build_turn": "Generate a blog outline from the scratchpad.",
+    "wellformed_criteria": "The output is an OUTLINE, not a finished post: a working title, a short lede, 3-6 section headings each with a bullet or two, and a closing beat. It is not prose paragraphs end to end.",
+    "threshold": 0.7
+  },
+  {
+    "name": "social_post_grounded",
+    "skill_id": "social_post",
+    "setup_turns": [
+      "Jot: Marshall Willen II speaker. Facts: 17+ hours playtime, IP67 dust and waterproof, built-in mic for calls, Bluetooth LE Audio."
+    ],
+    "build_turn": "Generate a social post from the scratchpad.",
+    "wellformed_criteria": "The output is one short social post: a strong first line that works alone, one idea, short paragraphs, at most 3 hashtags, at most a one-line CTA, roughly 80-220 words.",
+    "threshold": 0.7
+  },
+  {
+    "name": "marketing_campaign_grounded",
+    "skill_id": "marketing_campaign",
+    "setup_turns": [
+      "Jot: launching EdgeCache, a caching layer for edge apps. Facts: zero-config, cuts cold-start latency, ships next week. Audience: platform engineers."
+    ],
+    "build_turn": "Generate a marketing campaign from the scratchpad.",
+    "wellformed_criteria": "The output is a compact campaign plan with sections covering objective, audience, core message, channels, a rough sequence, and concrete assets. It is not a finished blog post or a single social post.",
+    "threshold": 0.7
+  },
+  {
+    "name": "social_post_from_thin_notes_hedges",
+    "skill_id": "social_post",
+    "setup_turns": [
+      "Jot: we made our sync engine faster. Not sure of the exact numbers yet."
+    ],
+    "build_turn": "Generate a social post from the scratchpad.",
+    "wellformed_criteria": "The output is one short social post. Because the scratchpad has no numbers, it stays qualitative and does not invent a metric, percentage, latency figure, or benchmark.",
+    "threshold": 0.7
+  }
+]

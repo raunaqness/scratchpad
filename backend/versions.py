@@ -32,21 +32,19 @@ CREATE TABLE IF NOT EXISTS {_TABLE} (
 )
 """
 
-# Fields that make two artifacts "the same version" for change detection.
+# Fields that make two scratchpad snapshots "the same version".
 _COMPARE_KEYS = (
-    "kind",
-    "format",
     "title",
     "topic",
     "body",
     "angles",
     "outline",
+    "tags",
     "open_questions",
-    "sections",
 )
 
 # Fields the client needs to render a version (current or previewed).
-_ITEM_KEYS = ("kind", "format", "title", "topic", "body", "angles", "outline", "open_questions")
+_ITEM_KEYS = ("title", "topic", "body", "angles", "outline", "tags", "open_questions")
 
 
 def _now() -> str:
@@ -149,6 +147,6 @@ def version_items(versions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         artifact = entry.get("artifact", {}) if isinstance(entry, dict) else {}
         item = {"seq": index + 1, "created_at": entry.get("created_at", "")}
         for key in _ITEM_KEYS:
-            item[key] = artifact.get(key, "" if key in {"kind", "format", "title", "topic", "body"} else [])
+            item[key] = artifact.get(key, "" if key in {"title", "topic", "body"} else [])
         items.append(item)
     return items

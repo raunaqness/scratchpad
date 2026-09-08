@@ -280,6 +280,93 @@ def test_subject_detail_added_does_not_rebase(isolated_state, install_models):
     assert "Rebased" not in result["assistant_message"]
 
 
+def test_append_version_truncates_and_caps():
+    from backend.versions import MAX_VERSIONS, append_version
+
+    versions: list = []
+    for i in range(3):
+        versions = append_version(versions, {"body": f"b{i}"}, f"m{i}")
+    assert [v["artifact"]["body"] for v in versions] == ["b0", "b1", "b2"]
+
+    # branching from seq 1 drops everything after it
+    versions = append_version(versions, {"body": "bx"}, "mx", base_seq=1)
+    assert [v["artifact"]["body"] for v in versions] == ["b0", "bx"]
+
+    versions = []
+    for i in range(MAX_VERSIONS + 10):
+        versions = append_version(versions, {"body": str(i)}, "m")
+    assert len(versions) == MAX_VERSIONS
+    assert versions[0]["artifact"]["body"] == "10"
+    assert versions[-1]["artifact"]["body"] == str(MAX_VERSIONS + 9)
+
+
+def test_artifact_changed_ignores_version_field():
+    from backend.versions import artifact_changed
+
+    assert artifact_changed({"body": "a"}, {"body": "b"})
+    assert artifact_changed({}, {"angles": ["x"]})
+    assert not artifact_changed(
+        {"body": "a", "version": 1}, {"body": "a", "version": 9}
+    )
+
+
+def test_version_history_grows_one_per_artifact_turn(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="draft", topic="Widget", format="linkedin_post"),
+            draft="Draft one about Widget.",
+            grounding=[],
+        )
+    )
+    r1 = _run("draft a post about Widget", conversation_id="vh")
+    assert r1["head"] == 1
+    assert [v["seq"] for v in r1["versions"]] == [1]
+    assert "Widget" in r1["versions"][0]["body"]
+
+    script.plan = TurnPlan(mode="revise", revise_instruction="tighten it")
+    script.revised = "A tighter draft about Widget."
+    r2 = _run("tighten it", conversation_id="vh")
+    assert r2["head"] == 2
+    assert [v["seq"] for v in r2["versions"]] == [1, 2]
+
+    # a pure chat turn doesn't touch the artifact -> no new version
+    script.plan = TurnPlan(mode="chat", reply_gist="answer the question")
+    script.reply = "It helps you draft content."
+    r3 = _run("what do you do?", conversation_id="vh")
+    assert r3["head"] == 2
+
+
+def test_editing_from_a_past_version_truncates_forward(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="draft", topic="Widget", format="linkedin_post"),
+            draft="V1 body.",
+            grounding=[],
+        )
+    )
+    _run("draft", conversation_id="br")
+
+    script.plan = TurnPlan(mode="revise", revise_instruction="a")
+    script.revised = "V2 body."
+    _run("rev a", conversation_id="br")
+
+    script.plan = TurnPlan(mode="revise", revise_instruction="b")
+    script.revised = "V3 body."
+    r3 = _run("rev b", conversation_id="br")
+    assert [v["body"] for v in r3["versions"]] == ["V1 body.", "V2 body.", "V3 body."]
+
+    # navigate back to v2, then edit: v3 is replaced, not appended
+    script.plan = TurnPlan(mode="revise", revise_instruction="c")
+    script.revised = "V3-prime body."
+    r4 = _run("different change", conversation_id="br", base_version=2)
+    assert r4["head"] == 3
+    assert [v["body"] for v in r4["versions"]] == [
+        "V1 body.",
+        "V2 body.",
+        "V3-prime body.",
+    ]
+
+
 def test_critique_annotates_open_questions(isolated_state, install_models):
     script = install_models(
         FakeModelScript(

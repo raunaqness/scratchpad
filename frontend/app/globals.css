@@ -397,6 +397,7 @@ body:has(.app-workspace) {
   .artifact-caret,
   .artifact-progressbar[data-active="true"]::after,
   .artifact-panel.is-loading .artifact-body,
+  .artifact-ritual-dot,
   .progress-chip-spinner {
     animation: none;
   }
@@ -507,19 +508,12 @@ body:has(.app-workspace) {
 }
 
 .artifact-header {
-  align-items: flex-start;
+  align-items: center;
   border-bottom: 1px solid var(--border);
   display: flex;
+  gap: 1rem;
   justify-content: space-between;
   padding-bottom: 1.25rem;
-}
-
-.artifact-kicker {
-  color: var(--primary);
-  font-size: 0.67rem;
-  font-weight: 750;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .artifact-header h2 {
@@ -527,15 +521,208 @@ body:has(.app-workspace) {
   font-size: 1.15rem;
   font-weight: 500;
   letter-spacing: -0.02em;
-  margin-top: 0.35rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.artifact-version {
+/* version stepper — replaces the old static v-badge */
+.version-nav {
+  align-items: center;
   border: 1px solid var(--border);
   border-radius: 999px;
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.15rem;
+  padding: 0.15rem;
+}
+
+.version-nav button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--foreground);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.95rem;
+  height: 1.4rem;
+  justify-content: center;
+  line-height: 1;
+  width: 1.4rem;
+}
+
+.version-nav button:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+.version-nav button:disabled {
+  color: var(--muted-foreground);
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.version-nav-label {
   color: var(--muted-foreground);
   font-size: 0.72rem;
-  padding: 0.35rem 0.6rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0 0.3rem;
+  white-space: nowrap;
+}
+
+.version-nav-total {
+  opacity: 0.6;
+}
+
+/* fixed "something is happening" line, panel-local */
+.artifact-ritual {
+  align-items: center;
+  color: var(--muted-foreground);
+  display: flex;
+  font-size: 0.8rem;
+  gap: 0.5rem;
+  padding: 0.85rem 0 0.25rem;
+}
+
+.artifact-ritual-dot {
+  animation: signal-ritual-dot 1s ease-in-out infinite;
+  background: var(--primary);
+  border-radius: 999px;
+  flex-shrink: 0;
+  height: 0.5rem;
+  width: 0.5rem;
+}
+
+@keyframes signal-ritual-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* read-only preview / armed-to-branch banner */
+.artifact-preview-banner {
+  align-items: center;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+  border-radius: 0.6rem;
+  color: var(--foreground);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  gap: 0.5rem 0.75rem;
+  justify-content: space-between;
+  margin-top: 0.85rem;
+  padding: 0.6rem 0.75rem;
+}
+
+.artifact-preview-banner.is-armed {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.artifact-preview-banner-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.artifact-preview-banner button {
+  background: transparent;
+  border: 0;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 650;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.artifact-panel.is-previewing .artifact-body {
+  opacity: 0.92;
+}
+
+/* Copy button in the artifact footer */
+.artifact-copy-btn {
+  background: var(--foreground);
+  border: 0;
+  border-radius: 999px;
+  color: var(--background);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 650;
+  padding: 0.4rem 0.85rem;
+}
+
+.artifact-copy-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+/* overwrite-history confirmation modal */
+.overwrite-modal-backdrop {
+  align-items: center;
+  background: color-mix(in srgb, var(--foreground) 35%, transparent);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1.5rem;
+  position: fixed;
+  z-index: 100;
+}
+
+.overwrite-modal-card {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 20px 50px -12px color-mix(in srgb, var(--foreground) 30%, transparent);
+  max-width: 26rem;
+  padding: 1.5rem;
+  width: 100%;
+}
+
+.overwrite-modal-card h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
+.overwrite-modal-card p {
+  color: var(--muted-foreground);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin-top: 0.6rem;
+}
+
+.overwrite-modal-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-top: 1.4rem;
+}
+
+.overwrite-modal-actions button {
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 650;
+  padding: 0.55rem 1rem;
+}
+
+.overwrite-modal-cancel {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--foreground);
+}
+
+.overwrite-modal-confirm {
+  background: var(--destructive);
+  border: 1px solid var(--destructive);
+  color: white;
 }
 
 .debug-progress {
@@ -760,9 +947,13 @@ body:has(.app-workspace) {
 }
 
 .artifact-footer {
+  align-items: center;
   border-top: 1px solid var(--border);
   color: var(--muted-foreground);
+  display: flex;
   font-size: 0.75rem;
+  gap: 1rem;
+  justify-content: space-between;
   padding-top: 1rem;
 }
 

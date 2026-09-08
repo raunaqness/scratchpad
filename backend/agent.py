@@ -34,6 +34,7 @@ from backend.app import astream_conversation
 from backend.artifact import Artifact
 from backend.config import settings
 from backend.prompts import CURRENT_PROMPT_VERSION
+from backend.versions import load_versions, version_items
 
 app = FastAPI(title="Signal AG-UI Agent")
 app.add_middleware(
@@ -145,12 +146,37 @@ def _client_artifact(input_data: RunAgentInput) -> dict[str, Any] | None:
     return None
 
 
-def _empty_state() -> dict[str, Any]:
+def _base_version(input_data: RunAgentInput) -> int | None:
+    """1-based version the client is previewing when it sent this turn, if any."""
+
+    forwarded = _forwarded(input_data)
+    run_config = forwarded.get("runConfig") if isinstance(forwarded.get("runConfig"), dict) else {}
+    state = input_data.state if isinstance(input_data.state, dict) else {}
+    for candidate in (
+        forwarded.get("base_version"),
+        forwarded.get("baseVersion"),
+        run_config.get("base_version"),
+        state.get("base_version"),
+    ):
+        if isinstance(candidate, bool):
+            continue
+        if isinstance(candidate, int) and candidate >= 1:
+            return candidate
+        if isinstance(candidate, str) and candidate.strip().isdigit():
+            return int(candidate)
+    return None
+
+
+def _empty_state(
+    versions: list[dict[str, Any]] | None = None, head: int | None = None
+) -> dict[str, Any]:
     return _state_snapshot(
         Artifact().model_dump(),
         status="processing",
         processing=True,
         progress=_progress(None, "processing", [], done=False),
+        versions=versions,
+        head=head,
     )
 
 
@@ -160,6 +186,8 @@ def _state_snapshot(
     status: str,
     processing: bool,
     progress: dict[str, Any] | None = None,
+    versions: list[dict[str, Any]] | None = None,
+    head: int | None = None,
 ) -> dict[str, Any]:
     # `artifact.*` is the real shape; `draft` / `draft_version` are back-compat
     # mirrors so an older panel still renders something.
@@ -173,6 +201,10 @@ def _state_snapshot(
     }
     if progress is not None:
         snapshot["progress"] = progress
+    if versions is not None:
+        snapshot["versions"] = versions
+    if head is not None:
+        snapshot["head"] = head
     return snapshot
 
 
@@ -189,13 +221,22 @@ async def _signal_events(
     pending_choice: dict[str, Any] | None = None
 
     try:
+        try:
+            versions = version_items(await load_versions(thread_id))
+        except Exception:  # noqa: BLE001 - history is best-effort
+            versions = []
+        head = len(versions)
+
         yield encoder.encode(
             RunStartedEvent(
                 type=EventType.RUN_STARTED, threadId=thread_id, runId=run_id
             )
         )
         yield encoder.encode(
-            StateSnapshotEvent(type=EventType.STATE_SNAPSHOT, snapshot=_empty_state())
+            StateSnapshotEvent(
+                type=EventType.STATE_SNAPSHOT,
+                snapshot=_empty_state(versions, head),
+            )
         )
 
         user_message = _last_user_message(input_data)
@@ -207,6 +248,7 @@ async def _signal_events(
             conversation_id=thread_id,
             user_message=user_message,
             client_artifact=_client_artifact(input_data),
+            base_version=_base_version(input_data),
         ):
             kind = event["type"]
 
@@ -240,6 +282,8 @@ async def _signal_events(
                             status=last_status,
                             processing=True,
                             progress=progress,
+                            versions=versions,
+                            head=head,
                         ),
                     )
                 )
@@ -286,6 +330,9 @@ async def _signal_events(
                     for raw in _choice_tool_events(encoder, pending_choice, message_id):
                         yield raw
                     pending_choice = None
+                if event.get("versions") is not None:
+                    versions = event["versions"]
+                    head = event.get("head", len(versions))
                 yield encoder.encode(
                     StateSnapshotEvent(
                         type=EventType.STATE_SNAPSHOT,
@@ -299,6 +346,8 @@ async def _signal_events(
                                 progress_steps,
                                 done=True,
                             ),
+                            versions=versions,
+                            head=head,
                         ),
                     )
                 )

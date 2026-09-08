@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   AuiConfig,
   AuiProvider,
@@ -8,6 +16,7 @@ import {
   Tools,
   defineToolkit,
   useAui,
+  useAuiEvent,
 } from "@assistant-ui/react";
 import { useAgUiState } from "@assistant-ui/react-ag-ui";
 import { Check, PlusIcon } from "lucide-react";
@@ -40,6 +49,19 @@ type SignalProgress = {
   done?: boolean;
 };
 
+type VersionItem = {
+  seq: number;
+  kind?: string;
+  format?: string;
+  title?: string;
+  topic?: string;
+  body?: string;
+  angles?: string[];
+  outline?: string[];
+  open_questions?: string[];
+  created_at?: string;
+};
+
 type SignalArtifact = {
   processing?: boolean;
   progress?: SignalProgress;
@@ -52,6 +74,8 @@ type SignalArtifact = {
   body?: string;
   open_questions?: string[];
   version?: number;
+  versions?: VersionItem[];
+  head?: number;
   // back-compat mirrors still emitted by the backend
   draft?: string;
   draft_version?: number;
@@ -119,10 +143,7 @@ const toolkit = defineToolkit({
   request_choice: {
     type: "backend",
     render: (props) => (
-      <ChoiceTool
-        args={props.args as ChoiceArgs}
-        result={props.result}
-      />
+      <ChoiceTool args={props.args as ChoiceArgs} result={props.result} />
     ),
   },
   browser_alert: {
@@ -174,42 +195,343 @@ const STATUS_LABEL: Record<string, string> = {
   empty: "No draft yet",
 };
 
+// A fixed, front-end-authored "something is happening" sequence. It is NOT
+// tied to which graph node runs — it just advances on a timer while a turn is
+// in flight and holds on the last phrase until the backend says it's done.
+const RITUAL_PHRASES = [
+  "Analyzing your message",
+  "Thinking it through",
+  "Working on the draft",
+  "Reviewing",
+  "Finishing up",
+];
+
+function ArtifactRitual() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setIndex(0);
+    const id = setInterval(() => {
+      setIndex((prev) => Math.min(prev + 1, RITUAL_PHRASES.length - 1));
+    }, 1400);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="artifact-ritual" aria-live="polite">
+      <span className="artifact-ritual-dot" />
+      <span>{RITUAL_PHRASES[index]}…</span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// version history (linear list + preview + branch-with-confirmation)
+// ---------------------------------------------------------------------------
+
+type HistoryValue = {
+  count: number;
+  versions: VersionItem[];
+  previewSeq: number | null; // null = viewing the live/head version
+  isPreviewing: boolean;
+  armedBase: number | null; // confirmed branch base, awaiting the next message
+  displaySeq: number;
+  step: (delta: number) => void;
+  goToLatest: () => void;
+  openBranchModal: () => void;
+};
+
+const HistoryContext = createContext<HistoryValue | null>(null);
+
+function useHistory(): HistoryValue {
+  const ctx = useContext(HistoryContext);
+  if (!ctx) throw new Error("useHistory used outside ArtifactHistoryProvider");
+  return ctx;
+}
+
+function ArtifactHistoryProvider({ children }: { children: ReactNode }) {
+  const aui = useAui();
+  const state = useAgUiState<SignalArtifact>();
+  const count = state?.head ?? 0;
+  const versions = useMemo(() => state?.versions ?? [], [state?.versions]);
+
+  const [previewSeq, setPreviewSeq] = useState<number | null>(null);
+  const [armedBase, setArmedBase] = useState<number | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const clearBranch = useRef(() => {});
+  clearBranch.current = () => {
+    setArmedBase(null);
+    try {
+      aui.composer.setRunConfig({});
+    } catch {
+      /* composer not ready */
+    }
+  };
+
+  // Any finished turn snaps the panel back to the latest version.
+  useAuiEvent("thread.runEnd", () => {
+    setPreviewSeq(null);
+    clearBranch.current();
+  });
+
+  // Switching threads resets history navigation.
+  useAuiEvent("threads.selectionChanged", () => {
+    setPreviewSeq(null);
+    clearBranch.current();
+  });
+
+  // Keep the preview pointer in range if the list shrank.
+  useEffect(() => {
+    if (previewSeq !== null && (previewSeq >= count || previewSeq < 1)) {
+      setPreviewSeq(null);
+    }
+  }, [count, previewSeq]);
+
+  const value = useMemo<HistoryValue>(() => {
+    const displaySeq = previewSeq ?? count;
+    return {
+      count,
+      versions,
+      previewSeq,
+      isPreviewing: previewSeq !== null && previewSeq < count,
+      armedBase,
+      displaySeq,
+      step: (delta) => {
+        clearBranch.current();
+        setPreviewSeq((prev) => {
+          const current = prev ?? count;
+          const next = Math.min(Math.max(current + delta, 1), count);
+          return next >= count ? null : next;
+        });
+      },
+      goToLatest: () => {
+        clearBranch.current();
+        setPreviewSeq(null);
+      },
+      openBranchModal: () => setModalOpen(true),
+    };
+  }, [count, versions, previewSeq, armedBase]);
+
+  const base = previewSeq ?? count;
+
+  return (
+    <HistoryContext.Provider value={value}>
+      {children}
+      {modalOpen ? (
+        <OverwriteModal
+          base={base}
+          count={count}
+          onCancel={() => setModalOpen(false)}
+          onConfirm={() => {
+            setModalOpen(false);
+            setArmedBase(base);
+            try {
+              aui.composer.setRunConfig({ custom: { base_version: base } });
+            } catch {
+              /* composer not ready */
+            }
+          }}
+        />
+      ) : null}
+    </HistoryContext.Provider>
+  );
+}
+
+function OverwriteModal({
+  base,
+  count,
+  onCancel,
+  onConfirm,
+}: {
+  base: number;
+  count: number;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const discarded =
+    count - base === 1 ? `v${base + 1}` : `v${base + 1}–v${count}`;
+
+  return (
+    <div
+      className="overwrite-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      onClick={onCancel}
+    >
+      <div className="overwrite-modal-card" onClick={(e) => e.stopPropagation()}>
+        <h3>Continue from v{base}?</h3>
+        <p>
+          {discarded} will be discarded. Your next message creates a new v
+          {base + 1} from v{base}.
+        </p>
+        <div className="overwrite-modal-actions">
+          <button type="button" className="overwrite-modal-cancel" onClick={onCancel}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="overwrite-modal-confirm"
+            onClick={onConfirm}
+          >
+            Continue from v{base}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VersionNav() {
+  const history = useHistory();
+  if (history.count < 1) return null;
+
+  return (
+    <div className="version-nav">
+      <button
+        type="button"
+        onClick={() => history.step(-1)}
+        disabled={history.displaySeq <= 1}
+        aria-label="Older version"
+      >
+        ‹
+      </button>
+      <span className="version-nav-label">
+        v{history.displaySeq}
+        <span className="version-nav-total"> / v{history.count}</span>
+      </span>
+      <button
+        type="button"
+        onClick={() => history.step(1)}
+        disabled={history.displaySeq >= history.count}
+        aria-label="Newer version"
+      >
+        ›
+      </button>
+    </div>
+  );
+}
+
+function PreviewBanner() {
+  const history = useHistory();
+  if (!history.isPreviewing) return null;
+  const seq = history.previewSeq as number;
+
+  if (history.armedBase !== null) {
+    return (
+      <div className="artifact-preview-banner is-armed">
+        <span>
+          Editing from v{seq} — your next message creates v{seq + 1}.
+        </span>
+        <button type="button" onClick={() => history.goToLatest()}>
+          Cancel
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="artifact-preview-banner">
+      <span>
+        Viewing v{seq} of {history.count} · read-only
+      </span>
+      <span className="artifact-preview-banner-actions">
+        <button type="button" onClick={() => history.openBranchModal()}>
+          Edit from v{seq}
+        </button>
+        <button type="button" onClick={() => history.goToLatest()}>
+          Back to latest
+        </button>
+      </span>
+    </div>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <button
+      type="button"
+      className="artifact-copy-btn"
+      disabled={!text}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch {
+          /* clipboard unavailable */
+        }
+      }}
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
 function ArtifactPanel() {
   const state = useAgUiState<SignalArtifact>();
+  const history = useHistory();
   const processing = Boolean(state?.processing);
-  const body = state?.body ?? state?.draft ?? "";
-  const angles = state?.angles ?? [];
-  const outline = state?.outline ?? [];
-  const openQuestions = state?.open_questions ?? [];
-  const version = state?.version ?? state?.draft_version ?? 0;
-  const kind = state?.kind ?? (body ? "draft" : outline.length ? "outline" : "idea_board");
+  const previewing = history.isPreviewing;
+
+  // While previewing a past version, everything is drawn from that snapshot.
+  const preview = previewing
+    ? history.versions[(history.previewSeq as number) - 1]
+    : undefined;
+
+  const body = preview
+    ? preview.body ?? ""
+    : state?.body ?? state?.draft ?? "";
+  const angles = preview ? preview.angles ?? [] : state?.angles ?? [];
+  const outline = preview ? preview.outline ?? [] : state?.outline ?? [];
+  const openQuestions = preview
+    ? preview.open_questions ?? []
+    : state?.open_questions ?? [];
+  const title = preview ? preview.title : state?.title;
+  const kind =
+    (preview?.kind as SignalArtifact["kind"]) ??
+    state?.kind ??
+    (body ? "draft" : outline.length ? "outline" : "idea_board");
 
   const isOpen = Boolean(
-    processing || body || angles.length || outline.length || version,
+    processing || body || angles.length || outline.length || history.count,
   );
   if (!isOpen) {
     return null;
   }
 
   const hasContent = Boolean(body || outline.length || angles.length);
+  const showRitual = processing && !previewing;
 
   return (
-    <aside className={cn("artifact-panel", processing && "is-loading")}>
+    <aside
+      className={cn(
+        "artifact-panel",
+        showRitual && "is-loading",
+        previewing && "is-previewing",
+      )}
+    >
       <div className="artifact-header">
-        <div>
-          <p className="artifact-kicker">Live artifact</p>
-          <h2>{state?.title || KIND_TITLE[kind] || "Draft"}</h2>
-        </div>
-        {version ? <span className="artifact-version">v{version}</span> : null}
+        <h2>{title || KIND_TITLE[kind ?? "draft"] || "Draft"}</h2>
+        <VersionNav />
       </div>
 
-      <div className="artifact-progressbar" aria-hidden={!processing} data-active={processing} />
+      <div
+        className="artifact-progressbar"
+        aria-hidden={!showRitual}
+        data-active={showRitual}
+      />
+
+      {showRitual ? <ArtifactRitual /> : null}
+      <PreviewBanner />
 
       <div className="artifact-body">
         {body ? (
           <div className="artifact-copy">
             {body}
-            {processing ? <span className="artifact-caret" /> : null}
+            {showRitual ? <span className="artifact-caret" /> : null}
           </div>
         ) : outline.length ? (
           <ol className="artifact-outline">
@@ -223,7 +545,7 @@ function ArtifactPanel() {
               <li key={`${angle}-${index}`}>{angle}</li>
             ))}
           </ul>
-        ) : processing ? (
+        ) : showRitual ? (
           <div className="artifact-skeleton">
             <Skeleton className="h-4 w-11/12" />
             <Skeleton className="h-4 w-4/5" />
@@ -254,14 +576,15 @@ function ArtifactPanel() {
 
       <div className="artifact-footer">
         <span>
-          {processing
-            ? state?.progress?.label
-              ? `${state.progress.label}…`
-              : "Working…"
-            : hasContent
-              ? STATUS_LABEL[state?.status ?? ""] ?? "Draft in progress"
-              : "No draft yet"}
+          {previewing
+            ? `Version ${history.previewSeq} of ${history.count}`
+            : processing
+              ? "Working…"
+              : hasContent
+                ? STATUS_LABEL[state?.status ?? ""] ?? "Draft in progress"
+                : "No draft yet"}
         </span>
+        <CopyButton text={body} />
       </div>
     </aside>
   );
@@ -363,14 +686,16 @@ export default function AppPage() {
 
   return (
     <AuiProvider extends={aui} config={config}>
-      <main className="app-workspace">
-        <section className="app-chat">
-          <EnvironmentBadge />
-          <TopRightControls />
-          <Thread />
-        </section>
-        <ArtifactPanel />
-      </main>
+      <ArtifactHistoryProvider>
+        <main className="app-workspace">
+          <section className="app-chat">
+            <EnvironmentBadge />
+            <TopRightControls />
+            <Thread />
+          </section>
+          <ArtifactPanel />
+        </main>
+      </ArtifactHistoryProvider>
     </AuiProvider>
   );
 }

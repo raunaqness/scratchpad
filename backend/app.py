@@ -49,6 +49,13 @@ from backend.prompts import (
 )
 from backend.signal_models import TurnPlan
 from backend.textutil import dedupe, enforce_max_words, max_words, word_count
+from backend.versions import (
+    append_version,
+    artifact_changed,
+    load_versions,
+    replace_versions,
+    version_items,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -569,6 +576,7 @@ async def astream_conversation(
     conversation_id: str,
     user_message: str,
     client_artifact: dict[str, Any] | None = None,
+    base_version: int | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """Run one turn, yielding normalized events:
 
@@ -576,7 +584,12 @@ async def astream_conversation(
     ``{"type": "reply", "delta": "..."}``
     ``{"type": "ui_choice", "id", "question", "options": [{"id", "label"}]}``
     ``{"type": "status", "status": "...", "node": "..."}``
-    ``{"type": "final", "assistant_message", "artifact", "status", "plan"}``
+    ``{"type": "final", "assistant_message", "artifact", "status", "plan",
+       "versions", "head"}``
+
+    ``base_version`` (1-based) is the version the client was previewing when it
+    sent. If it points before the tip, the run continues from that snapshot and
+    every later version is discarded.
     """
 
     if not user_message.strip():
@@ -584,6 +597,10 @@ async def astream_conversation(
 
     settings.db_path.parent.mkdir(parents=True, exist_ok=True)
     memory = load_memory(user_id)
+
+    versions = await load_versions(conversation_id)
+    branching = base_version is not None and 1 <= base_version < len(versions)
+    base_artifact = versions[base_version - 1]["artifact"] if branching else None
 
     async with AsyncSqliteSaver.from_conn_string(str(settings.db_path)) as checkpointer:
         graph = _compile(checkpointer)
@@ -594,15 +611,17 @@ async def astream_conversation(
         turns = list(prior_values.get("turns", []))
         turns.append({"role": "user", "content": user_message})
 
+        seed_artifact = base_artifact if branching else prior_values.get("artifact", {})
+
         graph_input: SignalState = {
             "user_id": user_id,
             "conversation_id": conversation_id,
             "user_message": user_message,
-            "client_artifact": client_artifact or {},
+            "client_artifact": {} if branching else (client_artifact or {}),
             "memory": memory,
             "turns": turns,
             "summary": prior_values.get("summary", ""),
-            "artifact": prior_values.get("artifact", {}),
+            "artifact": seed_artifact or {},
             "trajectory": prior_values.get("trajectory", []),
         }
 
@@ -625,13 +644,29 @@ async def astream_conversation(
         values = final.values if final else {}
 
     save_memory(user_id, values.get("plan", {}), values.get("artifact", {}))
+
+    new_artifact = values.get("artifact", {})
+    prev_artifact = (
+        base_artifact if branching else (versions[-1]["artifact"] if versions else {})
+    )
+    if artifact_changed(prev_artifact, new_artifact):
+        versions = append_version(
+            versions,
+            new_artifact,
+            user_message,
+            base_seq=base_version if branching else None,
+        )
+        await replace_versions(conversation_id, versions)
+
     yield {
         "type": "final",
         "assistant_message": values.get("assistant_message", ""),
-        "artifact": values.get("artifact", {}),
+        "artifact": new_artifact,
         "status": values.get("status", ""),
         "plan": values.get("plan", {}),
         "trajectory": values.get("trajectory", []),
+        "versions": version_items(versions),
+        "head": len(versions),
     }
 
 
@@ -641,6 +676,7 @@ def run_conversation(
     conversation_id: str,
     user_message: str,
     client_artifact: dict[str, Any] | None = None,
+    base_version: int | None = None,
 ) -> dict[str, Any]:
     """Synchronous one-turn entry point (CLI + deterministic tests)."""
 
@@ -651,6 +687,7 @@ def run_conversation(
             conversation_id=conversation_id,
             user_message=user_message,
             client_artifact=client_artifact,
+            base_version=base_version,
         ):
             if event["type"] == "final":
                 final = event
@@ -668,6 +705,8 @@ def run_conversation(
         "mode": plan.get("mode"),
         "pending_question": plan.get("clarifying_question"),
         "trajectory": final.get("trajectory", []),
+        "versions": final.get("versions", []),
+        "head": final.get("head", 0),
     }
 
 

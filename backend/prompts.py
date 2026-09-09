@@ -230,7 +230,9 @@ connective tissue — while keeping it as working notes, not a finished piece.
 {GROUNDING_CONTRACT}
 
 # Output
-Return only the updated scratchpad body (markdown). No preamble.
+Return the updated scratchpad body as plain markdown text and nothing else — no
+preamble, no trailing notes. Do NOT wrap it in a code fence. Do NOT return JSON
+or any `{{...}}` object; just the prose.
 """
 
 TIGHTEN_SYSTEM_PROMPT = f"""\
@@ -246,7 +248,8 @@ else.
 - Keep `[TK: ...]` and `[assumption]` markers unless the instruction removes them.
 
 # Output
-Return only the edited scratchpad body.
+Return the edited scratchpad body as plain markdown text and nothing else. Do
+NOT wrap it in a code fence. Do NOT return JSON or a `{{...}}` object.
 
 {_skill_notes("grounded-editing")}
 """
@@ -310,7 +313,9 @@ from the scratchpad — nothing else.
 {grounding}
 
 # Output
-Return only the {name_lower}. No preamble, no notes about your process.
+Return only the {name_lower} as plain markdown text — no preamble, no notes about
+your process. Do NOT wrap it in a code fence. Do NOT return JSON or a `{{...}}`
+object.
 """
 
 

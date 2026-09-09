@@ -1,9 +1,11 @@
 deepeval
+langchain
 langchain-openai
 langgraph
 langgraph-checkpoint-sqlite
 aiosqlite
 langsmith
+langfuse>=3,<4
 pydantic
 pydantic-settings
 python-dotenv

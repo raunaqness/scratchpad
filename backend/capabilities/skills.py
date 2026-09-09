@@ -8,12 +8,12 @@ artifact body token-by-token; the graph's ``build`` node collects it into a
 
 from __future__ import annotations
 
-import json
 from collections.abc import Iterator
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from backend.capabilities.writing import render_scratchpad
 from backend.llm import get_chat_model
 from backend.prompts import skill_system_prompt
 from backend.skills.registry import Skill
@@ -34,13 +34,17 @@ def run_skill(
     """Stream the derived artifact body for ``skill`` from a scratchpad snapshot."""
 
     model = get_chat_model(streaming=True, tags=["signal:skill", f"skill:{skill.id}"])
-    payload = {
-        "scratchpad": scratchpad_snapshot(scratchpad),
-        "hints": {k: v for k, v in (hints or {}).items() if v},
-    }
+    human = render_scratchpad(scratchpad_snapshot(scratchpad))
+    live_hints = {k: v for k, v in (hints or {}).items() if v}
+    if live_hints:
+        human += "\n\nHINTS:\n" + "\n".join(f"- {k}: {v}" for k, v in live_hints.items())
+    human += (
+        f"\n\nProduce the {skill.name.lower()} as plain markdown — no JSON, no "
+        "code fence, no preamble."
+    )
     messages = [
         SystemMessage(content=skill_system_prompt(skill.id)),
-        HumanMessage(content=json.dumps(payload, ensure_ascii=False, indent=2)),
+        HumanMessage(content=human),
     ]
     for chunk in model.stream(messages):
         content = getattr(chunk, "content", chunk)

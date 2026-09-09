@@ -61,6 +61,36 @@ class Settings(BaseSettings):
         default="https://api.smith.langchain.com", alias="LANGSMITH_ENDPOINT"
     )
 
+    # Langfuse: one trace per turn, grouped by thread (session) and Google user.
+    langfuse_enabled: bool = Field(default=False, alias="LANGFUSE_ENABLED")
+    langfuse_public_key: str = Field(default="", alias="LANGFUSE_PUBLIC_KEY")
+    langfuse_secret_key: str = Field(default="", alias="LANGFUSE_SECRET_KEY")
+    langfuse_host: str = Field(
+        default="https://cloud.langfuse.com", alias="LANGFUSE_BASE_URL"
+    )
+    # When false, prompts/completions are masked before they leave the process.
+    langfuse_trace_content: bool = Field(default=True, alias="LANGFUSE_TRACE_CONTENT")
+
+    # --- Auth (Google OAuth lives in the Next.js BFF) ----------------------
+    # The backend never speaks to Google; it only trusts the identity the Next
+    # proxy injects, gated by a shared secret so the public port can't be spoofed.
+    google_auth_enabled: bool = Field(default=False, alias="GOOGLE_AUTH_ENABLED")
+    session_secret: str = Field(default="", alias="SIGNAL_SESSION_SECRET")
+
+    @property
+    def langfuse_ready(self) -> bool:
+        return bool(
+            self.langfuse_enabled
+            and self.langfuse_public_key
+            and self.langfuse_secret_key
+        )
+
+    @property
+    def proxy_shared_secret(self) -> str:
+        """Secret the Next proxy must present on /agent and /api/* calls."""
+
+        return self.session_secret
+
     # --- Web adapter --------------------------------------------------------
     agent_port: int = Field(default=8001, alias="SIGNAL_AGENT_PORT")
     cors_origins: str = Field(

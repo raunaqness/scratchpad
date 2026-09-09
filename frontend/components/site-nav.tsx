@@ -2,6 +2,7 @@
 
 import { Moon, Sun } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const THEME_KEY = "signal-theme";
@@ -15,8 +16,63 @@ function getInitialTheme(): "light" | "dark" {
     : "light";
 }
 
+type MeState =
+  | { status: "loading" }
+  | { status: "anon" }
+  | { status: "authed"; name: string; disabled: boolean };
+
+function useMe(): MeState {
+  const [state, setState] = useState<MeState>({ status: "loading" });
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!alive) return;
+        const user = data?.user;
+        if (user?.sub) {
+          setState({
+            status: "authed",
+            name: user.name || user.email || "Account",
+            disabled: Boolean(data.auth_disabled),
+          });
+        } else {
+          setState({ status: "anon" });
+        }
+      })
+      .catch(() => alive && setState({ status: "anon" }));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return state;
+}
+
+function AuthNav() {
+  const me = useMe();
+  if (me.status === "loading") return null;
+  if (me.status === "authed") {
+    if (me.disabled) return null; // local dev — nothing to sign out of
+    return (
+      <span className="site-nav-user">
+        <span className="site-nav-user-name">{me.name}</span>
+        <a className="site-nav-link" href="/api/auth/logout">
+          Sign out
+        </a>
+      </span>
+    );
+  }
+  return (
+    <a className="site-nav-link" href="/api/auth/login">
+      Sign in
+    </a>
+  );
+}
+
 export function SiteNav() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const pathname = usePathname();
+  const inApp = pathname?.startsWith("/app") ?? false;
 
   useEffect(() => {
     const initialTheme = getInitialTheme();
@@ -41,6 +97,7 @@ export function SiteNav() {
         <Link href="/about" className="site-nav-link">
           About
         </Link>
+        {!inApp ? <AuthNav /> : null}
         <button
           type="button"
           className="theme-toggle"

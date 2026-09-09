@@ -1,5 +1,19 @@
+# Dev deployment. Cloudflare routes dev-scratchpad.raunaqness.com to
+# http://scratchpad-test-frontend:5173 on the shared `tvbox_default` network,
+# so the service names below ARE the hostnames the tunnel resolves.
+#
+#   docker compose -f docker-compose.test.yml up -d --build
+#
+name: scratchpad-test
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
-  signal-test-backend:
+  scratchpad-test-backend:
     build:
       context: .
       dockerfile: Dockerfile
@@ -7,12 +21,13 @@ services:
       - .env
     environment:
       SIGNAL_DATA_DIR: /app/data
+    logging: *default-logging
     networks:
-      - signal-test-network
+      - scratchpad-test-network
     ports:
       - "8002:8001"
     volumes:
-      - signal-test-data:/app/data
+      - scratchpad-test-data:/app/data
     healthcheck:
       test:
         [
@@ -25,28 +40,36 @@ services:
       timeout: 5s
       retries: 5
 
-  signal-test-frontend:
+  scratchpad-test-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_AGUI_AGENT_URL: /agent
+        NEXT_PUBLIC_AGUI_AGENT_URL: /api/agent
         NEXT_PUBLIC_APP_ENV: development
-        SIGNAL_BACKEND_URL: http://signal-test-backend:8001
+        SIGNAL_BACKEND_URL: http://scratchpad-test-backend:8001
+    env_file:
+      - .env
+    environment:
+      # The BFF reaches the backend by its service name on the private network.
+      SIGNAL_BACKEND_URL: http://scratchpad-test-backend:8001
+      # This deployment's public origin — overrides the prod value in .env.
+      GOOGLE_REDIRECT_URI: https://dev-scratchpad.raunaqness.com/api/auth/callback
+    logging: *default-logging
     depends_on:
-      signal-test-backend:
+      scratchpad-test-backend:
         condition: service_healthy
     networks:
-      - signal-test-network
+      - scratchpad-test-network
       - tvbox_default
     ports:
       - "5174:5173"
 
 volumes:
-  signal-test-data:
+  scratchpad-test-data:
 
 networks:
-  signal-test-network:
-    name: signal-test-network
+  scratchpad-test-network:
+    name: scratchpad-test-network
   tvbox_default:
     external: true

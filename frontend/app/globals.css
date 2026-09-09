@@ -308,40 +308,146 @@ body:has(.app-workspace) {
   margin-top: 0.85rem;
 }
 
-.landing-details {
-  border-top: 1px solid var(--border);
-  display: grid;
-  gap: 2rem;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  margin-top: clamp(6rem, 15vw, 12rem);
-  padding-top: 1.4rem;
+.landing-cta-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 2rem;
 }
 
-.detail-heading h2 {
+.landing-cta-row .primary-action {
+  margin-top: 0;
+}
+
+.landing-cta-row .text-action {
+  margin-top: 0;
+}
+
+/* shared block scaffold ------------------------------------------------- */
+.landing-block {
+  border-top: 1px solid var(--border);
+  margin-top: clamp(5rem, 12vw, 9rem);
+  padding-top: 2.5rem;
+}
+
+.landing-block-head {
+  max-width: 40rem;
+}
+
+.landing-block-head h2 {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  font-size: clamp(1.9rem, 3.4vw, 2.9rem);
   font-weight: 400;
   letter-spacing: -0.05em;
-  line-height: 1;
-  margin-top: 1.25rem;
-  max-width: 12ch;
+  line-height: 1.05;
+  margin-top: 1.1rem;
 }
 
-.detail-list {
-  border-left: 1px solid var(--border);
-  padding-left: 2rem;
+/* what you can do — card grid ---------------------------------------------- */
+.capability-grid {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 3rem;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
-.detail-item {
-  align-items: center;
-  border-bottom: 1px solid var(--border);
+.capability-card {
+  background: var(--background);
   display: flex;
-  gap: 0.8rem;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.75rem 1.5rem;
+}
+
+.capability-card svg {
+  color: var(--primary);
+}
+
+.capability-card h3 {
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.capability-card p {
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+/* how it works — numbered steps ------------------------------------------ */
+.step-list {
+  display: grid;
+  gap: 2.25rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 3rem;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.step-num {
+  color: var(--primary);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.4rem;
+  opacity: 0.55;
+}
+
+.step h3 {
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.step p {
+  color: var(--muted-foreground);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+/* who it's for ---------------------------------------------------------- */
+.audience-list {
+  border-top: 1px solid var(--border);
+  margin-top: 2.5rem;
+}
+
+.audience-list li {
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+  font-size: 1.05rem;
   padding: 1.15rem 0;
 }
 
-.detail-item svg {
-  color: var(--primary);
+/* closing call to action --------------------------------------------------- */
+.landing-closer {
+  align-items: flex-start;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  margin-top: clamp(5rem, 12vw, 9rem);
+  padding-top: 3rem;
+}
+
+.landing-closer h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  line-height: 1.02;
+  max-width: 20ch;
+}
+
+.landing-closer .primary-action {
+  margin-top: 0;
 }
 
 .simple-page {
@@ -372,18 +478,21 @@ body:has(.app-workspace) {
   margin-top: 1.25rem;
 }
 
+@media (max-width: 960px) {
+  .capability-grid,
+  .step-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 640px) {
   .landing-page {
     padding-top: 5rem;
   }
 
-  .landing-details {
+  .capability-grid,
+  .step-list {
     grid-template-columns: 1fr;
-  }
-
-  .detail-list {
-    border-left: 0;
-    padding-left: 0;
   }
 }
 
@@ -444,10 +553,166 @@ body:has(.app-workspace) {
   padding: 0.5rem clamp(0.75rem, 3vw, 1.25rem);
 }
 
+.chat-bar-left,
 .chat-bar-right {
   align-items: center;
   display: flex;
   gap: 0.5rem;
+  min-width: 0;
+}
+
+.chat-bar-user {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.chat-bar-user-avatar {
+  border-radius: 999px;
+  flex: 0 0 auto;
+  height: 1.5rem;
+  object-fit: cover;
+  width: 1.5rem;
+}
+
+.chat-bar-user-avatar-fallback {
+  align-items: center;
+  background: var(--accent);
+  color: var(--foreground);
+  display: flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  justify-content: center;
+}
+
+.chat-bar-user-name {
+  color: var(--foreground);
+  font-size: 0.82rem;
+  font-weight: 550;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-bar-signout {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.chat-bar-signout:hover {
+  color: var(--foreground);
+}
+
+/* auth gate + splash */
+.auth-splash {
+  align-items: center;
+  color: var(--muted-foreground);
+  display: flex;
+  font-size: 0.9rem;
+  height: 100%;
+  justify-content: center;
+  width: 100%;
+}
+
+.auth-gate {
+  align-items: center;
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  padding: 2rem;
+  width: 100%;
+}
+
+.auth-gate-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 22rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.auth-gate-mark {
+  align-items: center;
+  align-self: center;
+  background: var(--foreground);
+  border-radius: 0.75rem;
+  color: var(--background);
+  display: flex;
+  font-weight: 800;
+  height: 2.5rem;
+  justify-content: center;
+  width: 2.5rem;
+}
+
+.auth-gate-card h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.auth-gate-card p {
+  color: var(--muted-foreground);
+  font-size: 0.88rem;
+}
+
+.auth-gate-btn {
+  align-items: center;
+  background: var(--foreground);
+  border-radius: 0.6rem;
+  color: var(--background);
+  display: flex;
+  font-size: 0.9rem;
+  font-weight: 600;
+  justify-content: center;
+  margin-top: 0.5rem;
+  padding: 0.6rem 1rem;
+}
+
+.auth-gate-btn:hover {
+  opacity: 0.9;
+}
+
+.auth-gate-error {
+  background: color-mix(in srgb, #b91c1c 12%, transparent);
+  border: 1px solid color-mix(in srgb, #b91c1c 40%, transparent);
+  border-radius: 0.5rem;
+  color: #b91c1c;
+  font-size: 0.82rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.auth-gate-back {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-gate-back:hover {
+  color: var(--foreground);
+}
+
+.site-nav-user {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.site-nav-user-name {
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chat-bar-dev {

@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   backend:
     build:
@@ -7,6 +13,7 @@ services:
       - .env
     environment:
       SIGNAL_DATA_DIR: /app/data
+    logging: *default-logging
     networks:
       - signal-network
     ports:
@@ -30,8 +37,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_AGUI_AGENT_URL: /agent
+        NEXT_PUBLIC_AGUI_AGENT_URL: /api/agent
         NEXT_PUBLIC_APP_ENV: development
+    env_file:
+      - .env
+    environment:
+      SIGNAL_BACKEND_URL: http://backend:8001
+    logging: *default-logging
     depends_on:
       backend:
         condition: service_healthy

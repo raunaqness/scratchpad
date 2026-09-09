@@ -35,6 +35,38 @@ def _json(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
+def _bullets(label: str, items: Any) -> str:
+    values = [str(v).strip() for v in (items or []) if str(v).strip()]
+    if not values:
+        return ""
+    return label + "\n" + "\n".join(f"- {v}" for v in values)
+
+
+def render_scratchpad(scratchpad: dict[str, Any]) -> str:
+    """A plain, labelled text view of the scratchpad for a prompt.
+
+    Deliberately NOT JSON: handing the model a JSON object invites it to reply
+    with one, which then lands as raw JSON in the artifact panel.
+    """
+
+    sp = scratchpad or {}
+    sections = []
+    if sp.get("topic"):
+        sections.append(f"SUBJECT: {sp['topic']}")
+    if sp.get("product_mode"):
+        sections.append(f"PRODUCT MODE: {sp['product_mode']}")
+    sections.append("CURRENT BODY:\n" + ((sp.get("body") or "").strip() or "(empty)"))
+    for chunk in (
+        _bullets("CONFIRMED FACTS (only these are verified):", sp.get("sources")),
+        _bullets("OPEN QUESTIONS (unconfirmed — do not state as fact):", sp.get("open_questions")),
+        _bullets("ANGLES ON THE BOARD:", sp.get("angles")),
+        _bullets("OUTLINE:", sp.get("outline")),
+    ):
+        if chunk:
+            sections.append(chunk)
+    return "\n\n".join(sections)
+
+
 # --- brainstorm --------------------------------------------------------------
 
 def brainstorm(brief: dict[str, Any]) -> dict[str, Any]:
@@ -68,13 +100,15 @@ def expand(scratchpad: dict[str, Any], instruction: str) -> Iterator[str]:
     """Stream a developed version of the scratchpad body."""
 
     model = get_chat_model(streaming=True, tags=["signal:expand"])
-    payload = {
-        "instruction": instruction or "develop the notes further",
-        "scratchpad": scratchpad,
-    }
+    human = (
+        f"{render_scratchpad(scratchpad)}\n\n"
+        f"INSTRUCTION: {instruction or 'develop the notes further'}\n\n"
+        "Return the developed body as plain markdown prose — no JSON, no code "
+        "fence, no preamble."
+    )
     messages = [
         SystemMessage(content=EXPAND_SYSTEM_PROMPT),
-        HumanMessage(content=_json(payload)),
+        HumanMessage(content=human),
     ]
     for chunk in model.stream(messages):
         piece = _text(chunk)
@@ -86,15 +120,15 @@ def tighten(scratchpad: dict[str, Any], instruction: str) -> Iterator[str]:
     """Stream an edited version of the scratchpad body."""
 
     model = get_chat_model(streaming=True, tags=["signal:tighten"])
-    payload = {
-        "instruction": instruction or "tighten it",
-        "current_body": scratchpad.get("body", ""),
-        "sources": scratchpad.get("sources", []),
-        "open_questions": scratchpad.get("open_questions", []),
-    }
+    human = (
+        f"{render_scratchpad(scratchpad)}\n\n"
+        f"EDIT: {instruction or 'tighten it'}\n\n"
+        "Return the edited body as plain markdown prose — no JSON, no code "
+        "fence, no preamble."
+    )
     messages = [
         SystemMessage(content=TIGHTEN_SYSTEM_PROMPT),
-        HumanMessage(content=_json(payload)),
+        HumanMessage(content=human),
     ]
     for chunk in model.stream(messages):
         piece = _text(chunk)

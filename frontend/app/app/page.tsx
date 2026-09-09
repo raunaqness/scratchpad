@@ -24,6 +24,7 @@ import { Check, PlusIcon } from "lucide-react";
 import { Thread } from "@/components/assistant-ui/elements/thread.aui";
 import { MarkdownPreview } from "@/components/markdown-preview";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/app/auth-context";
 import { cn } from "@/lib/utils";
 
 type ChoiceOption = { id: string; label: string };
@@ -730,11 +731,40 @@ function EnvBadge() {
   );
 }
 
+function UserChip() {
+  const auth = useAuth();
+  if (auth.status !== "authed") return null;
+  const { user, authDisabled } = auth;
+  const label = user.name || user.email || "Account";
+  const initial = label.slice(0, 1).toUpperCase();
+  return (
+    <div className="chat-bar-user" title={user.email || label}>
+      {user.picture ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="chat-bar-user-avatar" src={user.picture} alt="" />
+      ) : (
+        <span className="chat-bar-user-avatar chat-bar-user-avatar-fallback">
+          {initial}
+        </span>
+      )}
+      <span className="chat-bar-user-name">{label}</span>
+      {!authDisabled ? (
+        <a className="chat-bar-signout" href="/api/auth/logout">
+          Sign out
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
 /** Persistent bar across the top of the chat pane — never overlaps messages. */
 function ChatBar() {
   return (
     <div className="chat-bar">
-      <EnvBadge />
+      <div className="chat-bar-left">
+        <EnvBadge />
+        <UserChip />
+      </div>
       <div className="chat-bar-right">
         <ProgressChip />
         <NewThreadButton />

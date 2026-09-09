@@ -91,6 +91,44 @@ def test_expand_develops_the_body_and_flags_claims(isolated_state, install_model
     assert result["head"] == 2
 
 
+def test_expand_unwraps_a_json_or_fenced_model_reply(isolated_state, install_models):
+    # A model that answers with a ```json envelope instead of plain markdown
+    # must not leave raw JSON in the scratchpad body.
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="note"),
+            expanded='```json\n{"body": "# Cold starts\\n\\nReal developed prose."}\n```',
+            grounding=[],
+        )
+    )
+    _note(script, "cold starts idea", cid="jw")
+
+    script.plan = TurnPlan(mode="expand")
+    result = _run("flesh this out", conversation_id="jw")
+
+    body = result["scratchpad"]["body"]
+    assert body == "# Cold starts\n\nReal developed prose."
+    assert "{" not in body and "```" not in body
+
+
+def test_build_unwraps_a_fenced_skill_reply(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="note"),
+            skill_output='```markdown\n# Outline\n\n- one\n- two\n```',
+            grounding=[],
+        )
+    )
+    _note(script, "some notes to build from", cid="jb")
+
+    script.plan = TurnPlan(mode="build", skill_id="blog_outline")
+    result = _run("turn this into a blog outline", conversation_id="jb")
+
+    tab = result["derived"][-1]
+    assert tab["body"] == "# Outline\n\n- one\n- two"
+    assert "```" not in tab["body"]
+
+
 def test_tighten_edits_the_existing_body(isolated_state, install_models):
     script = install_models(
         FakeModelScript(plan=TurnPlan(mode="note"), tightened="Cold starts kill flow. Fixed.")

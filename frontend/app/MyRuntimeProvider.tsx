@@ -8,36 +8,104 @@ import {
 import { HttpAgent } from "@ag-ui/client";
 import { useAgUiRuntime } from "@assistant-ui/react-ag-ui";
 
+import { AuthProvider, useAuth, type AuthUser } from "@/app/auth-context";
+
 type StoredThread = {
   id: string;
   messages: readonly ThreadMessage[];
 };
 
 /**
- * AG-UI runtime with threadList adapter for multi-thread support.
+ * AG-UI runtime, gated on a Google session. Threads are keyed per user and
+ * persisted in `localStorage`, so a refresh resumes the same conversation and
+ * "New Thread" is the only thing that starts a fresh one. The backend registers
+ * each thread on its first turn.
  */
 export function MyRuntimeProvider({
   children,
 }: Readonly<{ children: ReactNode }>) {
+  return (
+    <AuthProvider>
+      <RuntimeGate>{children}</RuntimeGate>
+    </AuthProvider>
+  );
+}
+
+function RuntimeGate({ children }: { children: ReactNode }) {
+  const auth = useAuth();
+
+  // The proxy gate catches the no-cookie case server-side; this only fires for
+  // a cookie that turned out to be invalid or expired.
+  useEffect(() => {
+    if (auth.status === "anon") {
+      window.location.href = "/login?returnTo=/app";
+    }
+  }, [auth.status]);
+
+  if (auth.status === "loading") {
+    return <div className="auth-splash">Loading…</div>;
+  }
+  if (auth.status === "anon") {
+    return <div className="auth-splash">Redirecting to sign in…</div>;
+  }
+  return <RuntimeInner user={auth.user}>{children}</RuntimeInner>;
+}
+
+function newThreadId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `t-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function RuntimeInner({
+  user,
+  children,
+}: {
+  user: AuthUser;
+  children: ReactNode;
+}) {
   const agentUrl =
     (process.env.NEXT_PUBLIC_AGUI_AGENT_URL as string | undefined) ??
-    "http://localhost:8000/agent";
+    "/api/agent";
+  const storageKey = `scratchpad.thread.${user.sub}`;
 
-  // Simple in-memory thread storage
   const threadsRef = useRef<Map<string, StoredThread>>(new Map());
   const [currentThreadId, setCurrentThreadId] = useState<string>(() => {
-    const id = crypto.randomUUID();
-    threadsRef.current.set(id, { id, messages: [] });
-    return id;
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage.getItem(storageKey);
+      if (saved) return saved;
+    }
+    return newThreadId();
   });
+
+  // Persist the active thread id and register it with the backend registry.
+  useEffect(() => {
+    if (!threadsRef.current.has(currentThreadId)) {
+      threadsRef.current.set(currentThreadId, {
+        id: currentThreadId,
+        messages: [],
+      });
+    }
+    try {
+      window.localStorage.setItem(storageKey, currentThreadId);
+    } catch {
+      /* storage unavailable */
+    }
+    fetch("/api/threads", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ thread_id: currentThreadId }),
+    }).catch(() => {
+      /* registry is best-effort */
+    });
+  }, [currentThreadId, storageKey]);
 
   const agent = useMemo(() => {
     return new HttpAgent({
       url: agentUrl,
       threadId: currentThreadId,
-      headers: {
-        Accept: "text/event-stream",
-      },
+      headers: { Accept: "text/event-stream" },
     });
   }, [agentUrl, currentThreadId]);
 
@@ -45,10 +113,10 @@ export function MyRuntimeProvider({
     () => ({
       threadId: currentThreadId,
       onSwitchToNewThread: async () => {
-        const newId = crypto.randomUUID();
-        threadsRef.current.set(newId, { id: newId, messages: [] });
-        setCurrentThreadId(newId);
-        console.debug("[agui] Switched to new thread:", newId);
+        const id = newThreadId();
+        threadsRef.current.set(id, { id, messages: [] });
+        setCurrentThreadId(id);
+        console.debug("[agui] Switched to new thread:", id);
       },
       onSwitchToThread: async (threadId: string) => {
         const thread = threadsRef.current.get(threadId);
@@ -74,7 +142,6 @@ export function MyRuntimeProvider({
     },
   });
 
-  // Persist messages to threadsRef when they change
   useEffect(() => {
     return runtime.thread.subscribe(() => {
       threadsRef.current.set(currentThreadId, {

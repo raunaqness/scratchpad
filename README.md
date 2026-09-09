@@ -1,10 +1,9 @@
 # Scratchpad
 
-> **Status:** mid-redesign. This README describes the target "Scratchpad"
-> architecture. Parts of it (the two-tier artifact, the skills registry, the
-> `build` flow) are being implemented; the version-history, streaming, and
-> agent-driven-UI machinery already exists and is being retargeted from the old
-> "Signal" content-piece model.
+> **Status:** the Scratchpad redesign is in place — the two-tier artifact, the
+> skills registry, the `build` flow, version history, streaming, agent-driven
+> UI, Google login, and Langfuse tracing all ship. (Env vars and the `signal.db`
+> filename keep their `SIGNAL_` prefix for now — see **Environment**.)
 
 Scratchpad is a **freeform thinking surface**. You jot down raw ideas about
 anything and rework them with an AI collaborator until the notes feel right.
@@ -141,7 +140,9 @@ Entry points in `backend/app.py`:
 | Safety | `backend/policy.py` + `backend/guardrails.json` (see **Guardrails**) |
 | Scratchpad history | `backend/versions.py` (linear list, table in `signal.db`, cap 50) |
 | Web | `backend/agent.py` — AG-UI / CopilotKit-compatible SSE |
-| Persistence | SQLite for threads + scratchpad versions, `data/memory/*.json` for per-user memory |
+| Auth | Google OAuth in the Next.js BFF (`frontend/app/api/auth/*`); backend trusts the injected `user_id`, gated by a shared secret |
+| Tracing | Langfuse — one trace per turn, session = thread, user = Google `sub` (`backend/tracing.py`) |
+| Persistence | SQLite for thread state + scratchpad versions + a per-user thread registry, `data/memory/*.json` for per-user memory |
 | Eval | pytest + DeepEval |
 
 ## Backend layout
@@ -156,6 +157,8 @@ backend/
   policy.py           deterministic guardrails
   versions.py         scratchpad version list
   guardrails.json     disallowed phrases, supported_skills, max_scratchpad_versions
+  tracing.py          Langfuse callback handler + per-turn session/user metadata
+  threads_store.py    per-user thread registry (table in signal.db)
   llm.py  config.py  memory_store.py  textutil.py  terminal_chat.py
   capabilities/
     writing.py        brainstorm / expand / tighten / critique / grounding (scratchpad-scoped)
@@ -246,6 +249,27 @@ is sent back as a normal user turn.
 (default `http://localhost:3000,http://localhost:5173`). For a containerized
 run, `docker compose up --build`.
 
+## Auth & tracing
+
+- **Google login** lives in the Next.js BFF: `GET /api/auth/login` → Google →
+  `GET /api/auth/callback` sets an httpOnly session-JWT cookie
+  (`SIGNAL_SESSION_SECRET`). `GET /api/auth/me` reports the current user;
+  `/api/auth/logout` clears it. The browser only ever talks to Next; the
+  `/api/agent` Route Handler reads the cookie, injects `forwarded_props.user_id`,
+  and stream-proxies to the backend with `x-signal-proxy-secret`. With
+  `GOOGLE_AUTH_ENABLED=true` the backend **rejects** any `/agent` or `/api/*`
+  call missing that secret; with it `false`, a `dev-user` is used and the gate is
+  skipped.
+- **Threads.** Each conversation keeps a stable `thread_id` (persisted in the
+  browser per user, registered in `conversation_threads` in `signal.db` on the
+  first turn). "New Thread" is the only way to start a fresh one.
+- **Langfuse.** When `LANGFUSE_ENABLED=true` + keys are set, every turn is one
+  trace: `session_id = thread_id`, `user_id = Google sub`, tags
+  `["scratchpad", <prompt version>]`. All nested nodes and LLM calls become
+  spans automatically. Init/flush failures are swallowed — tracing is never
+  load-bearing. Set `LANGFUSE_TRACE_CONTENT=false` to mask prompt/completion
+  text.
+
 ## Environment
 
 | Variable | Purpose |
@@ -256,7 +280,14 @@ run, `docker compose up --build`.
 | `SIGNAL_DB_PATH` | override the checkpointer / version DB path |
 | `SIGNAL_CORS_ORIGINS` | comma-separated allowed origins for `/agent` |
 | `SIGNAL_HISTORY_WINDOW`, `SIGNAL_SUMMARIZE_AFTER` | transcript windowing |
-| `LANGSMITH_TRACING`, `LANGSMITH_API_KEY` | optional tracing |
+| `LANGSMITH_TRACING`, `LANGSMITH_API_KEY` | optional LangSmith tracing |
+| `LANGFUSE_ENABLED`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL` | Langfuse tracing |
+| `LANGFUSE_TRACE_CONTENT` | `false` masks prompt/completion text (default `true`) |
+| `GOOGLE_AUTH_ENABLED` | require Google login + backend proxy-secret check |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | OAuth client (redirect URI = `<origin>/api/auth/callback`) |
+| `SIGNAL_SESSION_SECRET` | signs the session cookie **and** is the Next↔backend shared secret |
+| `SIGNAL_COOKIE_SECURE` | `false` only for plain-HTTP local dev |
+| `SIGNAL_BACKEND_URL` | where the Next BFF reaches the backend (compose sets it) |
 
 > Env vars and the `signal.db` filename keep the `SIGNAL_` prefix for now;
 > renaming them is cosmetic and deferred.

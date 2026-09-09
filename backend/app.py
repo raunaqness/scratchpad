@@ -58,7 +58,10 @@ from backend.prompts import (
 )
 from backend.signal_models import TurnPlan
 from backend.skills.registry import get_skill
-from backend.textutil import dedupe, word_count
+from backend.threads_store import touch_thread
+from backend.tracing import flush as flush_traces
+from backend.tracing import get_langfuse_handler, trace_metadata
+from backend.textutil import dedupe, unwrap_model_text, word_count
 from backend.versions import (
     append_version,
     artifact_changed,
@@ -399,9 +402,14 @@ def _develop(state: SignalState, *, node: str, streamer) -> SignalState:
         if since_flush >= _STREAM_EVERY:
             since_flush = 0
             _emit_scratchpad(
-                base.model_copy(update={"body": "".join(parts), "status": "developing"})
+                base.model_copy(
+                    update={
+                        "body": unwrap_model_text("".join(parts)),
+                        "status": "developing",
+                    }
+                )
             )
-    body = "".join(parts).strip()
+    body = unwrap_model_text("".join(parts))
     if not check_output(body).allowed:
         return _op_failed(state, node)
 
@@ -507,9 +515,9 @@ def _build(state: SignalState) -> SignalState:
         since_flush += 1
         if since_flush >= _STREAM_EVERY:
             since_flush = 0
-            _emit_derived(_snapshot("".join(parts)))
+            _emit_derived(_snapshot(unwrap_model_text("".join(parts))))
 
-    body = "".join(parts).strip()
+    body = unwrap_model_text("".join(parts))
     if not check_output(body).allowed:
         return _op_failed(state, "build")
 
@@ -631,16 +639,27 @@ def _compile(checkpointer: Any):
 # entry points
 # ---------------------------------------------------------------------------
 
-def _thread_config(conversation_id: str) -> dict[str, Any]:
-    return {
+def _thread_config(conversation_id: str, *, user_id: str = "system") -> dict[str, Any]:
+    metadata: dict[str, Any] = {
+        "conversation_id": conversation_id,
+        "session_id": conversation_id,
+        "user_id": user_id,
+        "prompt_version": CURRENT_PROMPT_VERSION,
+        **trace_metadata(
+            conversation_id=conversation_id,
+            user_id=user_id,
+            prompt_version=CURRENT_PROMPT_VERSION,
+        ),
+    }
+    config: dict[str, Any] = {
         "configurable": {"thread_id": conversation_id},
         "tags": ["signal", CURRENT_PROMPT_VERSION],
-        "metadata": {
-            "conversation_id": conversation_id,
-            "session_id": conversation_id,
-            "prompt_version": CURRENT_PROMPT_VERSION,
-        },
+        "metadata": metadata,
     }
+    handler = get_langfuse_handler()
+    if handler is not None:
+        config["callbacks"] = [handler]
+    return config
 
 
 async def astream_conversation(
@@ -678,7 +697,7 @@ async def astream_conversation(
 
     async with AsyncSqliteSaver.from_conn_string(str(settings.db_path)) as checkpointer:
         graph = _compile(checkpointer)
-        config = _thread_config(conversation_id)
+        config = _thread_config(conversation_id, user_id=user_id)
 
         prior = await graph.aget_state(config)
         prior_values = prior.values if prior else {}
@@ -720,6 +739,11 @@ async def astream_conversation(
         save_memory(user_id, values.get("plan", {}), values.get("scratchpad", {}))
     except Exception:  # noqa: BLE001
         logger.exception("save_memory failed for %s", user_id)
+
+    try:
+        await touch_thread(conversation_id, user_id=user_id, title=user_message)
+    except Exception:  # noqa: BLE001
+        logger.exception("touch_thread failed for %s", conversation_id)
 
     new_scratch = values.get("scratchpad", {})
     prev_scratch = (
@@ -774,7 +798,10 @@ def run_conversation(
                 final = event
         return final
 
-    final = asyncio.run(_collect())
+    try:
+        final = asyncio.run(_collect())
+    finally:
+        flush_traces()
     plan = final.get("plan", {})
     return {
         "assistant_message": final.get("assistant_message", ""),

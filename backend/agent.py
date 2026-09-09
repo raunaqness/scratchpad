@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import secrets
 import uuid
 from typing import Any, AsyncGenerator, Iterator
 
@@ -27,7 +28,7 @@ from ag_ui.core import (
     ToolCallStartEvent,
 )
 from ag_ui.encoder import EventEncoder
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -35,6 +36,7 @@ from backend.app import astream_conversation
 from backend.artifact import Scratchpad
 from backend.config import settings
 from backend.prompts import CURRENT_PROMPT_VERSION
+from backend.threads_store import create_thread, list_threads
 from backend.versions import load_versions, version_items
 
 logger = logging.getLogger(__name__)
@@ -451,8 +453,46 @@ async def _signal_events(
         )
 
 
+def _require_proxy(request: Request) -> None:
+    """Reject direct hits on the backend's public port when auth is enabled.
+
+    The Next.js BFF is the only sanctioned caller — it proves it by echoing the
+    shared session secret. Without this, anything on the network could POST to
+    ``:8001`` with an arbitrary ``forwarded_props.user_id``.
+    """
+
+    if not settings.google_auth_enabled:
+        return
+    expected = settings.proxy_shared_secret
+    presented = request.headers.get("x-signal-proxy-secret", "")
+    if not expected or not secrets.compare_digest(presented, expected):
+        raise HTTPException(status_code=403, detail="proxy authentication required")
+
+
+@app.get("/api/threads")
+async def list_threads_endpoint(request: Request, user_id: str) -> dict[str, Any]:
+    _require_proxy(request)
+    return {"threads": await list_threads(user_id)}
+
+
+@app.post("/api/threads")
+async def create_thread_endpoint(request: Request) -> dict[str, Any]:
+    _require_proxy(request)
+    body = await request.json()
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="expected a JSON object")
+    user_id = str(body.get("user_id") or "").strip()
+    thread_id = str(body.get("thread_id") or "").strip()
+    if not user_id or not thread_id:
+        raise HTTPException(
+            status_code=400, detail="user_id and thread_id are required"
+        )
+    return await create_thread(user_id, thread_id, body.get("title"))
+
+
 @app.post("/agent")
 async def agent_endpoint(input_data: RunAgentInput, request: Request) -> StreamingResponse:
+    _require_proxy(request)
     encoder = EventEncoder(accept=request.headers.get("accept"))
     return StreamingResponse(
         _signal_events(input_data, encoder),

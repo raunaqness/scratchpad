@@ -607,6 +607,50 @@ body:has(.app-workspace) {
   color: var(--foreground);
 }
 
+.chat-bar-credits {
+  align-items: center;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--foreground);
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  gap: 0.3rem;
+  line-height: 1;
+  padding: 0.28rem 0.6rem;
+  white-space: nowrap;
+}
+
+.chat-bar-credits-spark {
+  font-size: 0.8em;
+}
+
+.chat-bar-credits-unit {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+.chat-bar-credits.is-empty {
+  background: color-mix(in srgb, var(--destructive) 14%, transparent);
+  border-color: color-mix(in srgb, var(--destructive) 45%, transparent);
+  color: var(--destructive);
+}
+
+.chat-bar-credits.is-empty .chat-bar-credits-unit {
+  color: inherit;
+}
+
+.credits-notice {
+  background: color-mix(in srgb, var(--destructive) 10%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--destructive) 35%, transparent);
+  color: var(--foreground);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  padding: 0.7rem 1rem;
+}
+
 /* auth gate + splash */
 .auth-splash {
   align-items: center;

@@ -76,6 +76,9 @@ type SignalState = {
   head?: number;
   derived?: DerivedItem[];
   active_tab?: string | null;
+  // credits (set on a snapshot only when a turn is refused)
+  credits_balance?: number | null;
+  out_of_credits?: boolean;
   // back-compat mirrors
   draft?: string;
   draft_version?: number;
@@ -708,6 +711,92 @@ function ProgressChip() {
   );
 }
 
+type CreditInfo = {
+  enabled: boolean;
+  enforced: boolean;
+  balance: number | null;
+  status: string;
+};
+
+/**
+ * Current user's credit balance. Fetched on mount and again after every turn
+ * ends; a refused turn also carries `credits_balance` on its state snapshot,
+ * which we fold in immediately.
+ */
+function useCredits(): CreditInfo {
+  const state = useAgUiState<SignalState>();
+  const [info, setInfo] = useState<CreditInfo>({
+    enabled: false,
+    enforced: false,
+    balance: null,
+    status: "active",
+  });
+
+  const refresh = useRef(() => {});
+  refresh.current = () => {
+    fetch("/api/account", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        setInfo({
+          enabled: Boolean(d.credits_enabled),
+          enforced: Boolean(d.credits_enforced),
+          balance: typeof d.credits_balance === "number" ? d.credits_balance : null,
+          status: d.status ?? "active",
+        });
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    refresh.current();
+  }, []);
+  useAuiEvent("thread.runEnd", () => refresh.current());
+
+  // A refused turn puts the live balance on the snapshot before the poll lands.
+  const snap = state?.credits_balance;
+  useEffect(() => {
+    if (typeof snap === "number") {
+      setInfo((prev) => ({ ...prev, enabled: true, balance: snap }));
+    }
+  }, [snap]);
+
+  return info;
+}
+
+function CreditsChip() {
+  const { enabled, balance, enforced } = useCredits();
+  if (!enabled || balance === null) return null;
+  const empty = balance <= 0;
+  return (
+    <span
+      className={cn("chat-bar-credits", empty && "is-empty")}
+      title={
+        enforced
+          ? "Credits remaining — 1 per message"
+          : "Credits remaining (not enforced yet)"
+      }
+    >
+      <span className="chat-bar-credits-spark" aria-hidden>
+        ⚡
+      </span>
+      {balance}
+      <span className="chat-bar-credits-unit"> credits</span>
+    </span>
+  );
+}
+
+function OutOfCreditsNotice() {
+  const { enabled, enforced, balance } = useCredits();
+  if (!enabled || !enforced || balance === null || balance > 0) return null;
+  return (
+    <div className="credits-notice" role="status">
+      <strong>You&rsquo;re out of credits.</strong> New messages are paused. Ask
+      the admin to top up your account to keep going.
+    </div>
+  );
+}
+
 function NewThreadButton() {
   const aui = useAui();
   return (
@@ -764,6 +853,7 @@ function ChatBar() {
       <div className="chat-bar-left">
         <EnvBadge />
         <UserChip />
+        <CreditsChip />
       </div>
       <div className="chat-bar-right">
         <ProgressChip />
@@ -799,6 +889,7 @@ export default function AppPage() {
         <main className="app-workspace">
           <section className="app-chat">
             <ChatBar />
+            <OutOfCreditsNotice />
             <div className="app-chat-thread">
               <Thread />
             </div>

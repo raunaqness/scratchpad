@@ -4,6 +4,7 @@ langchain-openai
 langgraph
 langgraph-checkpoint-sqlite
 aiosqlite
+asyncpg
 langsmith
 langfuse>=3,<4
 pydantic

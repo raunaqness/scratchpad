@@ -53,6 +53,20 @@ class Settings(BaseSettings):
     data_dir: Path = Field(default=PROJECT_ROOT / "data", alias="SIGNAL_DATA_DIR")
     db_path: Path | None = Field(default=None, alias="SIGNAL_DB_PATH")
 
+    # Postgres (Supabase) — credits only for now. Unset ⇒ credits disabled and
+    # everything else stays on SQLite. A plain postgres:// DSN, portable to any
+    # managed Postgres / hosted Supabase.
+    database_url: str = Field(default="", alias="SIGNAL_DATABASE_URL")
+    db_pool_size: int = Field(default=5, alias="SIGNAL_DB_POOL_SIZE")
+
+    # --- Credits ------------------------------------------------------------
+    # `enabled`  ⇒ provision accounts + write the ledger (needs database_url).
+    # `enforce`  ⇒ actually block a turn when the balance hits 0.
+    credits_enabled: bool = Field(default=False, alias="SIGNAL_CREDITS_ENABLED")
+    credits_enforce: bool = Field(default=False, alias="SIGNAL_CREDITS_ENFORCE")
+    signup_credits: int = Field(default=100, alias="SIGNAL_SIGNUP_CREDITS")
+    message_cost: int = Field(default=1, alias="SIGNAL_MESSAGE_COST")
+
     # --- Observability --------------------------------------------------------
     langsmith_tracing: bool = Field(default=False, alias="LANGSMITH_TRACING")
     langsmith_api_key: str = Field(default="", alias="LANGSMITH_API_KEY")
@@ -90,6 +104,12 @@ class Settings(BaseSettings):
         """Secret the Next proxy must present on /agent and /api/* calls."""
 
         return self.session_secret
+
+    @property
+    def credits_active(self) -> bool:
+        """Track credits at all? Requires a Postgres URL to be configured."""
+
+        return bool(self.credits_enabled and self.database_url)
 
     # --- Web adapter --------------------------------------------------------
     agent_port: int = Field(default=8001, alias="SIGNAL_AGENT_PORT")

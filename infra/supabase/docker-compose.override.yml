@@ -1,0 +1,30 @@
+# Local trim of the official Supabase self-hosted stack.
+#   Kept:    db, meta, studio, api-gw, auth, rest   (Postgres + the dashboard)
+#   Skipped: realtime, storage, imgproxy, functions, supavisor  -> `full` profile
+#
+#   Bring up:    docker compose up -d
+#   Full stack:  docker compose --profile full up -d
+#
+# Dashboard: http://127.0.0.1:8000  (basic auth: DASHBOARD_USERNAME / DASHBOARD_PASSWORD in .env)
+# Postgres:  127.0.0.1:5432         (user postgres / POSTGRES_PASSWORD in .env)
+
+services:
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  studio:
+    # direct access, bypassing the gateway/basic-auth — handy for debugging
+    ports:
+      - "127.0.0.1:3001:3000"
+
+  realtime:
+    profiles: ["full"]
+  storage:
+    profiles: ["full"]
+  imgproxy:
+    profiles: ["full"]
+  functions:
+    profiles: ["full"]
+  supavisor:
+    profiles: ["full"]

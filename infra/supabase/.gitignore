@@ -1,0 +1,7 @@
+.env
+.env.old
+*.old
+volumes/db/data/
+volumes/storage/
+volumes/pooler/
+volumes/functions/

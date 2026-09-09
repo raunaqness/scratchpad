@@ -24,6 +24,7 @@ services:
     logging: *default-logging
     networks:
       - scratchpad-test-network
+      - supabase_default   # reach the Supabase Postgres as `db:5432`
     ports:
       - "8002:8001"
     volumes:
@@ -72,4 +73,6 @@ networks:
   scratchpad-test-network:
     name: scratchpad-test-network
   tvbox_default:
+    external: true
+  supabase_default:
     external: true

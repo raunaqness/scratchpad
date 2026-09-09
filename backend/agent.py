@@ -11,6 +11,7 @@ import json
 import logging
 import secrets
 import uuid
+from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Iterator
 
 from ag_ui.core import (
@@ -41,7 +42,27 @@ from backend.versions import load_versions, version_items
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Scratchpad AG-UI Agent")
+
+@asynccontextmanager
+async def _lifespan(_: "FastAPI"):
+    if not settings.database_url:
+        yield
+        return
+    from backend.db import close_pool, run_migrations
+
+    try:
+        applied = await run_migrations()
+        if applied:
+            logger.info("db migrations applied: %s", ", ".join(applied))
+    except Exception:  # noqa: BLE001 - a bad migration must not stop the API
+        logger.exception("db migrations failed; credit features may be degraded")
+    try:
+        yield
+    finally:
+        await close_pool()
+
+
+app = FastAPI(title="Scratchpad AG-UI Agent", lifespan=_lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list or ["http://localhost:3000"],
@@ -139,6 +160,66 @@ def _user_id(input_data: RunAgentInput) -> str:
     if isinstance(state.get("user_id"), str) and state["user_id"].strip():
         return state["user_id"].strip()
     return f"agui-{input_data.thread_id}"
+
+
+def _identity(input_data: RunAgentInput) -> tuple[str, str, str]:
+    """(user_id, email, name) as injected by the Next proxy."""
+
+    forwarded = _forwarded(input_data)
+    email = forwarded.get("user_email") or forwarded.get("userEmail") or ""
+    name = forwarded.get("user_name") or forwarded.get("userName") or ""
+    return _user_id(input_data), str(email or ""), str(name or "")
+
+
+# Ids that are never real paying users: CLI / tests / anonymous AG-UI / dev.
+def _is_billable(user_id: str) -> bool:
+    return bool(
+        settings.credits_active
+        and settings.google_auth_enabled
+        and user_id
+        and not user_id.startswith("agui-")
+        and user_id not in ("dev-user", "system")
+    )
+
+
+async def _credit_gate(input_data: RunAgentInput, thread_id: str) -> dict[str, Any]:
+    """Provision the account and spend one credit for this turn.
+
+    Returns ``{"allow": bool, "message": str | None, "balance": int | None}``.
+    Any failure inside here allows the turn — credits must never break chat.
+    """
+
+    result: dict[str, Any] = {"allow": True, "message": None, "balance": None}
+    user_id, email, name = _identity(input_data)
+    if not _is_billable(user_id):
+        return result
+
+    from backend import credits  # local import: optional dependency (asyncpg)
+
+    try:
+        account = await credits.ensure_account(user_id, email, name)
+        if account["status"] == "blocked":
+            return {
+                "allow": False,
+                "message": "This account is disabled.",
+                "balance": account["credits_balance"],
+            }
+        new_balance = await credits.try_debit(
+            user_id, settings.message_cost, reason="message", ref=thread_id
+        )
+        if new_balance is None:
+            result["balance"] = account["credits_balance"]
+            if settings.credits_enforce:
+                return {
+                    "allow": False,
+                    "message": "You're out of credits. Add more to keep going.",
+                    "balance": 0,
+                }
+        else:
+            result["balance"] = new_balance
+    except Exception:  # noqa: BLE001 - credits are never load-bearing
+        logger.exception("credit gate failed for %s; allowing turn", thread_id)
+    return result
 
 
 def _client_artifact(input_data: RunAgentInput) -> dict[str, Any] | None:
@@ -259,6 +340,23 @@ async def _signal_events(
         user_message = _last_user_message(input_data)
         if not user_message.strip():
             raise ValueError("No user message in the AG-UI request.")
+
+        gate = await _credit_gate(input_data, thread_id)
+        if not gate["allow"]:
+            yield encoder.encode(
+                StateSnapshotEvent(
+                    type=EventType.STATE_SNAPSHOT,
+                    snapshot={
+                        **_empty_state(versions, head),
+                        "credits_balance": gate["balance"],
+                        "out_of_credits": True,
+                    },
+                )
+            )
+            yield encoder.encode(
+                RunErrorEvent(type=EventType.RUN_ERROR, message=gate["message"])
+            )
+            return
 
         async for event in astream_conversation(
             user_id=_user_id(input_data),
@@ -475,6 +573,32 @@ async def list_threads_endpoint(request: Request, user_id: str) -> dict[str, Any
     return {"threads": await list_threads(user_id)}
 
 
+@app.get("/api/account")
+async def get_account_endpoint(request: Request, user_id: str) -> dict[str, Any]:
+    """Balance + status for the signed-in user, for the BFF to show a pill."""
+
+    _require_proxy(request)
+    if not settings.credits_active:
+        return {"credits_enabled": False, "credits_balance": None, "status": "active"}
+    from backend import credits
+
+    account = await credits.get_account(user_id)
+    if account is None:
+        return {
+            "credits_enabled": True,
+            "credits_balance": settings.signup_credits,
+            "status": "active",
+            "provisioned": False,
+        }
+    return {
+        "credits_enabled": True,
+        "credits_enforced": settings.credits_enforce,
+        "credits_balance": account["credits_balance"],
+        "status": account["status"],
+        "provisioned": True,
+    }
+
+
 @app.post("/api/threads")
 async def create_thread_endpoint(request: Request) -> dict[str, Any]:
     _require_proxy(request)
@@ -511,6 +635,13 @@ async def health() -> dict[str, object]:
         "status": "ok",
         "openrouter_configured": bool(settings.openrouter_api_key),
         "prompt_version": CURRENT_PROMPT_VERSION,
+        "credits": (
+            "enforced"
+            if settings.credits_active and settings.credits_enforce
+            else "tracking"
+            if settings.credits_active
+            else "off"
+        ),
     }
 
 

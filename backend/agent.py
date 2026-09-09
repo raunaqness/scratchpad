@@ -126,6 +126,35 @@ def _choice_tool_events(
     )
 
 
+def _follow_up_tool_events(
+    encoder: EventEncoder,
+    items: list[dict[str, Any]],
+    parent_message_id: str | None,
+) -> Iterator[str]:
+    """Render the creative agent's suggestions as a ``follow_up`` tool call —
+    the client renders each item as a button that sends its label as a message."""
+
+    tool_call_id = f"followup-{uuid.uuid4()}"
+    yield encoder.encode(
+        ToolCallStartEvent(
+            type=EventType.TOOL_CALL_START,
+            toolCallId=tool_call_id,
+            toolCallName="follow_up",
+            parentMessageId=parent_message_id,
+        )
+    )
+    yield encoder.encode(
+        ToolCallArgsEvent(
+            type=EventType.TOOL_CALL_ARGS,
+            toolCallId=tool_call_id,
+            delta=json.dumps({"items": items}),
+        )
+    )
+    yield encoder.encode(
+        ToolCallEndEvent(type=EventType.TOOL_CALL_END, toolCallId=tool_call_id)
+    )
+
+
 def _message_text(message: object) -> str:
     content = getattr(message, "content", "")
     if isinstance(content, str):
@@ -311,10 +340,13 @@ async def _signal_events(
     run_id = input_data.run_id
     message_id = str(uuid.uuid4())
     message_open = False
+    message_closed_early = False  # closed by the follow-up phase, not by `final`
     last_status = "processing"
     progress_steps: list[str] = []
     progress = _progress(None, last_status, progress_steps, done=False)
     pending_choice: dict[str, Any] | None = None
+    pending_follow_ups: list[dict[str, Any]] | None = None
+    follow_up_pending = False
     derived: list[dict[str, Any]] = []
     last_scratchpad: dict[str, Any] = Scratchpad().model_dump()
 
@@ -438,6 +470,40 @@ async def _signal_events(
             elif kind == "ui_choice":
                 pending_choice = event
 
+            elif kind == "follow_up_status":
+                # The creative agent runs after the reply is done. Close the
+                # assistant message so we can show a "working" snapshot without
+                # splitting it.
+                follow_up_pending = event.get("phase") == "working"
+                if message_open:
+                    yield encoder.encode(
+                        TextMessageEndEvent(
+                            type=EventType.TEXT_MESSAGE_END, messageId=message_id
+                        )
+                    )
+                    message_open = False
+                    message_closed_early = True
+                yield encoder.encode(
+                    StateSnapshotEvent(
+                        type=EventType.STATE_SNAPSHOT,
+                        snapshot={
+                            **_state_snapshot(
+                                last_scratchpad,
+                                status=last_status,
+                                processing=follow_up_pending,
+                                progress=progress,
+                                versions=versions,
+                                head=head,
+                                derived=derived,
+                            ),
+                            "follow_up_pending": follow_up_pending,
+                        },
+                    )
+                )
+
+            elif kind == "follow_ups":
+                pending_follow_ups = event.get("items") or None
+
             elif kind == "final":
                 if message_open:
                     yield encoder.encode(
@@ -446,7 +512,7 @@ async def _signal_events(
                         )
                     )
                     message_open = False
-                elif event.get("assistant_message"):
+                elif event.get("assistant_message") and not message_closed_early:
                     yield encoder.encode(
                         TextMessageStartEvent(
                             type=EventType.TEXT_MESSAGE_START,
@@ -470,6 +536,12 @@ async def _signal_events(
                     for raw in _choice_tool_events(encoder, pending_choice, message_id):
                         yield raw
                     pending_choice = None
+                if pending_follow_ups:
+                    for raw in _follow_up_tool_events(
+                        encoder, pending_follow_ups, message_id
+                    ):
+                        yield raw
+                    pending_follow_ups = None
                 if event.get("versions") is not None:
                     versions = event["versions"]
                     head = event.get("head", len(versions))
@@ -478,20 +550,23 @@ async def _signal_events(
                 yield encoder.encode(
                     StateSnapshotEvent(
                         type=EventType.STATE_SNAPSHOT,
-                        snapshot=_state_snapshot(
-                            event.get("scratchpad") or last_scratchpad,
-                            status=event.get("status", last_status),
-                            processing=False,
-                            progress=_progress(
-                                progress.get("node"),
-                                event.get("status", last_status),
-                                progress_steps,
-                                done=True,
+                        snapshot={
+                            **_state_snapshot(
+                                event.get("scratchpad") or last_scratchpad,
+                                status=event.get("status", last_status),
+                                processing=False,
+                                progress=_progress(
+                                    progress.get("node"),
+                                    event.get("status", last_status),
+                                    progress_steps,
+                                    done=True,
+                                ),
+                                versions=versions,
+                                head=head,
+                                derived=derived,
                             ),
-                            versions=versions,
-                            head=head,
-                            derived=derived,
-                        ),
+                            "follow_up_pending": False,
+                        },
                     )
                 )
                 yield encoder.encode(
@@ -513,6 +588,10 @@ async def _signal_events(
             for raw in _choice_tool_events(encoder, pending_choice, message_id):
                 yield raw
             pending_choice = None
+        if pending_follow_ups:
+            for raw in _follow_up_tool_events(encoder, pending_follow_ups, message_id):
+                yield raw
+            pending_follow_ups = None
         yield encoder.encode(
             RunFinishedEvent(
                 type=EventType.RUN_FINISHED, threadId=thread_id, runId=run_id

@@ -14,16 +14,18 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from backend.config import settings
 from backend.llm import get_chat_model
 from backend.prompts import (
     BRAINSTORM_SYSTEM_PROMPT,
     CHAT_SYSTEM_PROMPT,
     CRITIQUE_SYSTEM_PROMPT,
     EXPAND_SYSTEM_PROMPT,
+    FOLLOWUP_SYSTEM_PROMPT,
     GROUNDING_SYSTEM_PROMPT,
     TIGHTEN_SYSTEM_PROMPT,
 )
-from backend.signal_models import Critique, GroundingNotes
+from backend.signal_models import Critique, FollowUps, GroundingNotes
 
 
 def _text(chunk: Any) -> str:
@@ -185,6 +187,47 @@ def grounding_notes(
     except Exception:
         pass
     return []
+
+
+# --- creative follow-ups -------------------------------------------------
+
+_FOLLOWUP_KINDS = {"fact", "perspective", "tone", "angle", "direction", "question"}
+
+
+def follow_ups(scratchpad: dict[str, Any]) -> list[dict[str, str]]:
+    """3-5 next-move suggestions from the current scratchpad. Read-only, hot,
+    best-effort — any failure returns ``[]`` and the turn carries on."""
+
+    model = get_chat_model(
+        temperature=settings.openrouter_temperature_creative,
+        tags=["signal:followup"],
+    )
+    try:
+        structured = model.with_structured_output(FollowUps)
+        result = structured.invoke(
+            [
+                SystemMessage(content=FOLLOWUP_SYSTEM_PROMPT),
+                HumanMessage(content=render_scratchpad(scratchpad)),
+            ]
+        )
+        items = result.items if isinstance(result, FollowUps) else (
+            [FollowUps.model_validate(result).items][0]
+            if isinstance(result, dict)
+            else []
+        )
+    except Exception:  # noqa: BLE001 - never load-bearing
+        return []
+
+    out: list[dict[str, str]] = []
+    for item in items:
+        label = (getattr(item, "label", "") or "").strip()
+        kind = getattr(item, "kind", "direction")
+        if not label:
+            continue
+        out.append({"label": label, "kind": kind if kind in _FOLLOWUP_KINDS else "direction"})
+        if len(out) == 5:
+            break
+    return out
 
 
 # --- chat reply (streaming) ------------------------------------------------

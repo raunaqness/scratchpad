@@ -41,6 +41,7 @@ from backend.capabilities.writing import (
     chat_reply,
     critique,
     expand,
+    follow_ups,
     grounding_notes,
     tighten,
 )
@@ -87,6 +88,7 @@ class SignalState(TypedDict, total=False):
 
     plan: dict[str, Any]
     scratchpad: dict[str, Any]
+    prior_scratchpad: dict[str, Any]  # pre-turn snapshot, for the follow-up diff
     derived: list[dict[str, Any]]
     assistant_message: str
     status: str
@@ -119,6 +121,17 @@ def _emit_reply(text: str) -> None:
 
 def _emit_derived(derived: dict[str, Any]) -> None:
     _emit({"type": "derived", "derived": derived})
+
+
+def _emit_follow_ups(items: list[dict[str, str]]) -> None:
+    if items:
+        _emit({"type": "follow_ups", "items": items})
+
+
+def _emit_follow_up_status(phase: str) -> None:
+    """``working`` before the creative agent runs, ``done`` after."""
+
+    _emit({"type": "follow_up_status", "phase": phase})
 
 
 def _emit_choice(choice_id: str, question: str, options: list[str]) -> None:
@@ -277,6 +290,7 @@ def _interpret(state: SignalState) -> SignalState:
         "summary": summary,
         "plan": plan.model_dump(),
         "scratchpad": scratch.model_dump(),
+        "prior_scratchpad": prior.model_dump(),
         "status": status,
         "trajectory": [
             *state.get("trajectory", []),
@@ -593,6 +607,32 @@ def _respond(state: SignalState) -> SignalState:
 
 
 # ---------------------------------------------------------------------------
+# creative follow-up agent (read-only, runs after a scratchpad change)
+# ---------------------------------------------------------------------------
+
+def _follow_up(state: SignalState) -> SignalState:
+    """Read the new scratchpad and stream 3-5 next-move buttons.
+
+    Never mutates canonical state. Skips entirely when the turn didn't move the
+    scratchpad (a greeting, a pure chat reply, an artifact-only turn routes past
+    this node). Any failure inside is swallowed — follow-ups never break a turn.
+    """
+
+    if not artifact_changed(
+        state.get("prior_scratchpad"), state.get("scratchpad")
+    ):
+        return {}
+    try:
+        _emit_follow_up_status("working")
+        _emit_follow_ups(follow_ups(state.get("scratchpad") or {}))
+    except Exception:  # noqa: BLE001 - advisory only
+        logger.exception("follow-up agent failed")
+    finally:
+        _emit_follow_up_status("done")
+    return {}
+
+
+# ---------------------------------------------------------------------------
 # graph
 # ---------------------------------------------------------------------------
 
@@ -607,6 +647,7 @@ def _builder() -> StateGraph:
         ("critique", _critique),
         ("build", _build),
         ("respond", _respond),
+        ("follow_up", _follow_up),
     ):
         graph.add_node(name, fn)
     graph.add_edge(START, "interpret")
@@ -623,8 +664,12 @@ def _builder() -> StateGraph:
             "respond": "respond",
         },
     )
-    for node in ("note", "expand", "tighten", "brainstorm", "critique", "build", "respond"):
-        graph.add_edge(node, END)
+    # Every scratchpad-touching mode passes through the creative agent; `build`
+    # (artifact-only) goes straight to END.
+    for node in ("note", "expand", "tighten", "brainstorm", "critique", "respond"):
+        graph.add_edge(node, "follow_up")
+    graph.add_edge("follow_up", END)
+    graph.add_edge("build", END)
     return graph
 
 
@@ -719,11 +764,22 @@ async def astream_conversation(
             "trajectory": prior_values.get("trajectory", []),
         }
 
+        collected_follow_ups: list[dict[str, str]] = []
         async for mode, chunk in graph.astream(
             graph_input, config, stream_mode=["custom", "updates"]
         ):
             if mode == "custom" and isinstance(chunk, dict):
-                if chunk.get("type") in {"scratchpad", "reply", "ui_choice", "derived"}:
+                kind = chunk.get("type")
+                if kind in {
+                    "scratchpad",
+                    "reply",
+                    "ui_choice",
+                    "derived",
+                    "follow_ups",
+                    "follow_up_status",
+                }:
+                    if kind == "follow_ups":
+                        collected_follow_ups = chunk.get("items", [])
                     yield chunk
             elif mode == "updates" and isinstance(chunk, dict):
                 for node, update in chunk.items():
@@ -767,6 +823,7 @@ async def astream_conversation(
         "assistant_message": values.get("assistant_message", ""),
         "scratchpad": new_scratch,
         "derived": values.get("derived", []),
+        "follow_ups": collected_follow_ups,
         "status": values.get("status", ""),
         "plan": values.get("plan", {}),
         "trajectory": values.get("trajectory", []),
@@ -810,6 +867,7 @@ def run_conversation(
         "status": final.get("status", ""),
         "scratchpad": final.get("scratchpad", {}),
         "derived": final.get("derived", []),
+        "follow_ups": final.get("follow_ups", []),
         "plan": plan,
         "mode": plan.get("mode"),
         "skill_id": plan.get("skill_id"),

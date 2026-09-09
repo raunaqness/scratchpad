@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     interpret_temperature: float = Field(
         default=0.0, alias="SIGNAL_INTERPRET_TEMPERATURE"
     )
+    # The creative agents (follow-ups, skill/artifact writers) run hot.
+    openrouter_temperature_creative: float = Field(
+        default=1.0, alias="OPENROUTER_TEMPERATURE_CREATIVE"
+    )
     openrouter_max_tokens: int = Field(default=2000, alias="OPENROUTER_MAX_TOKENS")
     openrouter_timeout_seconds: int = Field(
         default=60, alias="OPENROUTER_TIMEOUT_SECONDS"

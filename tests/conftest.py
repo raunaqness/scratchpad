@@ -15,7 +15,13 @@ from typing import Any
 import pytest
 
 from backend.config import settings
-from backend.signal_models import Critique, GroundingNotes, TurnPlan
+from backend.signal_models import (
+    Critique,
+    FollowUp,
+    FollowUps,
+    GroundingNotes,
+    TurnPlan,
+)
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
@@ -94,6 +100,7 @@ class FakeModelScript:
         grounding: list[str] | None = None,
         reply: str = "Here's where we are - tell me the next move.",
         summary: str = "Earlier: the user is working an idea on the scratchpad.",
+        follow_ups: list[FollowUp] | None = None,
     ) -> None:
         self.plan = plan
         self.expanded = expanded
@@ -113,6 +120,14 @@ class FakeModelScript:
             points=["Name the reader the second point speaks to."],
         )
         self._grounding = GroundingNotes(items=grounding or [])
+        self._follow_ups = FollowUps(
+            items=follow_ups
+            or [
+                FollowUp(label="Add the real cold-start number if you have one", kind="fact"),
+                FollowUp(label="Reframe this around switching cost, not features", kind="angle"),
+                FollowUp(label="Make the tone blunter and less corporate", kind="tone"),
+            ]
+        )
 
     def __call__(
         self,
@@ -136,6 +151,8 @@ class FakeModelScript:
             return FakeChat(structured=self._critique)
         if tag == "signal:grounding":
             return FakeChat(structured=self._grounding)
+        if tag == "signal:followup":
+            return FakeChat(structured=self._follow_ups)
         if tag == "signal:reply":
             return FakeChat(stream_chunks=_chunks(self.reply))
         if tag == "signal:summary":

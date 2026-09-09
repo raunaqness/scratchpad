@@ -64,6 +64,30 @@ class GroundingNotes(BaseModel):
     items: list[str] = Field(default_factory=list)
 
 
+FollowUpKind = Literal[
+    "fact",         # a concrete detail the artifact will need and the scratchpad lacks
+    "perspective",  # a stakeholder lens / counter-view the user is not holding
+    "tone",         # a deliberate voice / stance choice for the eventual artifact
+    "angle",        # a sharper, more surprising way into the same material
+    "direction",    # a scope / strategy fork worth deciding now
+    "question",     # a provoking question that would change the work if answered
+]
+
+
+class FollowUp(BaseModel):
+    """One proposed next move. ``label`` is sent verbatim as the user's next
+    message if they click the button."""
+
+    label: str
+    kind: FollowUpKind = "direction"
+
+
+class FollowUps(BaseModel):
+    """The creative agent's 3-5 next moves after a scratchpad change."""
+
+    items: list[FollowUp] = Field(default_factory=list)
+
+
 class Critique(BaseModel):
     """Reviewer feedback on the current scratchpad."""
 

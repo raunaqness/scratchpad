@@ -458,3 +458,51 @@ def test_editing_from_a_past_version_truncates_forward(isolated_state, install_m
     r4 = _run("a different change", conversation_id="br", base_version=2)
     assert r4["head"] == 3
     assert [v["body"] for v in r4["versions"]] == ["jot: v1", "V2 body.", "V3-prime body."]
+
+
+# --------------------------------------------------------------------------- #
+# creative follow-up agent
+# --------------------------------------------------------------------------- #
+
+
+def test_follow_ups_after_a_scratchpad_change(isolated_state, install_models):
+    install_models(FakeModelScript(plan=TurnPlan(mode="note")))
+    result = _run("Idea: faster cold starts", conversation_id="fu1")
+    labels = [f["label"] for f in result["follow_ups"]]
+    assert len(labels) == 3
+    assert all(isinstance(x, str) and x for x in labels)
+    assert {f["kind"] for f in result["follow_ups"]} <= {
+        "fact", "perspective", "tone", "angle", "direction", "question"
+    }
+
+
+def test_no_follow_ups_on_a_chat_turn(isolated_state, install_models):
+    install_models(FakeModelScript(plan=TurnPlan(mode="chat")))
+    result = _run("hey there", conversation_id="fu2")
+    assert result["mode"] == "chat"
+    assert result["follow_ups"] == []
+
+
+def test_no_follow_ups_on_a_build_turn(isolated_state, install_models):
+    script = install_models(
+        FakeModelScript(plan=TurnPlan(mode="note"), grounding=[])
+    )
+    _run("jot: a product idea", conversation_id="fu3")
+    script.plan = TurnPlan(mode="build", skill_id="blog_outline")
+    result = _run("make an outline", conversation_id="fu3")
+    assert result["follow_ups"] == []
+
+
+def test_follow_up_failure_does_not_break_the_turn(
+    isolated_state, install_models, monkeypatch
+):
+    install_models(FakeModelScript(plan=TurnPlan(mode="note")))
+
+    def _boom(_scratchpad):
+        raise RuntimeError("creative agent down")
+
+    monkeypatch.setattr("backend.app.follow_ups", _boom)
+    result = _run("Idea: a resilient turn", conversation_id="fu4")
+    assert result["mode"] == "note"
+    assert result["scratchpad"]["body"] == "Idea: a resilient turn"
+    assert result["follow_ups"] == []

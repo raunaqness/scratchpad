@@ -76,6 +76,8 @@ type SignalState = {
   head?: number;
   derived?: DerivedItem[];
   active_tab?: string | null;
+  // creative follow-up agent is running (post-processing phase)
+  follow_up_pending?: boolean;
   // credits (set on a snapshot only when a turn is refused)
   credits_balance?: number | null;
   out_of_credits?: boolean;
@@ -141,12 +143,53 @@ function ChoiceTool({ args, result }: ChoiceToolProps) {
   );
 }
 
+type FollowUpItem = { label: string; kind?: string };
+type FollowUpArgs = { items?: FollowUpItem[] };
+
+/**
+ * Creative agent output: 3-5 next-move buttons. Clicking one sends its label as
+ * the user's next message. Once any is used the group is spent.
+ */
+function FollowUpButtons({ args }: { args: FollowUpArgs }) {
+  const aui = useAui();
+  const [spent, setSpent] = useState(false);
+  const items = (args.items ?? []).filter((i) => i && i.label);
+  if (!items.length) return null;
+
+  return (
+    <div className="follow-up-card" aria-label="Suggested next moves">
+      <span className="follow-up-card-label">Next moves</span>
+      <div className="follow-up-options">
+        {items.map((item, i) => (
+          <button
+            key={`${item.label}-${i}`}
+            type="button"
+            className="follow-up-btn"
+            data-kind={item.kind ?? "direction"}
+            disabled={spent}
+            onClick={() => {
+              setSpent(true);
+              aui.thread.append(item.label);
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const toolkit = defineToolkit({
   request_choice: {
     type: "backend",
     render: (props) => (
       <ChoiceTool args={props.args as ChoiceArgs} result={props.result} />
     ),
+  },
+  follow_up: {
+    type: "backend",
+    render: (props) => <FollowUpButtons args={props.args as FollowUpArgs} />,
   },
 });
 
@@ -797,6 +840,17 @@ function OutOfCreditsNotice() {
   );
 }
 
+function FollowUpWorking() {
+  const state = useAgUiState<SignalState>();
+  if (!state?.follow_up_pending) return null;
+  return (
+    <div className="follow-up-working" role="status" aria-live="polite">
+      <span className="follow-up-working-dot" />
+      Looking for follow-ups…
+    </div>
+  );
+}
+
 function NewThreadButton() {
   const aui = useAui();
   return (
@@ -892,6 +946,7 @@ export default function AppPage() {
             <OutOfCreditsNotice />
             <div className="app-chat-thread">
               <Thread />
+              <FollowUpWorking />
             </div>
           </section>
           <WorkspacePanel />

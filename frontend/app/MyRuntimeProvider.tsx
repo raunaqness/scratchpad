@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   AssistantRuntimeProvider,
   type ThreadMessage,
@@ -9,6 +17,15 @@ import { HttpAgent } from "@ag-ui/client";
 import { useAgUiRuntime } from "@assistant-ui/react-ag-ui";
 
 import { AuthProvider, useAuth, type AuthUser } from "@/app/auth-context";
+
+const ThreadIdContext = createContext<string | null>(null);
+
+/** The active thread id, for callers off the AG-UI stream (e.g. skill runs). */
+export function useThreadId(): string {
+  const id = useContext(ThreadIdContext);
+  if (!id) throw new Error("useThreadId outside MyRuntimeProvider");
+  return id;
+}
 
 type StoredThread = {
   id: string;
@@ -153,7 +170,9 @@ function RuntimeInner({
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      {children}
+      <ThreadIdContext.Provider value={currentThreadId}>
+        {children}
+      </ThreadIdContext.Provider>
     </AssistantRuntimeProvider>
   );
 }

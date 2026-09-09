@@ -18,19 +18,12 @@ _URL = os.environ.get("SIGNAL_TEST_DATABASE_URL") or os.environ.get("SIGNAL_DATA
 if not _URL or "@db:" in _URL:  # '@db:' is the in-container DSN, unreachable here
     pytest.skip("no reachable SIGNAL_TEST_DATABASE_URL", allow_module_level=True)
 
-os.environ["SIGNAL_DATABASE_URL"] = _URL
 os.environ.setdefault("SIGNAL_CREDITS_ENABLED", "true")
 os.environ.setdefault("SIGNAL_SIGNUP_CREDITS", "100")
 
-from backend.config import settings  # noqa: E402
-
-# `settings` may already be built from .env (with the in-container '@db:' DSN);
-# point it at the reachable test URL for this run.
-settings.database_url = _URL
-settings.credits_enabled = True
-settings.signup_credits = 100
-
+import backend.db as _db  # noqa: E402
 from backend import credits  # noqa: E402
+from backend.config import settings  # noqa: E402
 from backend.db import close_pool, get_pool, run_migrations  # noqa: E402
 
 
@@ -48,8 +41,15 @@ def _run(coro):
 
 @pytest.fixture(scope="module", autouse=True)
 def _migrated():
+    prev_url, prev_enabled = settings.database_url, settings.credits_enabled
+    settings.database_url = _URL
+    settings.credits_enabled = True
+    settings.signup_credits = 100
+    _db._pool = None
     _run(run_migrations())
     yield
+    _db._pool = None
+    settings.database_url, settings.credits_enabled = prev_url, prev_enabled
 
 
 @pytest.fixture

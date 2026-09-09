@@ -14,12 +14,16 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from backend.capabilities.writing import render_scratchpad
+from backend.config import settings
 from backend.llm import get_chat_model
 from backend.prompts import skill_system_prompt
 from backend.skills.registry import Skill
 
-# Only these scratchpad fields are handed to a skill.
-_SNAPSHOT_KEYS = ("title", "topic", "body", "angles", "outline", "sources", "open_questions", "product_mode")
+# The whole scratchpad is a skill's input — the full knowledge base, not a brief.
+_SNAPSHOT_KEYS = (
+    "title", "topic", "body", "angles", "outline",
+    "sources", "open_questions", "tags", "product_mode",
+)
 
 
 def scratchpad_snapshot(scratchpad: dict[str, Any]) -> dict[str, Any]:
@@ -33,7 +37,11 @@ def run_skill(
 ) -> Iterator[str]:
     """Stream the derived artifact body for ``skill`` from a scratchpad snapshot."""
 
-    model = get_chat_model(streaming=True, tags=["signal:skill", f"skill:{skill.id}"])
+    model = get_chat_model(
+        streaming=True,
+        temperature=settings.openrouter_temperature_creative,
+        tags=["signal:skill", f"skill:{skill.id}"],
+    )
     human = render_scratchpad(scratchpad_snapshot(scratchpad))
     live_hints = {k: v for k, v in (hints or {}).items() if v}
     if live_hints:

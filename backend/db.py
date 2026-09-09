@@ -51,9 +51,12 @@ async def get_pool() -> asyncpg.Pool:
 
 async def close_pool() -> None:
     global _pool
-    if _pool is not None:
-        await _pool.close()
-        _pool = None
+    pool, _pool = _pool, None  # drop the reference first — a pool that fails to
+    if pool is not None:       # close is still dead; the next caller gets a fresh one
+        try:
+            await pool.close()
+        except Exception:  # noqa: BLE001
+            logger.debug("pool close failed", exc_info=True)
 
 
 async def run_migrations() -> list[str]:

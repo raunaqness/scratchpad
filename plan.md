@@ -1,5 +1,12 @@
 # Plan — Multi-agent Scratchpad: creative follow-ups + standalone skill generation
 
+> **Status (2026-09-09):** Stages 1–6 implemented and deployed to dev on
+> `feat/thinkpad-redesign` — commits `f2c3f63` (Creative agent) and `34688af`
+> (standalone skills). 51 tests pass with a Postgres URL, 44 + 2 skipped without.
+> Open decisions A/B/C were taken as the leans (legacy `build` kept, follow-ups
+> as a `follow_up` tool call, fixed `kind` set). Not done: the deepeval quality
+> rubrics (§9.2), the scrollback "inert buttons" refinement, prod deploy.
+
 > **Branch:** all of this lands on **`feat/thinkpad-redesign`** (which holds the Google-auth BFF, the
 > credit system, and the `infra/supabase/` stack). The working tree is currently on `main @ fda9b62`;
 > check out `feat/thinkpad-redesign` before starting. Dev deployment only (`docker-compose.test.yml`,

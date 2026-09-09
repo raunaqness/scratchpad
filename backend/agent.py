@@ -31,12 +31,14 @@ from ag_ui.core import (
 from ag_ui.encoder import EventEncoder
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
-from backend.app import astream_conversation
+from backend.app import aget_thread_state, astream_conversation
 from backend.artifact import Scratchpad
+from backend.capabilities.skills import run_skill
 from backend.config import settings
 from backend.prompts import CURRENT_PROMPT_VERSION
+from backend.skills.registry import get_skill
 from backend.threads_store import create_thread, list_threads
 from backend.versions import load_versions, version_items
 
@@ -691,6 +693,99 @@ async def create_thread_endpoint(request: Request) -> dict[str, Any]:
             status_code=400, detail="user_id and thread_id are required"
         )
     return await create_thread(user_id, thread_id, body.get("title"))
+
+
+# --- artifact generation (standalone skill runs, off the chat turn) --------
+
+@app.get("/api/artifacts")
+async def list_artifacts_endpoint(request: Request, thread_id: str) -> dict[str, Any]:
+    _require_proxy(request)
+    from backend import artifacts_store
+
+    return {"artifacts": await artifacts_store.list_artifacts(thread_id)}
+
+
+@app.post("/api/artifacts/generate")
+async def generate_artifact_endpoint(request: Request):
+    """Run one skill against a thread's scratchpad and stream the artifact.
+
+    Costs one credit. Not an AG-UI turn — a plain SSE stream of
+    ``{"type":"delta","text":…}`` then ``{"type":"done","artifact":{…}}``.
+    """
+
+    _require_proxy(request)
+    body = await request.json()
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="expected a JSON object")
+
+    thread_id = str(body.get("thread_id") or "").strip()
+    skill_id = str(body.get("skill_id") or "").strip()
+    user_id = str(body.get("user_id") or "").strip()
+    if not thread_id or not skill_id:
+        raise HTTPException(status_code=400, detail="thread_id and skill_id are required")
+
+    skill = get_skill(skill_id)
+    if skill is None:
+        raise HTTPException(status_code=404, detail=f"unknown skill_id: {skill_id!r}")
+
+    # one credit per generation
+    if _is_billable(user_id):
+        from backend import credits
+
+        try:
+            account = await credits.ensure_account(
+                user_id,
+                str(body.get("user_email") or ""),
+                str(body.get("user_name") or ""),
+            )
+            if account["status"] == "blocked":
+                return JSONResponse({"error": "account_disabled"}, status_code=403)
+            spent = await credits.try_debit(
+                user_id, settings.message_cost, reason="artifact",
+                ref=f"{thread_id}:{skill_id}",
+            )
+            if spent is None and settings.credits_enforce:
+                return JSONResponse(
+                    {"error": "insufficient_credits"}, status_code=402
+                )
+        except Exception:  # noqa: BLE001 - credits never block generation on a bug
+            logger.exception("artifact credit debit failed for %s; allowing", user_id)
+
+    scratchpad = await aget_thread_state(thread_id)
+    scratchpad = scratchpad.get("scratchpad", {}) if isinstance(scratchpad, dict) else {}
+
+    async def _stream() -> AsyncGenerator[str, None]:
+        parts: list[str] = []
+        try:
+            for delta in run_skill(skill, scratchpad, {}):
+                parts.append(delta)
+                yield f"data: {json.dumps({'type': 'delta', 'text': delta})}\n\n"
+        except Exception:  # noqa: BLE001
+            logger.exception("skill run failed (thread=%s skill=%s)", thread_id, skill_id)
+            yield f"data: {json.dumps({'type': 'error'})}\n\n"
+            return
+        body_text = "".join(parts).strip()
+        artifact: dict[str, Any] = {"skill_id": skill_id, "version": None, "body": body_text}
+        if body_text:
+            try:
+                from backend import artifacts_store
+
+                artifact = await artifacts_store.save_artifact(
+                    thread_id, skill_id, body_text
+                )
+            except Exception:  # noqa: BLE001
+                logger.exception("save_artifact failed (thread=%s)", thread_id)
+        yield f"data: {json.dumps({'type': 'done', 'artifact': artifact})}\n\n"
+
+    return StreamingResponse(
+        _stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.post("/agent")

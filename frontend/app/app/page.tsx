@@ -25,6 +25,7 @@ import { Thread } from "@/components/assistant-ui/elements/thread.aui";
 import { MarkdownPreview } from "@/components/markdown-preview";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/app/auth-context";
+import { useThreadId } from "@/app/MyRuntimeProvider";
 import { cn } from "@/lib/utils";
 
 type ChoiceOption = { id: string; label: string };
@@ -208,23 +209,136 @@ const RITUAL_PHRASES = [
   "Finishing up",
 ];
 
-const SKILLS: { id: string; label: string; prompt: string }[] = [
-  {
-    id: "blog_outline",
-    label: "Blog outline",
-    prompt: "Generate a blog outline from the scratchpad.",
-  },
-  {
-    id: "social_post",
-    label: "Social post",
-    prompt: "Generate a social post from the scratchpad.",
-  },
-  {
-    id: "marketing_campaign",
-    label: "Marketing campaign",
-    prompt: "Generate a marketing campaign from the scratchpad.",
-  },
+const SKILLS: { id: string; label: string }[] = [
+  { id: "blog_outline", label: "Blog outline" },
+  { id: "social_post", label: "Social post" },
+  { id: "marketing_campaign", label: "Marketing campaign" },
 ];
+const SKILL_LABEL: Record<string, string> = Object.fromEntries(
+  SKILLS.map((s) => [s.id, s.label]),
+);
+
+// ---------------------------------------------------------------------------
+// generated artifacts (standalone skill runs, off the chat turn)
+// ---------------------------------------------------------------------------
+
+type StoredArtifact = {
+  id: number;
+  skill_id: string;
+  version: number;
+  body: string;
+  created_at: string;
+};
+
+type ArtifactsValue = {
+  bySkill: Map<string, StoredArtifact[]>; // newest first
+  streamingSkill: string | null;
+  streamingText: string;
+  error: string | null;
+  generate: (skillId: string) => void;
+};
+
+const ArtifactsContext = createContext<ArtifactsValue | null>(null);
+const useArtifacts = (): ArtifactsValue => {
+  const ctx = useContext(ArtifactsContext);
+  if (!ctx) throw new Error("useArtifacts outside provider");
+  return ctx;
+};
+
+function ArtifactsProvider({ children }: { children: ReactNode }) {
+  const threadId = useThreadId();
+  const [artifacts, setArtifacts] = useState<StoredArtifact[]>([]);
+  const [streamingSkill, setStreamingSkill] = useState<string | null>(null);
+  const [streamingText, setStreamingText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const hydrate = useRef(() => {});
+  hydrate.current = () => {
+    fetch(`/api/artifacts?thread_id=${encodeURIComponent(threadId)}`, {
+      cache: "no-store",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setArtifacts(Array.isArray(d?.artifacts) ? d.artifacts : []))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    setArtifacts([]);
+    setStreamingSkill(null);
+    setStreamingText("");
+    setError(null);
+    hydrate.current();
+  }, [threadId]);
+
+  const generate = (skillId: string) => {
+    if (streamingSkill) return;
+    setError(null);
+    setStreamingText("");
+    setStreamingSkill(skillId);
+    (async () => {
+      try {
+        const res = await fetch("/api/artifacts/generate", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ thread_id: threadId, skill_id: skillId }),
+        });
+        if (!res.ok || !res.body) {
+          setError(res.status === 402 ? "out_of_credits" : "failed");
+          setStreamingSkill(null);
+          return;
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split("\n\n");
+          buf = lines.pop() ?? "";
+          for (const line of lines) {
+            const m = line.match(/^data: (.*)$/s);
+            if (!m) continue;
+            let evt: { type?: string; text?: string };
+            try {
+              evt = JSON.parse(m[1]);
+            } catch {
+              continue;
+            }
+            if (evt.type === "delta" && evt.text) {
+              setStreamingText((prev) => prev + evt.text);
+            } else if (evt.type === "error") {
+              setError("failed");
+            }
+          }
+        }
+      } catch {
+        setError("failed");
+      } finally {
+        setStreamingSkill(null);
+        setStreamingText("");
+        hydrate.current();
+      }
+    })();
+  };
+
+  const value = useMemo<ArtifactsValue>(() => {
+    const bySkill = new Map<string, StoredArtifact[]>();
+    for (const a of artifacts) {
+      const list = bySkill.get(a.skill_id) ?? [];
+      list.push(a);
+      bySkill.set(a.skill_id, list);
+    }
+    return { bySkill, streamingSkill, streamingText, error, generate };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artifacts, streamingSkill, streamingText, error]);
+
+  return (
+    <ArtifactsContext.Provider value={value}>
+      {children}
+    </ArtifactsContext.Provider>
+  );
+}
 
 function ArtifactRitual() {
   const [index, setIndex] = useState(0);
@@ -481,12 +595,13 @@ function CopyButton({ text }: { text: string }) {
 }
 
 function SkillBar() {
-  const aui = useAui();
   const state = useAgUiState<SignalState>();
   const history = useHistory();
+  const artifacts = useArtifacts();
   const processing = Boolean(state?.processing);
   const hasContent = Boolean(state?.body || (state?.angles?.length ?? 0));
-  const disabled = processing || history.isPreviewing || !hasContent;
+  const busy = artifacts.streamingSkill !== null;
+  const disabled = processing || history.isPreviewing || !hasContent || busy;
 
   return (
     <div className="skill-bar">
@@ -496,11 +611,16 @@ function SkillBar() {
           key={skill.id}
           type="button"
           disabled={disabled}
-          onClick={() => aui.thread.append(skill.prompt)}
+          onClick={() => artifacts.generate(skill.id)}
         >
-          {skill.label}
+          {artifacts.streamingSkill === skill.id ? "Generating…" : skill.label}
         </button>
       ))}
+      {artifacts.error === "out_of_credits" ? (
+        <span className="skill-bar-error">Out of credits</span>
+      ) : artifacts.error ? (
+        <span className="skill-bar-error">Generation failed — try again</span>
+      ) : null}
     </div>
   );
 }
@@ -653,33 +773,97 @@ function DerivedView({
   );
 }
 
+function GeneratedArtifactView({ skillId }: { skillId: string }) {
+  const artifacts = useArtifacts();
+  const versions = artifacts.bySkill.get(skillId) ?? []; // newest first
+  const streaming = artifacts.streamingSkill === skillId;
+  const [picked, setPicked] = useState<number | null>(null);
+
+  const latest = versions[0];
+  const current =
+    picked != null ? versions.find((v) => v.version === picked) : latest;
+
+  const text = streaming
+    ? artifacts.streamingText
+    : current?.body ?? "";
+
+  return (
+    <section className="artifact-panel derived-panel">
+      <div className="artifact-body">
+        <MarkdownPreview
+          text={text || (streaming ? "…" : "")}
+          streaming={streaming}
+          className="derived-body"
+        />
+      </div>
+      <div className="artifact-footer">
+        <span>
+          {streaming ? (
+            "Generating…"
+          ) : versions.length > 1 ? (
+            <label className="artifact-version-select">
+              Version{" "}
+              <select
+                value={(current ?? latest)?.version ?? 1}
+                onChange={(e) => setPicked(Number(e.target.value))}
+              >
+                {versions.map((v) => (
+                  <option key={v.version} value={v.version}>
+                    v{v.version}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : current ? (
+            `Version ${current.version}`
+          ) : (
+            ""
+          )}
+        </span>
+        <CopyButton text={text} />
+      </div>
+    </section>
+  );
+}
+
 function WorkspacePanel() {
   const state = useAgUiState<SignalState>();
+  const artifacts = useArtifacts();
   const derived = useMemo(() => state?.derived ?? [], [state?.derived]);
   const building = Boolean(state?.processing) && state?.progress?.node === "build";
+
+  // skills that have a generated artifact or are mid-generation → one tab each
+  const genSkills = useMemo(() => {
+    const ids = new Set<string>(artifacts.bySkill.keys());
+    if (artifacts.streamingSkill) ids.add(artifacts.streamingSkill);
+    return SKILLS.map((s) => s.id).filter((id) => ids.has(id));
+  }, [artifacts.bySkill, artifacts.streamingSkill]);
 
   const [activeTab, setActiveTab] = useState<string>("scratchpad");
   const ids = derived.map((d) => d.id).join("|");
   useEffect(() => {
-    if (derived.length) setActiveTab(derived[derived.length - 1].id);
-  }, [ids, derived.length]);
+    if (artifacts.streamingSkill) setActiveTab(`gen:${artifacts.streamingSkill}`);
+    else if (derived.length) setActiveTab(derived[derived.length - 1].id);
+  }, [ids, derived.length, artifacts.streamingSkill]);
 
   const activeDerived = derived.find((d) => d.id === activeTab);
-  const onScratchpad = !activeDerived;
+  const activeGen = activeTab.startsWith("gen:") ? activeTab.slice(4) : null;
+  const onScratchpad = !activeDerived && !activeGen;
 
+  const hasTabs = derived.length > 0 || genSkills.length > 0;
   const isOpen = Boolean(
     state?.processing ||
       state?.body ||
       state?.angles?.length ||
       state?.outline?.length ||
       state?.head ||
-      derived.length,
+      hasTabs,
   );
   if (!isOpen) return null;
 
   return (
     <div className="workspace-panel">
-      {derived.length ? (
+      {hasTabs ? (
         <div className="workspace-tabs" role="tablist">
           <button
             type="button"
@@ -690,6 +874,21 @@ function WorkspacePanel() {
           >
             Scratchpad
           </button>
+          {genSkills.map((id) => (
+            <button
+              key={`gen:${id}`}
+              type="button"
+              role="tab"
+              aria-selected={activeGen === id}
+              className={cn("workspace-tab", activeGen === id && "is-active")}
+              onClick={() => setActiveTab(`gen:${id}`)}
+            >
+              {SKILL_LABEL[id] ?? id}
+              {artifacts.streamingSkill === id ? (
+                <span className="workspace-tab-meta"> · generating…</span>
+              ) : null}
+            </button>
+          ))}
           {derived.map((d) => (
             <button
               key={d.id}
@@ -708,10 +907,12 @@ function WorkspacePanel() {
         </div>
       ) : null}
 
-      {onScratchpad ? (
-        <ScratchpadPane />
-      ) : (
+      {activeGen ? (
+        <GeneratedArtifactView skillId={activeGen} />
+      ) : activeDerived ? (
         <DerivedView derived={activeDerived} building={building} />
+      ) : (
+        <ScratchpadPane />
       )}
     </div>
   );
@@ -939,19 +1140,21 @@ export default function AppPage() {
 
   return (
     <AuiProvider extends={aui} config={config}>
-      <ArtifactHistoryProvider>
-        <main className="app-workspace">
-          <section className="app-chat">
-            <ChatBar />
-            <OutOfCreditsNotice />
-            <div className="app-chat-thread">
-              <Thread />
-              <FollowUpWorking />
-            </div>
-          </section>
-          <WorkspacePanel />
-        </main>
-      </ArtifactHistoryProvider>
+      <ArtifactsProvider>
+        <ArtifactHistoryProvider>
+          <main className="app-workspace">
+            <section className="app-chat">
+              <ChatBar />
+              <OutOfCreditsNotice />
+              <div className="app-chat-thread">
+                <Thread />
+                <FollowUpWorking />
+              </div>
+            </section>
+            <WorkspacePanel />
+          </main>
+        </ArtifactHistoryProvider>
+      </ArtifactsProvider>
     </AuiProvider>
   );
 }

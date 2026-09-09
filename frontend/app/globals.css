@@ -972,6 +972,22 @@ body:has(.app-workspace) {
   opacity: 0.4;
 }
 
+.skill-bar-error {
+  color: var(--destructive);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.artifact-version-select select {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  color: var(--foreground);
+  font: inherit;
+  margin-left: 0.3rem;
+  padding: 0.1rem 0.3rem;
+}
+
 .artifact-header {
   align-items: center;
   border-bottom: 1px solid var(--border);

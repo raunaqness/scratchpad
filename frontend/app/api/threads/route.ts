@@ -11,11 +11,15 @@ export async function GET(req: NextRequest) {
   const user = currentUser(req);
   if (!user) return NextResponse.json({ threads: [] }, { status: 401 });
 
+  const limit = req.nextUrl.searchParams.get("limit");
+  const qs = new URLSearchParams({ user_id: user.sub });
+  if (limit) qs.set("limit", limit);
+
   try {
-    const res = await fetch(
-      `${backendUrl()}/api/threads?user_id=${encodeURIComponent(user.sub)}`,
-      { headers: { "x-signal-proxy-secret": proxySecret() }, cache: "no-store" },
-    );
+    const res = await fetch(`${backendUrl()}/api/threads?${qs.toString()}`, {
+      headers: { "x-signal-proxy-secret": proxySecret() },
+      cache: "no-store",
+    });
     if (!res.ok) return NextResponse.json({ threads: [] });
     return NextResponse.json(await res.json());
   } catch {

@@ -57,6 +57,55 @@ GROUNDING_CONTRACT = """\
 
 
 # ===========================================================================
+# The shared knowledge-base-facts contract — referenced by every node that
+# can receive `knowledge_base_facts` in its payload (see backend/app.py's
+# `_ground` node). Deliberately a different heading than "Grounding" above —
+# that word already means "stick to confirmed `sources`" in this file; this
+# is a separate thing (real facts retrieved from the user's ingest knowledge
+# graph). Two variants: free-text output ends with a marker line the caller
+# parses out; JSON/structured output gets an explicit field instead.
+# ===========================================================================
+
+KNOWLEDGE_BASE_FACTS_TEXT_CONTRACT = """\
+# Knowledge base facts (optional)
+The payload may include `knowledge_base_facts` — real facts already retrieved
+from the user's own ingested articles for this turn, each with which article
+it came from. This IS your access to their knowledge base right now — when
+this key is present and non-empty, you already have exactly that much of it.
+- Never say you can't access their knowledge base, articles, or notes when
+  `knowledge_base_facts` is non-empty — that is false; you are looking at
+  some of it. Only say that if the key is absent or empty.
+- If the user is asking a meta-question about the knowledge base itself —
+  "what have I written about", "summarize my articles" — answer directly
+  from the facts and article titles you were given. Don't deflect.
+- Judge relevance yourself otherwise: if none are relevant, ignore them
+  completely and do not mention that a knowledge base exists.
+- If one or more are genuinely useful, weave them in naturally — as
+  something you already know, not "according to my knowledge base" or a
+  citation dump.
+- If, and only if, you actually used one or more, end your entire output
+  with one extra final line of the exact form
+  `SOURCES: <exact article title>|<exact article title>` — title(s) copied
+  verbatim from that fact's `sources[].title`, separated by `|`, nothing
+  else on that line, and nothing after it. Omit this line entirely if you
+  used none.
+"""
+
+KNOWLEDGE_BASE_FACTS_JSON_CONTRACT = """\
+# Knowledge base facts (optional)
+The payload may include `knowledge_base_facts` — real facts already retrieved
+from the user's own ingested articles for this turn, each with which article
+it came from. This IS your access to their knowledge base right now.
+- Never say you can't access their knowledge base when this key is non-empty.
+- Judge relevance yourself: if none are useful here, ignore them completely.
+- If one or more are genuinely useful, weave them in naturally.
+- Add `"sources_used": ["<exact article title>", ...]` to your JSON output —
+  title(s) copied verbatim from that fact's `sources[].title`, only the ones
+  you actually used. Leave it an empty list if you used none.
+"""
+
+
+# ===========================================================================
 # System prompt — the collaborator's identity and standing contract
 # ===========================================================================
 
@@ -204,10 +253,11 @@ the ideas on the scratchpad. Work fast and concrete.
 Follow the shared grounding contract. Use only facts in `sources`. If the idea
 is exploratory you may propose angles freely — tag the assumptions each leans on.
 
+{KNOWLEDGE_BASE_FACTS_JSON_CONTRACT}
 # Output
 Return JSON: {{"angles": ["label — lens sentence", ...], "outline": ["beat", ...],
-"open_questions": ["...", ...]}}. Use "outline" only when the user has chosen a
-direction; otherwise leave it empty.
+"open_questions": ["...", ...], "sources_used": ["...", ...]}}. Use "outline"
+only when the user has chosen a direction; otherwise leave it empty.
 
 {_skill_notes("brainstorming")}
 """
@@ -229,10 +279,12 @@ connective tissue — while keeping it as working notes, not a finished piece.
 # Grounding
 {GROUNDING_CONTRACT}
 
+{KNOWLEDGE_BASE_FACTS_TEXT_CONTRACT}
 # Output
 Return the updated scratchpad body as plain markdown text and nothing else — no
-preamble, no trailing notes. Do NOT wrap it in a code fence. Do NOT return JSON
-or any `{{...}}` object; just the prose.
+preamble, no trailing notes (other than the optional SOURCES line above). Do
+NOT wrap it in a code fence. Do NOT return JSON or any `{{...}}` object; just
+the prose.
 """
 
 TIGHTEN_SYSTEM_PROMPT = f"""\
@@ -247,9 +299,11 @@ else.
   requested.
 - Keep `[TK: ...]` and `[assumption]` markers unless the instruction removes them.
 
+{KNOWLEDGE_BASE_FACTS_TEXT_CONTRACT}
 # Output
 Return the edited scratchpad body as plain markdown text and nothing else. Do
-NOT wrap it in a code fence. Do NOT return JSON or a `{{...}}` object.
+NOT wrap it in a code fence. Do NOT return JSON or a `{{...}}` object. (The
+optional SOURCES line above is the one exception — it may follow the body.)
 
 {_skill_notes("grounded-editing")}
 """
@@ -264,10 +318,11 @@ You are Scratchpad reviewing the current notes as a sharp, friendly editor.
 - Where is it vague where it could be concrete?
 - What is the strongest thread to pull on next?
 
+{KNOWLEDGE_BASE_FACTS_JSON_CONTRACT}
 # Output
 Return JSON: {{"summary": "2-3 sentence overall read",
-"points": ["specific, actionable next step", ...]}}. 3-6 points. Do not rewrite
-the scratchpad here.
+"points": ["specific, actionable next step", ...], "sources_used": ["...", ...]}}.
+3-6 points. Do not rewrite the scratchpad here.
 
 {_skill_notes("draft-validation")}
 """
@@ -410,7 +465,8 @@ CHAT_SYSTEM_PROMPT = f"""\
 You are writing a short chat reply only (the scratchpad is handled elsewhere).
 2-4 sentences. Be warm, specific, and move things forward. If you are asking a
 question, ask exactly one.
-"""
+
+{KNOWLEDGE_BASE_FACTS_TEXT_CONTRACT}"""
 
 PUBLISH_REPLY = (
     "I can help you think, draft, and shape ideas here, and build a blog "

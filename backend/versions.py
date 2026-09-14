@@ -44,7 +44,16 @@ _COMPARE_KEYS = (
 )
 
 # Fields the client needs to render a version (current or previewed).
-_ITEM_KEYS = ("title", "topic", "body", "angles", "outline", "tags", "open_questions")
+_ITEM_KEYS = (
+    "title",
+    "topic",
+    "body",
+    "angles",
+    "outline",
+    "tags",
+    "open_questions",
+    "grounded_sources",
+)
 
 
 def _now() -> str:

@@ -38,6 +38,10 @@ services:
       # scratchpad-test-backend` picks it up — no image rebuild needed unless
       # a dependency changed (backend/requirements.txt or backend/ingest/requirements.txt).
       - ./backend:/app/backend
+      # So `python -m backend.export_conversation` (run inside the container,
+      # where the DB/Langfuse connections actually are) writes fixtures
+      # straight onto the host repo instead of the container's throwaway layer.
+      - ./tests:/app/tests
     healthcheck:
       test:
         [
@@ -76,10 +80,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_AGUI_AGENT_URL: /api/agent
-        NEXT_PUBLIC_APP_ENV: development
-        SIGNAL_BACKEND_URL: http://scratchpad-test-backend:8001
+      # Stop at the `dependencies` stage (node_modules only, no build) — this
+      # dev deployment runs `next dev` against bind-mounted source instead of
+      # a production build, so no image rebuild is needed for a code change.
+      target: dependencies
+    command: ["npm", "run", "dev", "--", "-p", "5173"]
     env_file:
       - .env
     environment:
@@ -87,6 +92,8 @@ services:
       SIGNAL_BACKEND_URL: http://scratchpad-test-backend:8001
       # This deployment's public origin — overrides the prod value in .env.
       GOOGLE_REDIRECT_URI: https://dev-scratchpad.raunaqness.com/api/auth/callback
+      NEXT_PUBLIC_AGUI_AGENT_URL: /api/agent
+      NEXT_PUBLIC_APP_ENV: development
     logging: *default-logging
     depends_on:
       scratchpad-test-backend:
@@ -96,10 +103,23 @@ services:
       - tvbox_default
     ports:
       - "5174:5173"
+    volumes:
+      # Dev convenience: edit frontend/ locally, next dev picks it up live —
+      # no image rebuild needed unless package.json changes (then `docker
+      # compose up -d --build scratchpad-test-frontend` once to reinstall).
+      - ./frontend:/app
+      # Keep the container's own Linux node_modules (installed at image build
+      # time) and build cache out of the bind mount — the host's node_modules
+      # may not be binary-compatible with this image's Alpine/musl base, and
+      # .next is noisy, host-polluting build-cache churn either way.
+      - frontend-node-modules:/app/node_modules
+      - frontend-next-cache:/app/.next
 
 volumes:
   scratchpad-test-data:
   scratchpad-test-falkordb-data:
+  frontend-node-modules:
+  frontend-next-cache:
 
 networks:
   scratchpad-test-network:

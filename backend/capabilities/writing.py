@@ -71,14 +71,22 @@ def render_scratchpad(scratchpad: dict[str, Any]) -> str:
 
 # --- brainstorm --------------------------------------------------------------
 
-def brainstorm(brief: dict[str, Any]) -> dict[str, Any]:
-    """Return {"angles": [...], "outline": [...], "open_questions": [...]}."""
+def brainstorm(
+    brief: dict[str, Any],
+    knowledge_base_facts: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Return {"angles": [...], "outline": [...], "open_questions": [...],
+    "sources_used": [...]}."""
+
+    payload = dict(brief)
+    if knowledge_base_facts:
+        payload["knowledge_base_facts"] = knowledge_base_facts
 
     model = get_chat_model(tags=["signal:brainstorm"])
     response = model.invoke(
         [
             SystemMessage(content=BRAINSTORM_SYSTEM_PROMPT),
-            HumanMessage(content=_json(brief)),
+            HumanMessage(content=_json(payload)),
         ]
     )
     raw = _text(response).strip()
@@ -93,18 +101,30 @@ def brainstorm(brief: dict[str, Any]) -> dict[str, Any]:
         "angles": [a for a in data.get("angles", []) if isinstance(a, str)],
         "outline": [o for o in data.get("outline", []) if isinstance(o, str)],
         "open_questions": [q for q in data.get("open_questions", []) if isinstance(q, str)],
+        "sources_used": [s for s in data.get("sources_used", []) if isinstance(s, str)],
     }
 
 
 # --- expand / tighten (streaming) -----------------------------------------
 
-def expand(scratchpad: dict[str, Any], instruction: str) -> Iterator[str]:
+def _knowledge_base_facts_block(knowledge_base_facts: list[dict[str, Any]] | None) -> str:
+    if not knowledge_base_facts:
+        return ""
+    return f"\n\nKNOWLEDGE_BASE_FACTS: {_json(knowledge_base_facts)}"
+
+
+def expand(
+    scratchpad: dict[str, Any],
+    instruction: str,
+    knowledge_base_facts: list[dict[str, Any]] | None = None,
+) -> Iterator[str]:
     """Stream a developed version of the scratchpad body."""
 
     model = get_chat_model(streaming=True, tags=["signal:expand"])
     human = (
         f"{render_scratchpad(scratchpad)}\n\n"
-        f"INSTRUCTION: {instruction or 'develop the notes further'}\n\n"
+        f"INSTRUCTION: {instruction or 'develop the notes further'}"
+        f"{_knowledge_base_facts_block(knowledge_base_facts)}\n\n"
         "Return the developed body as plain markdown prose — no JSON, no code "
         "fence, no preamble."
     )
@@ -118,13 +138,18 @@ def expand(scratchpad: dict[str, Any], instruction: str) -> Iterator[str]:
             yield piece
 
 
-def tighten(scratchpad: dict[str, Any], instruction: str) -> Iterator[str]:
+def tighten(
+    scratchpad: dict[str, Any],
+    instruction: str,
+    knowledge_base_facts: list[dict[str, Any]] | None = None,
+) -> Iterator[str]:
     """Stream an edited version of the scratchpad body."""
 
     model = get_chat_model(streaming=True, tags=["signal:tighten"])
     human = (
         f"{render_scratchpad(scratchpad)}\n\n"
-        f"EDIT: {instruction or 'tighten it'}\n\n"
+        f"EDIT: {instruction or 'tighten it'}"
+        f"{_knowledge_base_facts_block(knowledge_base_facts)}\n\n"
         "Return the edited body as plain markdown prose — no JSON, no code "
         "fence, no preamble."
     )
@@ -140,14 +165,20 @@ def tighten(scratchpad: dict[str, Any], instruction: str) -> Iterator[str]:
 
 # --- critique -------------------------------------------------------------
 
-def critique(scratchpad: dict[str, Any]) -> Critique:
+def critique(
+    scratchpad: dict[str, Any],
+    knowledge_base_facts: list[dict[str, Any]] | None = None,
+) -> Critique:
     model = get_chat_model(tags=["signal:critique"])
+    payload: dict[str, Any] = {"scratchpad": scratchpad}
+    if knowledge_base_facts:
+        payload["knowledge_base_facts"] = knowledge_base_facts
     try:
         structured = model.with_structured_output(Critique)
         result = structured.invoke(
             [
                 SystemMessage(content=CRITIQUE_SYSTEM_PROMPT),
-                HumanMessage(content=_json({"scratchpad": scratchpad})),
+                HumanMessage(content=_json(payload)),
             ]
         )
         if isinstance(result, Critique):
@@ -236,8 +267,15 @@ def chat_reply(
     turns: list[dict[str, Any]],
     scratchpad: dict[str, Any],
     reply_gist: str | None,
+    knowledge_base_facts: list[dict[str, Any]] | None = None,
 ) -> Iterator[str]:
-    """Stream a short conversational reply token-by-token."""
+    """Stream a short conversational reply token-by-token.
+
+    ``knowledge_base_facts``, when non-empty, are facts retrieved from the
+    user's ingest knowledge graph for this turn (see
+    docs/plan-chat-knowledge-graph-integration.md) — the model decides
+    whether they're relevant, not the caller.
+    """
 
     model = get_chat_model(streaming=True, tags=["signal:reply"])
     payload = {
@@ -245,6 +283,8 @@ def chat_reply(
         "scratchpad": scratchpad,
         "reply_should_convey": reply_gist or "a helpful, forward-moving reply",
     }
+    if knowledge_base_facts:
+        payload["knowledge_base_facts"] = knowledge_base_facts
     messages = [
         SystemMessage(content=CHAT_SYSTEM_PROMPT),
         HumanMessage(content=_json(payload)),

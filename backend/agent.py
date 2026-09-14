@@ -40,7 +40,8 @@ from backend.config import settings
 from backend.ingest.api import router as ingest_router
 from backend.prompts import CURRENT_PROMPT_VERSION
 from backend.skills.registry import get_skill
-from backend.threads_store import create_thread, list_threads
+from backend.threads_store import create_thread, get_thread, list_threads
+from backend.tracing import record_feedback
 from backend.versions import load_versions, version_items
 
 logger = logging.getLogger(__name__)
@@ -155,6 +156,69 @@ def _follow_up_tool_events(
             type=EventType.TOOL_CALL_ARGS,
             toolCallId=tool_call_id,
             delta=json.dumps({"items": items}),
+        )
+    )
+    yield encoder.encode(
+        ToolCallEndEvent(type=EventType.TOOL_CALL_END, toolCallId=tool_call_id)
+    )
+
+
+def _source_tool_events(
+    encoder: EventEncoder,
+    items: list[dict[str, Any]],
+    parent_message_id: str | None,
+) -> Iterator[str]:
+    """Render knowledge-graph sources the reply actually drew on as a
+    ``sources`` tool call — the client renders a small "grounded in" line."""
+
+    tool_call_id = f"sources-{uuid.uuid4()}"
+    yield encoder.encode(
+        ToolCallStartEvent(
+            type=EventType.TOOL_CALL_START,
+            toolCallId=tool_call_id,
+            toolCallName="sources",
+            parentMessageId=parent_message_id,
+        )
+    )
+    yield encoder.encode(
+        ToolCallArgsEvent(
+            type=EventType.TOOL_CALL_ARGS,
+            toolCallId=tool_call_id,
+            delta=json.dumps({"items": items}),
+        )
+    )
+    yield encoder.encode(
+        ToolCallEndEvent(type=EventType.TOOL_CALL_END, toolCallId=tool_call_id)
+    )
+
+
+def _feedback_tool_events(
+    encoder: EventEncoder,
+    *,
+    thread_id: str,
+    turn_index: int,
+    parent_message_id: str | None,
+) -> Iterator[str]:
+    """Render an always-open feedback box under this turn's reply — the
+    client posts free text to ``/api/feedback``, which attaches it to this
+    turn's own Langfuse trace (see backend/tracing.py's ``record_feedback``).
+    """
+
+    tool_call_id = f"feedback-{uuid.uuid4()}"
+    args = {"conversation_id": thread_id, "turn_index": turn_index}
+    yield encoder.encode(
+        ToolCallStartEvent(
+            type=EventType.TOOL_CALL_START,
+            toolCallId=tool_call_id,
+            toolCallName="feedback_context",
+            parentMessageId=parent_message_id,
+        )
+    )
+    yield encoder.encode(
+        ToolCallArgsEvent(
+            type=EventType.TOOL_CALL_ARGS,
+            toolCallId=tool_call_id,
+            delta=json.dumps(args),
         )
     )
     yield encoder.encode(
@@ -353,6 +417,7 @@ async def _signal_events(
     progress = _progress(None, last_status, progress_steps, done=False)
     pending_choice: dict[str, Any] | None = None
     pending_follow_ups: list[dict[str, Any]] | None = None
+    pending_sources: list[dict[str, Any]] | None = None
     follow_up_pending = False
     derived: list[dict[str, Any]] = []
     last_scratchpad: dict[str, Any] = Scratchpad().model_dump()
@@ -511,6 +576,9 @@ async def _signal_events(
             elif kind == "follow_ups":
                 pending_follow_ups = event.get("items") or None
 
+            elif kind == "sources":
+                pending_sources = event.get("items") or None
+
             elif kind == "final":
                 if message_open:
                     yield encoder.encode(
@@ -549,6 +617,18 @@ async def _signal_events(
                     ):
                         yield raw
                     pending_follow_ups = None
+                if pending_sources:
+                    for raw in _source_tool_events(encoder, pending_sources, message_id):
+                        yield raw
+                    pending_sources = None
+                if event.get("turn_index") is not None:
+                    for raw in _feedback_tool_events(
+                        encoder,
+                        thread_id=thread_id,
+                        turn_index=event["turn_index"],
+                        parent_message_id=message_id,
+                    ):
+                        yield raw
                 if event.get("versions") is not None:
                     versions = event["versions"]
                     head = event.get("head", len(versions))
@@ -599,6 +679,10 @@ async def _signal_events(
             for raw in _follow_up_tool_events(encoder, pending_follow_ups, message_id):
                 yield raw
             pending_follow_ups = None
+        if pending_sources:
+            for raw in _source_tool_events(encoder, pending_sources, message_id):
+                yield raw
+            pending_sources = None
         yield encoder.encode(
             RunFinishedEvent(
                 type=EventType.RUN_FINISHED, threadId=thread_id, runId=run_id
@@ -654,9 +738,45 @@ def _require_proxy(request: Request) -> None:
 
 
 @app.get("/api/threads")
-async def list_threads_endpoint(request: Request, user_id: str) -> dict[str, Any]:
+async def list_threads_endpoint(
+    request: Request, user_id: str, limit: int | None = None
+) -> dict[str, Any]:
     _require_proxy(request)
-    return {"threads": await list_threads(user_id)}
+    return {"threads": await list_threads(user_id, limit=limit)}
+
+
+@app.get("/api/threads/{thread_id}/messages")
+async def thread_messages_endpoint(
+    request: Request, thread_id: str, user_id: str
+) -> dict[str, Any]:
+    """A thread's chat history + its last scratchpad snapshot — what the
+    sidebar's "resume an older thread" click needs. Ownership-checked so one
+    account can't read another's thread by guessing an id."""
+
+    _require_proxy(request)
+    thread = await get_thread(thread_id)
+    if thread is None or thread["user_id"] != user_id:
+        raise HTTPException(status_code=404, detail="thread not found")
+
+    state = await aget_thread_state(thread_id)
+    scratchpad = state.get("scratchpad") if isinstance(state, dict) else None
+    derived = state.get("derived", []) if isinstance(state, dict) else []
+    try:
+        versions = version_items(await load_versions(thread_id))
+    except Exception:  # noqa: BLE001 - history is best-effort
+        versions = []
+
+    return {
+        "messages": state.get("turns", []) if isinstance(state, dict) else [],
+        "state": _state_snapshot(
+            scratchpad or Scratchpad().model_dump(),
+            status=(state.get("status") or "") if isinstance(state, dict) else "",
+            processing=False,
+            versions=versions,
+            head=len(versions),
+            derived=derived,
+        ),
+    }
 
 
 @app.get("/api/account")
@@ -698,6 +818,30 @@ async def create_thread_endpoint(request: Request) -> dict[str, Any]:
             status_code=400, detail="user_id and thread_id are required"
         )
     return await create_thread(user_id, thread_id, body.get("title"))
+
+
+@app.post("/api/feedback")
+async def feedback_endpoint(request: Request) -> dict[str, Any]:
+    """Free-text feedback on one turn, attached to that turn's own Langfuse
+    trace (see backend/tracing.py's ``record_feedback``) — the mechanism
+    behind the always-open feedback box under each reply in /app."""
+
+    _require_proxy(request)
+    body = await request.json()
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="expected a JSON object")
+    conversation_id = str(body.get("conversation_id") or "").strip()
+    comment = str(body.get("comment") or "").strip()
+    turn_index = body.get("turn_index")
+    if not conversation_id or not isinstance(turn_index, int) or not comment:
+        raise HTTPException(
+            status_code=400,
+            detail="conversation_id, turn_index (int), and comment are required",
+        )
+    recorded = record_feedback(
+        conversation_id=conversation_id, turn_index=turn_index, comment=comment
+    )
+    return {"recorded": recorded}
 
 
 # --- artifact generation (standalone skill runs, off the chat turn) --------

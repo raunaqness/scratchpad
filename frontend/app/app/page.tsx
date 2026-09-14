@@ -24,6 +24,7 @@ import { Check, PlusIcon } from "lucide-react";
 import { Thread } from "@/components/assistant-ui/elements/thread.aui";
 import { MarkdownPreview } from "@/components/markdown-preview";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ThreadSidebar } from "@/components/thread-sidebar";
 import { useAuth } from "@/app/auth-context";
 import { useThreadId } from "@/app/MyRuntimeProvider";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,8 @@ type SignalProgress = {
   done?: boolean;
 };
 
+type GroundedSource = { title?: string; url?: string };
+
 type VersionItem = {
   seq: number;
   title?: string;
@@ -48,6 +51,7 @@ type VersionItem = {
   angles?: string[];
   outline?: string[];
   open_questions?: string[];
+  grounded_sources?: GroundedSource[];
   created_at?: string;
 };
 
@@ -72,6 +76,7 @@ type SignalState = {
   outline?: string[];
   body?: string;
   open_questions?: string[];
+  grounded_sources?: GroundedSource[];
   version?: number;
   versions?: VersionItem[];
   head?: number;
@@ -181,6 +186,105 @@ function FollowUpButtons({ args }: { args: FollowUpArgs }) {
   );
 }
 
+type SourceItem = { title?: string; url?: string };
+type SourcesArgs = { items?: SourceItem[] };
+
+/**
+ * Which of the user's own ingested articles the reply actually drew on —
+ * only rendered when the reply used at least one (see
+ * docs/plan-chat-knowledge-graph-integration.md §4.4).
+ */
+function SourcesLine({ args }: { args: SourcesArgs }) {
+  const items = (args.items ?? []).filter((i) => i && i.title);
+  if (!items.length) return null;
+
+  return (
+    <div className="sources-line" aria-label="Grounded in your knowledge base">
+      <span className="sources-line-label">Grounded in</span>
+      <span className="sources-line-items">
+        {items.map((item, i) => (
+          <span key={`${item.title}-${i}`} className="sources-line-item">
+            {item.url ? (
+              <a href={item.url} target="_blank" rel="noreferrer">
+                {item.title}
+              </a>
+            ) : (
+              item.title
+            )}
+            {i < items.length - 1 ? ", " : ""}
+          </span>
+        ))}
+      </span>
+    </div>
+  );
+}
+
+type FeedbackArgs = { conversation_id?: string; turn_index?: number };
+type FeedbackStatus = "idle" | "saving" | "saved" | "error";
+
+/**
+ * Always-open feedback box under every reply. Free text typed here is
+ * attached server-side to this exact turn's own Langfuse trace (see
+ * backend/tracing.py's `record_feedback`) — every node, prompt and LLM call
+ * that produced this specific reply, reviewable right next to your note.
+ */
+function FeedbackBox({ args }: { args: FeedbackArgs }) {
+  const [comment, setComment] = useState("");
+  const [status, setStatus] = useState<FeedbackStatus>("idle");
+  const ready = args.conversation_id !== undefined && args.turn_index !== undefined;
+
+  async function submit() {
+    const text = comment.trim();
+    if (!text || !ready) return;
+    setStatus("saving");
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          conversation_id: args.conversation_id,
+          turn_index: args.turn_index,
+          comment: text,
+        }),
+      });
+      setStatus(res.ok ? "saved" : "error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div className="feedback-box" aria-label="Feedback on this reply">
+      <textarea
+        className="feedback-box-input"
+        placeholder="What should have happened here? (for tuning the system — optional)"
+        rows={2}
+        value={comment}
+        onChange={(e) => {
+          setComment(e.target.value);
+          if (status !== "idle") setStatus("idle");
+        }}
+      />
+      <div className="feedback-box-row">
+        <button
+          type="button"
+          className="feedback-box-submit"
+          disabled={!comment.trim() || !ready || status === "saving"}
+          onClick={submit}
+        >
+          {status === "saving" ? "Saving…" : "Save feedback"}
+        </button>
+        {status === "saved" ? (
+          <span className="feedback-box-status is-saved">Saved</span>
+        ) : null}
+        {status === "error" ? (
+          <span className="feedback-box-status is-error">Couldn&rsquo;t save — try again</span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 const toolkit = defineToolkit({
   request_choice: {
     type: "backend",
@@ -191,6 +295,14 @@ const toolkit = defineToolkit({
   follow_up: {
     type: "backend",
     render: (props) => <FollowUpButtons args={props.args as FollowUpArgs} />,
+  },
+  sources: {
+    type: "backend",
+    render: (props) => <SourcesLine args={props.args as SourcesArgs} />,
+  },
+  feedback_context: {
+    type: "backend",
+    render: (props) => <FeedbackBox args={props.args as FeedbackArgs} />,
   },
 });
 
@@ -643,6 +755,9 @@ function ScratchpadPane() {
   const openQuestions = preview
     ? preview.open_questions ?? []
     : state?.open_questions ?? [];
+  const groundedSources = preview
+    ? preview.grounded_sources ?? []
+    : state?.grounded_sources ?? [];
   const title = preview ? preview.title : state?.title;
 
   const hasContent = Boolean(body || outline.length || angles.length);
@@ -712,6 +827,25 @@ function ScratchpadPane() {
             <ul>
               {openQuestions.map((q, i) => (
                 <li key={`${q}-${i}`}>{q}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {groundedSources.length ? (
+          <div className="artifact-sources">
+            <p className="artifact-sources-heading">Grounded in</p>
+            <ul>
+              {groundedSources.map((s, i) => (
+                <li key={`${s.title}-${i}`}>
+                  {s.url ? (
+                    <a href={s.url} target="_blank" rel="noreferrer">
+                      {s.title}
+                    </a>
+                  ) : (
+                    s.title
+                  )}
+                </li>
               ))}
             </ul>
           </div>
@@ -1143,6 +1277,7 @@ export default function AppPage() {
       <ArtifactsProvider>
         <ArtifactHistoryProvider>
           <main className="app-workspace">
+            <ThreadSidebar />
             <section className="app-chat">
               <ChatBar />
               <OutOfCreditsNotice />

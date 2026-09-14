@@ -46,6 +46,12 @@ class Scratchpad(BaseModel):
     sources: list[str] = Field(default_factory=list)  # facts the user confirmed
     open_questions: list[str] = Field(default_factory=list)  # to confirm / unverified
 
+    # Articles from the user's ingest knowledge base the most recent
+    # note/expand/tighten/brainstorm/critique actually drew on (see
+    # backend/app.py's `_ground` node). Server-owned, replaced (not merged)
+    # on each grounded write; empty when nothing was used.
+    grounded_sources: list[dict[str, str]] = Field(default_factory=list)
+
     product_mode: ProductMode = "existing"
     status: ScratchpadStatus = "empty"
     version: int = 0

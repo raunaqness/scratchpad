@@ -93,6 +93,9 @@ class Critique(BaseModel):
 
     summary: str = ""
     points: list[str] = Field(default_factory=list)
+    # Article titles from `knowledge_base_facts` actually drawn on this pass —
+    # empty when none were given or none were relevant.
+    sources_used: list[str] = Field(default_factory=list)
 
 
 class PolicyDecision(BaseModel):

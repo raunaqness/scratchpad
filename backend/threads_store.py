@@ -52,16 +52,21 @@ async def _connect() -> aiosqlite.Connection:
     return conn
 
 
-async def list_threads(user_id: str) -> list[dict[str, Any]]:
+async def list_threads(user_id: str, limit: int | None = None) -> list[dict[str, Any]]:
     """A user's threads, most recently touched first."""
+
+    query = (
+        f"SELECT thread_id, title, created_at, updated_at FROM {_TABLE} "
+        f"WHERE user_id = ? ORDER BY updated_at DESC"
+    )
+    params: tuple[Any, ...] = (user_id,)
+    if limit is not None:
+        query += " LIMIT ?"
+        params += (limit,)
 
     conn = await _connect()
     try:
-        async with conn.execute(
-            f"SELECT thread_id, title, created_at, updated_at FROM {_TABLE} "
-            f"WHERE user_id = ? ORDER BY updated_at DESC",
-            (user_id,),
-        ) as cursor:
+        async with conn.execute(query, params) as cursor:
             rows = await cursor.fetchall()
     finally:
         await conn.close()
@@ -74,6 +79,31 @@ async def list_threads(user_id: str) -> list[dict[str, Any]]:
         }
         for r in rows
     ]
+
+
+async def get_thread(thread_id: str) -> dict[str, Any] | None:
+    """One thread's registry row, for an ownership check before returning its
+    message history to a caller."""
+
+    conn = await _connect()
+    try:
+        async with conn.execute(
+            f"SELECT thread_id, user_id, title, created_at, updated_at FROM {_TABLE} "
+            f"WHERE thread_id = ?",
+            (thread_id,),
+        ) as cursor:
+            row = await cursor.fetchone()
+    finally:
+        await conn.close()
+    if row is None:
+        return None
+    return {
+        "thread_id": row[0],
+        "user_id": row[1],
+        "title": row[2],
+        "created_at": row[3],
+        "updated_at": row[4],
+    }
 
 
 async def create_thread(

@@ -11,10 +11,12 @@ import {
 } from "react";
 import {
   AssistantRuntimeProvider,
+  fromThreadMessageLike,
   type ThreadMessage,
 } from "@assistant-ui/react";
 import { HttpAgent } from "@ag-ui/client";
 import { useAgUiRuntime } from "@assistant-ui/react-ag-ui";
+import type { ReadonlyJSONObject } from "assistant-stream/utils";
 
 import { AuthProvider, useAuth, type AuthUser } from "@/app/auth-context";
 
@@ -27,16 +29,29 @@ export function useThreadId(): string {
   return id;
 }
 
+/**
+ * Bumps whenever the thread registry may have changed (a new thread was
+ * registered, or a run on the current thread just finished) — the sidebar
+ * refetches `/api/threads` when this changes instead of polling.
+ */
+const ThreadRegistryVersionContext = createContext<number>(0);
+
+export function useThreadRegistryVersion(): number {
+  return useContext(ThreadRegistryVersionContext);
+}
+
 type StoredThread = {
   id: string;
   messages: readonly ThreadMessage[];
 };
 
+type ThreadStateSnapshot = ReadonlyJSONObject;
+
 /**
- * AG-UI runtime, gated on a Google session. Threads are keyed per user and
- * persisted in `localStorage`, so a refresh resumes the same conversation and
- * "New Thread" is the only thing that starts a fresh one. The backend registers
- * each thread on its first turn.
+ * AG-UI runtime, gated on a Google session. Every mount of `/app` starts a
+ * fresh thread — the sidebar (see `components/thread-sidebar.tsx`) is what
+ * lets the user deliberately resume one of their last few threads. The
+ * backend registers each thread on its first turn.
  */
 export function MyRuntimeProvider({
   children,
@@ -85,18 +100,15 @@ function RuntimeInner({
   const agentUrl =
     (process.env.NEXT_PUBLIC_AGUI_AGENT_URL as string | undefined) ??
     "/api/agent";
-  const storageKey = `scratchpad.thread.${user.sub}`;
 
   const threadsRef = useRef<Map<string, StoredThread>>(new Map());
-  const [currentThreadId, setCurrentThreadId] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const saved = window.localStorage.getItem(storageKey);
-      if (saved) return saved;
-    }
-    return newThreadId();
-  });
+  // Every mount starts a brand-new thread — resuming an older one is only
+  // ever a deliberate sidebar click (see onSwitchToThread below).
+  const [currentThreadId, setCurrentThreadId] = useState<string>(newThreadId);
+  const [registryVersion, setRegistryVersion] = useState(0);
+  const bumpRegistry = () => setRegistryVersion((v) => v + 1);
 
-  // Persist the active thread id and register it with the backend registry.
+  // Register the active thread with the backend registry.
   useEffect(() => {
     if (!threadsRef.current.has(currentThreadId)) {
       threadsRef.current.set(currentThreadId, {
@@ -104,19 +116,16 @@ function RuntimeInner({
         messages: [],
       });
     }
-    try {
-      window.localStorage.setItem(storageKey, currentThreadId);
-    } catch {
-      /* storage unavailable */
-    }
     fetch("/api/threads", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ thread_id: currentThreadId }),
-    }).catch(() => {
-      /* registry is best-effort */
-    });
-  }, [currentThreadId, storageKey]);
+    })
+      .then(bumpRegistry)
+      .catch(() => {
+        /* registry is best-effort */
+      });
+  }, [currentThreadId]);
 
   const agent = useMemo(() => {
     return new HttpAgent({
@@ -136,13 +145,36 @@ function RuntimeInner({
         console.debug("[agui] Switched to new thread:", id);
       },
       onSwitchToThread: async (threadId: string) => {
-        const thread = threadsRef.current.get(threadId);
+        let thread = threadsRef.current.get(threadId);
+        let state: ThreadStateSnapshot | undefined;
         if (!thread) {
-          throw new Error(`Thread ${threadId} not found`);
+          const res = await fetch(`/api/threads/${threadId}/messages`);
+          if (!res.ok) {
+            throw new Error(`Thread ${threadId} not found`);
+          }
+          const data = (await res.json()) as {
+            messages?: { role: string; content: string }[];
+            state?: ThreadStateSnapshot;
+          };
+          const messages = (data.messages ?? []).map((m, i) =>
+            fromThreadMessageLike(
+              {
+                role: m.role as "user" | "assistant" | "system",
+                content: m.content,
+              },
+              `${threadId}-${i}`,
+              { type: "complete", reason: "stop" },
+            ),
+          );
+          thread = { id: threadId, messages };
+          threadsRef.current.set(threadId, thread);
+          state = data.state;
+          console.debug("[agui] Loaded thread history from backend:", threadId);
+        } else {
+          console.debug("[agui] Switched to thread:", threadId);
         }
         setCurrentThreadId(threadId);
-        console.debug("[agui] Switched to thread:", threadId);
-        return { messages: thread.messages };
+        return { messages: thread.messages, state };
       },
     }),
     [currentThreadId],
@@ -159,19 +191,29 @@ function RuntimeInner({
     },
   });
 
+  const wasRunningRef = useRef(false);
   useEffect(() => {
     return runtime.thread.subscribe(() => {
+      const state = runtime.thread.getState();
       threadsRef.current.set(currentThreadId, {
         id: currentThreadId,
-        messages: runtime.thread.getState().messages,
+        messages: state.messages,
       });
+      // Falling edge only — the backend sets the thread's real title
+      // (from the first message) once a run finishes.
+      if (wasRunningRef.current && !state.isRunning) {
+        bumpRegistry();
+      }
+      wasRunningRef.current = state.isRunning;
     });
   }, [runtime, currentThreadId]);
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <ThreadIdContext.Provider value={currentThreadId}>
-        {children}
+        <ThreadRegistryVersionContext.Provider value={registryVersion}>
+          {children}
+        </ThreadRegistryVersionContext.Provider>
       </ThreadIdContext.Provider>
     </AssistantRuntimeProvider>
   );

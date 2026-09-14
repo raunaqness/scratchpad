@@ -21,14 +21,23 @@ services:
       - .env
     environment:
       SIGNAL_DATA_DIR: /app/data
+      # The ingest subsystem's knowledge graph — see backend/ingest/blog/graph.py.
+      INGEST_FALKORDB_HOST: ingest-falkordb
+      INGEST_FALKORDB_PORT: 6379
     logging: *default-logging
     networks:
       - scratchpad-test-network
       - supabase_default   # reach the Supabase Postgres as `db:5432`
+    depends_on:
+      - ingest-falkordb
     ports:
       - "8002:8001"
     volumes:
       - scratchpad-test-data:/app/data
+      # Dev convenience: edit backend/ locally and `docker compose restart
+      # scratchpad-test-backend` picks it up — no image rebuild needed unless
+      # a dependency changed (backend/requirements.txt or backend/ingest/requirements.txt).
+      - ./backend:/app/backend
     healthcheck:
       test:
         [
@@ -40,6 +49,28 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Graphiti's graph store for backend/ingest/ (see docs/plan-house-voice-reader.md
+  # §5.5/§9 — Kuzu was tried first as a zero-infra embedded option, but its
+  # graphiti-core driver doesn't actually build the search index it needs).
+  # Redis protocol (6379) is internal-only — the backend reaches it on the
+  # shared network by service name. The bundled FalkorDB Browser (3000) has no
+  # auth, so it's bound to localhost only, not the tunnel network — reach it
+  # at http://localhost:3010 (or over SSH port-forward) for graph visualization.
+  ingest-falkordb:
+    image: falkordb/falkordb:latest
+    logging: *default-logging
+    networks:
+      - scratchpad-test-network
+    ports:
+      - "127.0.0.1:3010:3000"
+    volumes:
+      # FalkorDB's actual Redis `dir` is /var/lib/falkordb/data, NOT /data —
+      # mounting at /data (as this originally did) silently persisted nothing;
+      # the graph only lived in the container's ephemeral filesystem and was
+      # lost on any recreate. Verified this path is the real one before
+      # trusting it again (see conversation for how the bug was found).
+      - scratchpad-test-falkordb-data:/var/lib/falkordb/data
 
   scratchpad-test-frontend:
     build:
@@ -68,6 +99,7 @@ services:
 
 volumes:
   scratchpad-test-data:
+  scratchpad-test-falkordb-data:
 
 networks:
   scratchpad-test-network:

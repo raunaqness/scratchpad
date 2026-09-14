@@ -48,6 +48,18 @@ class Settings(BaseSettings):
         default=60, alias="OPENROUTER_TIMEOUT_SECONDS"
     )
     openrouter_max_retries: int = Field(default=2, alias="OPENROUTER_MAX_RETRIES")
+    # OpenRouter's /embeddings endpoint (OpenAI-compatible) — used only by the
+    # ingest subsystem's knowledge-graph step (backend/ingest/blog/graph.py).
+    openrouter_embedding_model: str = Field(
+        default="openai/text-embedding-3-small", alias="OPENROUTER_EMBEDDING_MODEL"
+    )
+
+    # --- Ingest subsystem: FalkorDB (Graphiti's graph store) ------------------
+    # A plain Redis-protocol server — `docker-compose.test.yml` runs one as
+    # `ingest-falkordb`; these defaults point at a local instance for dev
+    # outside Docker (`docker run -p 6379:6379 falkordb/falkordb`).
+    ingest_falkordb_host: str = Field(default="localhost", alias="INGEST_FALKORDB_HOST")
+    ingest_falkordb_port: int = Field(default=6379, alias="INGEST_FALKORDB_PORT")
 
     # --- Conversation shaping ------------------------------------------------
     history_window: int = Field(default=12, alias="SIGNAL_HISTORY_WINDOW")

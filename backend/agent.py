@@ -37,6 +37,7 @@ from backend.app import aget_thread_state, astream_conversation
 from backend.artifact import Scratchpad
 from backend.capabilities.skills import run_skill
 from backend.config import settings
+from backend.ingest.api import router as ingest_router
 from backend.prompts import CURRENT_PROMPT_VERSION
 from backend.skills.registry import get_skill
 from backend.threads_store import create_thread, list_threads
@@ -72,6 +73,10 @@ app.add_middleware(
     allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
 )
+# Separate subsystem, separate route namespace — see docs/plan-house-voice-reader.md.
+# No _require_proxy gate yet (see that doc's §8 non-goals); add one alongside
+# credits gating when this is wired behind auth.
+app.include_router(ingest_router)
 
 
 # Human-readable label per graph node, for the dev progress indicator.

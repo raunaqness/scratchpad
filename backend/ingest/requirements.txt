@@ -1,0 +1,11 @@
+# Ingestion subsystem only — kept separate from backend/requirements.txt so
+# the main app doesn't carry this weight until it's actually deployed with it.
+scrapy
+trafilatura
+beautifulsoup4
+lxml
+requests
+feedparser
+graphiti-core
+falkordb
+psycopg2-binary

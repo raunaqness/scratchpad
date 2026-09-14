@@ -97,6 +97,9 @@ export function SiteNav() {
         <Link href="/about" className="site-nav-link">
           About
         </Link>
+        <Link href="/ingest" className="site-nav-link">
+          Ingest
+        </Link>
         {!inApp ? <AuthNav /> : null}
         <button
           type="button"

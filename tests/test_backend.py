@@ -12,7 +12,7 @@ from backend.app import get_thread_state, run_conversation
 from backend.artifact import Scratchpad, apply_client_edits
 from backend.memory_store import load_memory
 from backend.signal_models import Critique, GroundingNotes, TurnPlan
-from backend.textutil import dedupe, enforce_max_words, max_words, word_count
+from backend.textutil import dedupe, enforce_max_words, looks_like_echo, max_words, word_count
 from tests.conftest import FakeModelScript
 
 
@@ -26,6 +26,21 @@ def test_textutil_helpers():
     assert enforce_max_words("one two three four", 2) == "one two"
     assert word_count("a b c") == 3
     assert dedupe(["a", " a ", "", "b"]) == ["a", "b"]
+
+
+def test_looks_like_echo():
+    request = "Can you add the top 500 points to the scratchpad about China and AI?"
+    # the live bug: note_text restates the request instead of writing a point
+    assert looks_like_echo("top 500 points about China and AI", request)
+    assert looks_like_echo(request, request)
+    # real generated content: mostly new words, not a subset of the request
+    real_content = (
+        "- China is investing heavily in AI research and development.\n"
+        "- The government has implemented policies to support AI startups.\n"
+        "- Data availability gives Chinese firms a competitive edge."
+    )
+    assert not looks_like_echo(real_content, request)
+    assert not looks_like_echo("Idea: faster cold starts for edge functions", request)
 
 
 def test_scratchpad_versioning_and_client_edits():
@@ -69,6 +84,95 @@ def test_note_captures_raw_text_verbatim(isolated_state, install_models):
     assert sp["version"] == 1
     assert result["head"] == 1
     assert result["derived"] == []
+
+
+def test_note_uses_generated_note_text_when_the_user_asked_for_new_content(
+    isolated_state, install_models
+):
+    """When `interpret` decides the message asks the system to ADD content
+    (not dump the user's own raw text), `_note()` uses `plan.note_text`
+    rather than the raw message — this is the path
+    `interpret_prompt`'s note_text formatting contract governs (see
+    backend/prompts.py): multi-point generated content must be real
+    markdown list syntax, not one run-on sentence with inline digits, or
+    it silently fails to render as a list in the frontend (confirmed live,
+    see docs/tasklist.md §1.2). This test only pins the mechanical
+    plumbing (note_text wins over the raw message when set) — the actual
+    formatting quality of a live `note_text` is a live-model behavior,
+    not something the offline fake model can check."""
+
+    install_models(
+        FakeModelScript(
+            plan=TurnPlan(
+                mode="note",
+                note_text="- First key point.\n- Second key point.\n- Third key point.",
+            )
+        )
+    )
+    result = _run("add some key points about this to the scratchpad")
+
+    sp = result["scratchpad"]
+    assert sp["body"] == "- First key point.\n- Second key point.\n- Third key point."
+    assert sp["body"] != "add some key points about this to the scratchpad"
+
+
+def test_note_asks_for_a_smaller_number_when_interpret_gives_up_on_a_large_count(
+    isolated_state, install_models
+):
+    """Deterministic guardrail (backend/app.py's `_looks_like_generation_request`
+    + `looks_like_echo`, backend/textutil.py): if `interpret` returns
+    `note_text: None` for a message that clearly asks the assistant to
+    GENERATE content (not dump the user's own raw text), falling through
+    to the raw message would silently insert the user's own command into
+    the scratchpad instead of real content — the live "add the top 500
+    points..." bug (docs/tasklist.md §1.2). The node must catch this and
+    ask for a smaller number instead of writing the command into `body`."""
+
+    install_models(FakeModelScript(plan=TurnPlan(mode="note", note_text=None)))
+    result = _run("Can you add the top 500 points to the scratchpad about China and AI?")
+
+    sp = result["scratchpad"]
+    assert sp["body"] == ""  # nothing written to the scratchpad
+    assert sp["version"] == 0  # no version bump — no real change happened
+    assert result["status"] == "needs_input"
+    assert "smaller number" in result["assistant_message"]
+
+
+def test_note_catches_note_text_that_just_echoes_the_request(
+    isolated_state, install_models
+):
+    """Same guardrail, other failure shape: `interpret` returns a
+    non-null `note_text` that is itself basically a restatement of the
+    request ("top 500 points about China and AI") rather than a real
+    point — must be treated the same as a null note_text, not written
+    to the scratchpad as if it were content."""
+
+    install_models(
+        FakeModelScript(
+            plan=TurnPlan(mode="note", note_text="top 500 points about China and AI")
+        )
+    )
+    result = _run("Can you add the top 500 points to the scratchpad about China and AI?")
+
+    sp = result["scratchpad"]
+    assert sp["body"] == ""
+    assert result["status"] == "needs_input"
+    assert "smaller number" in result["assistant_message"]
+
+
+def test_note_verbatim_dump_is_unaffected_by_the_generation_guardrail(
+    isolated_state, install_models
+):
+    """The guardrail must not fire for the ordinary verbatim-dump case —
+    `_looks_like_generation_request` excludes messages containing ':',
+    the standard "jot this down: X" / "note: X" shape."""
+
+    install_models(FakeModelScript(plan=TurnPlan(mode="note", note_text=None)))
+    result = _run("jot this down: we just shipped single sign-on for our API dashboard")
+
+    sp = result["scratchpad"]
+    assert sp["body"] == "jot this down: we just shipped single sign-on for our API dashboard"
+    assert result["status"] == "notes"
 
 
 def test_expand_develops_the_body_and_flags_claims(isolated_state, install_models):

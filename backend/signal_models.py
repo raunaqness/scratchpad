@@ -52,6 +52,14 @@ class TurnPlan(BaseModel):
     # current topic (a rename / correction), not just adding detail.
     subject_changed: bool = False
 
+    # True when the message asks ABOUT the user's own ingested corpus itself
+    # ("summarize my last 3 blogs", "what have I written about", "what are
+    # your sources for the blogs you've generated") rather than about specific
+    # content/facts within it ("what did I say about pricing"). Meta-questions
+    # like this need the article list (title + date), not a per-fact semantic
+    # search — see backend/app.py's `_ground` node.
+    asks_about_knowledge_base: bool = False
+
     # conversation control
     clarifying_question: str | None = None
     reply_gist: str | None = None

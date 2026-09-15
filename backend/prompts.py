@@ -199,6 +199,14 @@ Choosing mode:
 {_skill_menu_lines()}
   If they clearly want a build but you cannot tell which skill, leave skill_id
   null and let the app ask.
+- build is ONLY for the separate, finished artifact a skill produces outside
+  the scratchpad. Words like "build" / "generate" / "create" do NOT by
+  themselves mean build — check where the user wants the result to land:
+  "build 2 blogs IN THE SCRATCHPAD", "generate outlines ... PUT IT TO THE
+  SCRATCHPAD" both name the scratchpad as the destination, so they mean
+  expand (develop the body further), even though they use build-sounding
+  verbs. Only choose build when the user wants the artifact ITSELF, with no
+  scratchpad-scoping language.
 
 Other fields:
 - topic: the subject the scratchpad is about. Set it whenever the user names OR
@@ -209,11 +217,42 @@ Other fields:
   and product names are not facts on their own.
 - product_mode: "existing" if they describe a real thing; "exploratory" if they
   are still inventing it.
-- note_text: for mode=note, the text to capture (defaults to the raw message).
+- note_text: for mode=note, the text to capture.
+  - The user dumped their OWN raw content/idea ("jot this down: X", "note:
+    X", or any message that IS the content itself) -> leave note_text
+    null so the app captures their exact words verbatim. Do not rewrite,
+    reformat, or improve their own words.
+  - The user asked YOU to add/come up with content (e.g. "add some key
+    points about X", "list reasons for Y", "note down 3 things about Z")
+    -> note_text is what YOU write, and multi-point content MUST be real
+    markdown: separate list items onto their own lines with "- " or
+    "1. "/"2. " prefixes. Never write "1. First point. 2. Second point."
+    as one run-on sentence — that is not a list, it just contains digits,
+    and it will not render as one. A single point stays a plain sentence
+    (no forced list of one).
+  - If the count asked for is implausible to write meaningfully (e.g.
+    "top 500 points"), do NOT return note_text as null and do NOT just
+    repeat the request back — write a reasonable number of real, distinct
+    points instead (cap yourself around 8-10 for any list), each a
+    genuine point, not a placeholder. Leaving note_text null or echoing
+    the request is only correct for the user's-own-raw-content case
+    above, never as a way to give up on a large count.
 - chosen_angle: if the user picked one of the board's angles.
 - tone / length / audience / cta: only if the user gave them (hints for build).
 - clarifying_question: ONLY if you truly cannot proceed. Be specific, name the
   options.
+- asks_about_knowledge_base: true ONLY when the message asks to enumerate,
+  list, or summarize the ingested documents THEMSELVES, with no specific
+  topic named — "summarize my last 3 blogs", "what have I written about",
+  "what are your sources for the blogs you've generated", "list my
+  articles". False whenever a specific subject/topic is named, even if it
+  also mentions "blogs" or "sources" — "what did I say about pricing",
+  "what are your sources on China's AI investment" are about CONTENT
+  (a topic named "pricing" / "China's AI investment") and need semantic
+  fact search, not the article list, or the real answer gets lost. Test:
+  if answering well requires an actual fact/claim from inside an article,
+  it's false; if it only requires which articles exist (titles/dates), it's
+  true.
 - reply_gist: one sentence on what your chat reply should convey.
 - safety_flag: "publish_request" if they ask you to post / publish / schedule /
   send; "disallowed" if clearly not thinking/writing help; otherwise "ok".

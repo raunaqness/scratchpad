@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 from typing import Any
@@ -62,7 +63,13 @@ from backend.skills.registry import get_skill
 from backend.threads_store import touch_thread
 from backend.tracing import flush as flush_traces
 from backend.tracing import build_turn_handler, get_langfuse_handler, trace_metadata
-from backend.textutil import dedupe, unwrap_model_text, word_count
+from backend.textutil import (
+    dedupe,
+    is_placeholder_only,
+    looks_like_echo,
+    unwrap_model_text,
+    word_count,
+)
 from backend.versions import (
     append_version,
     artifact_changed,
@@ -311,6 +318,32 @@ def _interpret(state: SignalState) -> SignalState:
 # knowledge-base grounding (read-only, runs before routing)
 # ---------------------------------------------------------------------------
 
+def _library_items_as_facts(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Adapt ``runs_store.library_items`` rows into the same
+    ``{"fact", "valid_at", "sources": [{"title", "url"}]}`` shape
+    ``blog_graph.query`` returns, so every downstream consumer
+    (``chat_reply``, ``_match_sources``, the SOURCES-line contract) can
+    treat "here is the article list" the same as "here are some facts" —
+    no separate payload shape to teach the model about.
+    """
+
+    facts: list[dict[str, Any]] = []
+    for item in items:
+        title = item.get("title") or item.get("url") or "(untitled)"
+        published = item.get("published_at")
+        fact = f"The user has an ingested article titled '{title}'" + (
+            f", published {published}." if published else "."
+        )
+        facts.append(
+            {
+                "fact": fact,
+                "valid_at": str(published) if published else None,
+                "sources": [{"title": title, "url": item.get("url") or ""}],
+            }
+        )
+    return facts
+
+
 async def _ground(state: SignalState) -> SignalState:
     """Best-effort retrieval from the account's ingest knowledge graph.
 
@@ -319,9 +352,26 @@ async def _ground(state: SignalState) -> SignalState:
     blocks or breaks a turn on failure — same fail-open posture as
     ``_follow_up``. See docs/plan-chat-knowledge-graph-integration.md §4.3
     option (a).
+
+    Additive, not either/or: the existing per-fact semantic search
+    (``blog_graph.query``) always runs when there's anything ingested —
+    it's the right tool for content questions ("what did I say about X").
+    When ``plan.asks_about_knowledge_base`` (set by ``interpret``) is also
+    true — a meta-question about the corpus itself, e.g. "summarize my
+    last 3 blogs", "what are your sources for the blogs you've generated"
+    — the article list (title + date, ``runs_store.library_items``) is
+    layered on top, because there is no fact edge in the graph meaning
+    "this is one of your 3 most recent posts"; semantic search alone
+    structurally can't answer that shape of question. Merging rather than
+    branching means a misclassified flag (model says yes when the message
+    is really a content question, or vice versa) never costs the turn its
+    real answer — it can only ever add a bit of harmless extra context,
+    per the "judge relevance yourself, ignore what's not useful" contract
+    every consumer of ``knowledge_base_facts`` already follows.
     """
 
     user_id = state.get("user_id") or ""
+    plan = state.get("plan") or {}
     grounding: list[dict[str, Any]] | None = None
     if user_id:
         try:
@@ -330,9 +380,13 @@ async def _ground(state: SignalState) -> SignalState:
             from backend.ingest.blog import graph as blog_graph
 
             if database_configured() and await runs_store.ingested_count(user_id) > 0:
-                grounding = await blog_graph.query(
+                facts = await blog_graph.query(
                     user_id, state["user_message"], num_results=5
                 )
+                if plan.get("asks_about_knowledge_base"):
+                    items = await runs_store.library_items(user_id)
+                    facts = [*_library_items_as_facts(items), *facts]
+                grounding = facts or None
         except Exception:  # noqa: BLE001 - grounding is never load-bearing
             logger.exception("grounding lookup failed for %s", user_id)
             grounding = None
@@ -438,9 +492,67 @@ def _rebase_note(state: SignalState, scratch: Scratchpad) -> str:
     return ""
 
 
+_REQUEST_PHRASE_RE = re.compile(r"\b(can you|could you|would you|please)\b", re.I)
+_GENERATION_VERB_RE = re.compile(
+    r"\b(add|generate|give me|list|write|note down|put|come up with|create)\b", re.I
+)
+
+
+def _looks_like_generation_request(message: str) -> bool:
+    """True when the raw message reads as a request for the ASSISTANT to
+    produce content ("can you add ... ?"), not a message that already IS
+    the content ("jot this down: X", where the ":" marks real payload
+    following the instruction). Used only to decide whether falling back
+    to the raw message as `note_text` would silently insert the command
+    itself into the scratchpad instead of real content — see
+    docs/tasklist.md §1.2 ("top 500 points" bug)."""
+
+    if ":" in message:
+        return False
+    has_request_phrase = bool(_REQUEST_PHRASE_RE.search(message)) or message.rstrip().endswith("?")
+    has_generation_verb = bool(_GENERATION_VERB_RE.search(message))
+    return has_request_phrase and has_generation_verb
+
+
+_NOTE_GENERATION_FAILED_MESSAGE = (
+    "That's a lot to generate reliably in one go — try a smaller number, or "
+    "share a few real points yourself and I'll build on them."
+)
+
+
 def _note(state: SignalState) -> SignalState:
     scratch = ensure_scratchpad(state["scratchpad"])
-    text = (state["plan"].get("note_text") or state["user_message"]).strip()
+    user_message = state["user_message"]
+    note_text = state["plan"].get("note_text")
+
+    # Deterministic guardrail, not just prompt wording: `interpret` is a
+    # classification call being asked to also generate open-ended content
+    # in this one field, and it sometimes fails silently — returning
+    # `note_text: null` for a message that is a request ("can you add the
+    # top 500 points...?"), not raw content, or returning `note_text` that
+    # just echoes the request back. Either way, falling through to the
+    # existing `note_text or user_message` default would insert the user's
+    # own command into the scratchpad instead of real content. Catch both
+    # failure shapes here rather than trusting the prompt never to slip.
+    if note_text and looks_like_echo(note_text, user_message):
+        note_text = None
+    if note_text is None and _looks_like_generation_request(user_message):
+        _emit_reply(_NOTE_GENERATION_FAILED_MESSAGE)
+        return {
+            **state,
+            "assistant_message": _NOTE_GENERATION_FAILED_MESSAGE,
+            "status": "needs_input",
+            "turns": [
+                *state.get("turns", []),
+                {"role": "assistant", "content": _NOTE_GENERATION_FAILED_MESSAGE},
+            ],
+            "trajectory": [
+                *state.get("trajectory", []),
+                {"step": "note", "status": "needs_input", "at": _now()},
+            ],
+        }
+
+    text = (note_text or user_message).strip()
     body = f"{scratch.body}\n\n{text}".strip() if scratch.body else text
     scratch = scratch.model_copy(update={"body": body}).touched(status="notes")
     message = (
@@ -504,7 +616,17 @@ def _develop(state: SignalState, *, node: str, streamer) -> SignalState:
             )
     raw_body = unwrap_model_text("".join(parts))
     body, source_titles = _split_trailing_sources_marker(raw_body)
-    if not check_output(body).allowed:
+    # Same guardrail class as `_note()`'s: don't trust the prompt alone to
+    # never degenerate on a hard instruction (e.g. "add the top 500
+    # points") — catch a body that's non-empty but only a placeholder
+    # marker, or one that just echoes the instruction back, before it
+    # overwrites the scratchpad with something that looks like content
+    # but isn't. See docs/tasklist.md §1.2.
+    if (
+        not check_output(body).allowed
+        or is_placeholder_only(body)
+        or looks_like_echo(body, instruction)
+    ):
         return _op_failed(state, node)
 
     notes = grounding_notes(body, base.sources, base.product_mode)

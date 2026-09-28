@@ -18,6 +18,10 @@ __pycache__/
 *.mp4
 *.mov
 *.avi
+
+# README product screenshots
+!Screenshot 2026-09-28 at 4.23.40 PM.png
+!Screenshot 2026-09-28 at 4.24.10 PM.png
 *.mkv
 *.zip
 *.tar

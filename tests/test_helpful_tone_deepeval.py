@@ -74,6 +74,7 @@ def isolated_data_dir(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("case", CASES, ids=lambda case: case["name"])
 def test_helpful_assistant_tone(case, isolated_data_dir):
+    judge = openrouter_eval_model()  # skips before any live call when there's no key
     result = app.run_conversation(
         user_id=f"tone-{case['name']}",
         conversation_id=f"tone-{case['name']}",
@@ -101,7 +102,7 @@ def test_helpful_assistant_tone(case, isolated_data_dir):
         name=f"Helpful Tone: {case['name']}",
         criteria=case["criteria"],
         evaluation_params=[MultiTurnParams.CONTENT],
-        model=openrouter_eval_model(),
+        model=judge,
         threshold=0.7,
         async_mode=False,
     )

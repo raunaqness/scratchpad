@@ -4,6 +4,8 @@ A thinking surface for people who write. You dump a messy idea, work it with a
 partner until it feels true, then turn it into a real piece — without inventing
 facts you never gave it.
 
+![Scratchpad homepage](<./Screenshot 2026-09-28 at 4.24.10 PM.png>)
+
 ---
 
 ## The idea
@@ -33,6 +35,12 @@ marks it as a question.
    and what you have already said.
 
 New chats start empty. Each thread is its own scratchpad.
+
+## See it in action
+
+Here is an example of Scratchpad in the middle of a brainstorming session:
+
+![Scratchpad brainstorming session](<./Screenshot 2026-09-28 at 4.23.40 PM.png>)
 
 ## What you can do
 
@@ -185,7 +193,7 @@ Entry points:
 | Web | `backend/agent.py` — AG-UI SSE + extra routes |
 | Auth | Google OAuth in the Next.js BFF; backend gated by shared secret |
 | Tracing | Langfuse (`backend/tracing.py`) |
-| Eval | pytest + DeepEval |
+| Eval | pytest + DeepEval — see [evals.md](evals.md) |
 
 ### Backend layout
 
@@ -312,20 +320,20 @@ UI notes: version stepper + branch-from-past confirmation; skill bar hits
 | `SIGNAL_COOKIE_SECURE` | `false` only for plain HTTP |
 | `SIGNAL_BACKEND_URL` | Next BFF → Python (compose sets this) |
 
-### Testing
+### Testing and evals
+
+See [evals.md](evals.md) for the full eval system: what each tier checks, the
+current pass/fail status, known issues, and the roadmap.
 
 ```bash
-pytest -q tests/test_backend.py tests/test_streaming.py tests/test_agent_events.py \
-  tests/test_artifacts.py tests/test_credits.py tests/test_auth_proxy.py tests/test_grounding.py
+./run_evals.sh offline   # fake LLM, no key, no network
+./run_evals.sh live      # real model for the interpreter only; exact assertions
+./run_evals.sh judge     # DeepEval LLM-as-judge suites (slow, needs a key)
+./run_evals.sh all       # everything
 ```
 
-Live / DeepEval (needs an OpenRouter key; skip otherwise):
-
-```bash
-pytest -q -s tests/test_conversations.py tests/test_skills_deepeval.py \
-  tests/test_helpful_tone_deepeval.py tests/test_recorded_conversations_deepeval.py
-./run_deepeval_matrix.sh
-```
+`test_artifacts.py` and `test_credits.py` also need `SIGNAL_TEST_DATABASE_URL`
+(Postgres); they skip otherwise.
 
 ### Workflow rules
 

@@ -48,8 +48,7 @@ function useMe(): MeState {
   return state;
 }
 
-function AuthNav() {
-  const me = useMe();
+function AuthNav({ me }: { me: MeState }) {
   if (me.status === "loading") return null;
   if (me.status === "authed") {
     if (me.disabled) return null; // local dev — nothing to sign out of
@@ -73,6 +72,8 @@ export function SiteNav() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const pathname = usePathname();
   const inApp = pathname?.startsWith("/app") ?? false;
+  const me = useMe();
+  const authed = me.status === "authed";
 
   useEffect(() => {
     const initialTheme = getInitialTheme();
@@ -97,10 +98,17 @@ export function SiteNav() {
         <Link href="/about" className="site-nav-link">
           About
         </Link>
-        <Link href="/ingest" className="site-nav-link">
-          Ingest
-        </Link>
-        {!inApp ? <AuthNav /> : null}
+        {authed ? (
+          <Link href="/knowledge-base" className="site-nav-link">
+            Knowledge Base
+          </Link>
+        ) : null}
+        {authed && !inApp ? (
+          <Link href="/app" className="site-nav-link">
+            Go to Dashboard
+          </Link>
+        ) : null}
+        {!inApp ? <AuthNav me={me} /> : null}
         <button
           type="button"
           className="theme-toggle"

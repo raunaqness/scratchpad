@@ -1,8 +1,10 @@
-# Dev deployment. Cloudflare routes dev-scratchpad.raunaqness.com to
+# Dev/test deployment. Cloudflare routes dev-scratchpad.raunaqness.com to
 # http://scratchpad-test-frontend:5173 on the shared `tvbox_default` network,
 # so the service names below ARE the hostnames the tunnel resolves.
 #
 #   docker compose -f docker-compose.test.yml up -d --build
+#
+# Production is docker-compose.yml (scratchpad.raunaqness.com).
 #
 name: scratchpad-test
 

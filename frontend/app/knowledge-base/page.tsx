@@ -1,12 +1,11 @@
 "use client";
 
-import { CheckCircle2, ExternalLink, Loader2, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, Trash2, XCircle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export const dynamic = "force-dynamic";
 
 const POLL_MS = 1500;
-const GRAPH_BROWSER_URL = "http://localhost:3010";
 
 type Item = {
   url: string;
@@ -289,14 +288,6 @@ export default function IngestPage() {
               <strong>{library?.count ?? 0}</strong> / {library?.max ?? 15} articles
               ingested
             </p>
-            <a
-              className="text-action ingest-graph-link"
-              href={GRAPH_BROWSER_URL}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Knowledge graph <ExternalLink size={13} />
-            </a>
           </div>
 
           {library && library.items.length > 0 ? (

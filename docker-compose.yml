@@ -1,3 +1,13 @@
+# Production deployment. Cloudflare routes scratchpad.raunaqness.com to
+# http://scratchpad-frontend:5173 on the shared `tvbox_default` network,
+# so the service names below ARE the hostnames the tunnel resolves.
+#
+#   docker compose up -d --build
+#
+# Dev/test is docker-compose.test.yml (dev-scratchpad.raunaqness.com).
+#
+name: scratchpad
+
 x-logging: &default-logging
   driver: json-file
   options:
@@ -5,7 +15,7 @@ x-logging: &default-logging
     max-file: "5"
 
 services:
-  backend:
+  scratchpad-backend:
     build:
       context: .
       dockerfile: Dockerfile
@@ -13,14 +23,19 @@ services:
       - .env
     environment:
       SIGNAL_DATA_DIR: /app/data
+      # The ingest subsystem's knowledge graph — see backend/ingest/blog/graph.py.
+      INGEST_FALKORDB_HOST: ingest-falkordb
+      INGEST_FALKORDB_PORT: 6379
     logging: *default-logging
     networks:
-      - signal-network
+      - scratchpad-network
       - supabase_default   # reach the Supabase Postgres as `db:5432`
+    depends_on:
+      - ingest-falkordb
     ports:
       - "8001:8001"
     volumes:
-      - signal-data:/app/data
+      - scratchpad-data:/app/data
     healthcheck:
       test:
         [
@@ -33,33 +48,59 @@ services:
       timeout: 5s
       retries: 5
 
-  signal-frontend:
+  # Graphiti's graph store for backend/ingest/. Redis protocol (6379) is
+  # internal-only. The bundled FalkorDB Browser (3000) has no auth, so it is
+  # bound to localhost only — http://localhost:3011 (test uses 3010).
+  ingest-falkordb:
+    image: falkordb/falkordb:latest
+    logging: *default-logging
+    networks:
+      - scratchpad-network
+    ports:
+      - "127.0.0.1:3011:3000"
+    volumes:
+      # FalkorDB's actual Redis `dir` is /var/lib/falkordb/data, NOT /data.
+      - scratchpad-falkordb-data:/var/lib/falkordb/data
+
+  scratchpad-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_AGUI_AGENT_URL: /api/agent
-        NEXT_PUBLIC_APP_ENV: development
+        NEXT_PUBLIC_APP_ENV: production
     env_file:
       - .env
     environment:
-      SIGNAL_BACKEND_URL: http://backend:8001
+      # The BFF reaches the backend by its service name on the private network.
+      SIGNAL_BACKEND_URL: http://scratchpad-backend:8001
+      # This deployment's public origin — overrides a local value in .env.
+      GOOGLE_REDIRECT_URI: https://scratchpad.raunaqness.com/api/auth/callback
+      NEXT_PUBLIC_AGUI_AGENT_URL: /api/agent
+      NEXT_PUBLIC_APP_ENV: production
     logging: *default-logging
     depends_on:
-      backend:
+      scratchpad-backend:
         condition: service_healthy
     networks:
-      - signal-network
-      - tvbox_default
+      scratchpad-network:
+      tvbox_default:
+        aliases:
+          - scratchpad-frontend
+          # Previous compose service name, in case the tunnel still points here.
+          - signal-frontend
     ports:
       - "5173:5173"
 
 volumes:
-  signal-data:
+  # Reuse the volume from the old `signal_v2` project so threads survive the rename.
+  scratchpad-data:
+    name: signal_v2_signal-data
+  scratchpad-falkordb-data:
 
 networks:
-  signal-network:
-    name: signal-network
+  scratchpad-network:
+    name: scratchpad-network
   tvbox_default:
     external: true
   supabase_default:

@@ -4,7 +4,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PRODUCTION_BRANCH="${PRODUCTION_BRANCH:-main}"
-COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-signal_v2}"
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-scratchpad}"
 
 cd "$REPO_ROOT"
 

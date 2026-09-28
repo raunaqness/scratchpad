@@ -1,206 +1,238 @@
 # Scratchpad
 
-> **Status:** the Scratchpad redesign is in place — the two-tier artifact, the
-> skills registry, the `build` flow, version history, streaming, agent-driven
-> UI, Google login, and Langfuse tracing all ship. (Env vars and the `signal.db`
-> filename keep their `SIGNAL_` prefix for now — see **Environment**.)
+A thinking surface for people who write. You dump a messy idea, work it with a
+partner until it feels true, then turn it into a real piece — without inventing
+facts you never gave it.
 
-Scratchpad is a **freeform thinking surface**. You jot down raw ideas about
-anything and rework them with an AI collaborator until the notes feel right.
-When you're happy with the scratchpad, you press a button and a **skill** turns
-it into something concrete — a blog outline, a social post, a marketing
-campaign. Skills are a registry you can grow.
+---
 
-It is **not** a research agent, a publisher, or a general Q&A bot.
+## The idea
 
-## The two tiers
+A scratchpad is one living document for a single train of thought. It is not
+the finished blog post, LinkedIn update, or campaign. It is the notes, the
+angles, the facts you can stand behind, and the questions still open.
 
-| Tier | What it is | Versioned? |
-| --- | --- | --- |
-| **Scratchpad** | One continuous freeform doc — your ideas, plus `sources` (confirmed facts), `open_questions`, and `[assumption]` / `[TK: confirm …]` markers. The durable thinking surface. | Yes — linear history, capped at 50 |
-| **Derived artifacts** | The output of running a skill against the current scratchpad. Shown as browser-style tabs on the right. Each run opens a new tab. | No |
+You talk in the chat. The scratchpad updates on the right. When the notes are
+good enough, you press a button and Scratchpad builds a finished piece from
+those notes only.
 
-## What it does
+It will not publish, schedule, or send anything for you. It will not quietly
+make up a number, a customer, or a result. If something is unconfirmed, it
+marks it as a question.
 
-**On the scratchpad:**
+## How a session goes
 
-- **Expand** — take a rough note and develop it into fuller prose or bullets.
-- **Tighten** — a targeted edit; nothing else changes.
-- **Brainstorm** — 3–5 distinct angles / directions, with a recommendation.
-- **Critique** — an editor's read; fixes land in `open_questions`.
-- **Stays grounded** — uses only facts you've confirmed; unverified specifics
-  become `open_questions` rather than inventions. Still-forming ideas can be
-  explored with `[assumption]` framing.
+1. **Jot** — paste a sentence, a hunch, or three bullets. No format required.
+2. **Work it** — develop a line, tighten a paragraph, ask for other angles, or
+   get an editor’s read. Earlier versions stay available; you can step back
+   and continue from one of them.
+3. **Build** — when you are ready, generate a blog outline, a social post, or
+   a marketing campaign from the current notes.
+4. **(Optional) Teach it your writing** — point it at your public blog. It
+   reads a sample of posts so later answers can match how you already write
+   and what you have already said.
 
-**Skills (buttons, or "make this a blog outline"):**
+New chats start empty. Each thread is its own scratchpad.
 
-- **Blog outline** — title, lede, 3–6 sections with subheads, a close.
-- **Social post** — short, one idea, feed-first hook; this is the only place
-  hashtags / CTAs / word ceilings live.
-- **Marketing campaign** — a structured campaign doc.
+## What you can do
 
-Every skill generates **purely from the scratchpad snapshot** — it inherits the
-scratchpad's facts and assumptions and adds nothing new.
+- One scratchpad per conversation, always visible, always editable in spirit
+  (the notes are the source of truth, not the chat bubble).
+- Capture raw notes in your own words, without turning them into a “post.”
+- Develop a rough note into fuller writing.
+- Tighten a specific passage without rewriting everything else.
+- Brainstorm several distinct angles and pick one.
+- Critique the notes; gaps land as open questions, not as fake confidence.
+- Flag unconfirmed claims instead of inventing them.
+- Allow still-forming ideas, clearly marked as assumptions.
+- Version history with a cap; step back and branch from an older take.
+- Skill buttons that produce a finished **blog outline**, **social post**, or
+  **marketing campaign** from the current notes.
+- Each skill run is saved as its own take so you can compare versions.
+- Suggested next moves after a useful turn (click to continue).
+- Google sign-in; the browser never talks to the writing engine as a stranger.
+- Usage credits per message and per generated piece (when enabled).
+- Knowledge base: paste a blog URL, pick articles, store them for later.
+- Ask questions against your ingested posts (“what have I already said about X”).
+- Stay in your house voice and topics when a knowledge base is present.
+- Honest refusal to publish, post, or schedule.
+- Feedback box on a turn so a bad reply can be reported.
+- Thread list so you can return to earlier work.
+- Separate live (production) and experiment (dev) deployments.
 
-## Architecture (short)
+## A few ways to use it
+
+- **Shape an idea into a story** — bring a rough product thought, launch idea,
+  or feature note and explore the strongest angles before choosing a direction.
+- **Turn thinking into content** — transform the finished scratchpad into a
+  blog outline, social post, or lightweight marketing campaign.
+- **Edit with more confidence** — tighten a draft, question its weak points, and
+  surface claims that still need confirmation.
+- **Write in an established voice** — connect a public blog, build a knowledge
+  base from its articles, and keep future work consistent with that writing.
+- **Build on what you have already said** — ask questions about ingested posts
+  before creating something new, so the next piece can extend the story rather
+  than repeat or contradict it.
+
+## Who it is for
+
+Founders and marketers shaping a launch. Writers who think by writing. Product
+and engineering turning a feature into words. Anyone with more ideas than
+finished pieces.
+
+## Who it is not for
+
+People who want an agent to research the open web, post to social networks, or
+act as a general chat bot. Scratchpad stays on *your* notes and, optionally,
+*your* blog.
+
+---
+
+## Under the hood
+
+Env vars and the SQLite file still use a `SIGNAL_` / `signal.db` prefix. That
+is a compatibility identifier used internally; the product is Scratchpad.
+Renaming those variables and files is deferred.
+
+### Architecture
 
 ```
-user turn  /  skill button
-  → interpret        one structured TurnPlan, temperature 0
-  → route            trusts the plan; deterministic safety check alongside
-  → scratchpad ops:  expand | tighten | brainstorm | critique | chat
-        → grounding pass (unsupported claims → open_questions)
-        → scratchpad snapshot saved as a version
-  → build (skill_id):
-        → skills registry resolves the skill
-        → run_skill(skill, scratchpad snapshot) → derived artifact (new tab, no version)
-  → snapshots + reply streamed out; thread state saved to SQLite
+chat turn
+  → interpret (structured TurnPlan, temperature 0)
+  → ground (retrieve from the account’s ingested blog graph, if any)
+  → route
+       note | expand | tighten | brainstorm | critique | chat
+         → follow-up suggestions
+       build (legacy in-graph path; the UI skills do not use this)
+  → scratchpad version saved (cap 50)
+
+skill button
+  → POST /api/artifacts/generate
+  → run_skill(scratchpad snapshot) → Postgres-versioned artifact
 ```
 
-### Agentic workflow (full)
+#### Agentic workflow
 
 ```mermaid
 flowchart TD
     subgraph FE["Frontend (Next.js + assistant-ui)"]
-        COMP["Chat composer /\nskill buttons"]
-        P1["Sub-panel 1 · Scratchpad\n+ version stepper + ritual anim"]
-        P2["Sub-panel 2 · Derived tabs"]
-        CHAT["Chat thread\n(+ request_choice radios)"]
+        COMP["Composer / skill buttons"]
+        P1["Scratchpad + version stepper"]
+        P2["Derived artifact tabs"]
+        CHAT["Chat + follow-up chips"]
+        KB["Knowledge-base page"]
     end
 
-    COMP -->|"AG-UI RunAgentInput + base_version"| EP
+    COMP -->|"AG-UI /agent + base_version"| EP
+    COMP -->|"POST /api/artifacts/generate"| ART
+    KB -->|"/api/ingest/*"| ING
 
-    subgraph AGENT["backend/agent.py — /agent SSE"]
-        EP["RUN_STARTED\nload_versions → empty STATE_SNAPSHOT"]
-        MAP["map events →\nTEXT_MESSAGE_* · STATE_SNAPSHOT\n(progress, versions, head, derived)\nTOOL_CALL_* · RUN_FINISHED"]
+    subgraph AGENT["backend/agent.py"]
+        EP["SSE: scratchpad snapshots, reply, follow_ups"]
+        ART["SSE: skill deltas then done+artifact"]
+        ING["ingest router"]
+        CRED["credit gate"]
     end
 
     EP --> AST
+    CRED -.-> EP
+    CRED -.-> ART
 
-    subgraph APP["backend/app.py — astream_conversation"]
-        LOAD["load_memory · load_versions\nbase_version set & < head?\n→ seed from that scratchpad snapshot (branch)\nelse → prior thread state"]
-        AST["build graph input"] --> LOAD --> GRAPH
-
-        subgraph GRAPH["LangGraph run (AsyncSqliteSaver)"]
-            INT["interpret\nLLM temp 0 → TurnPlan\n{mode, skill_id, subject_changed, ...}"]
-            PRE["preflight() — deterministic\npublish / disallowed phrases"]
-            INT --- PRE
-            INT --> RT{"route on mode + safety_flag"}
-
-            RT -->|"chat / publish / disallowed / clarifying Q"| RESP["respond\nshort reply (canned or streamed)"]
-            RT -->|"expand / tighten / brainstorm / critique"| SOP["scratchpad op node\nmutate freeform body / angles /\nopen_questions"]
-            SOP --> GND["grounding pass — always runs\nunsupported claims → open_questions"]
-            RT -->|"build + skill_id"| BLD["build node\nresolve skill_id in\nskills/registry.py"]
-            BLD --> RUN["capabilities/skills.py · run_skill\nskill.system_prompt + scratchpad snapshot\n→ skill.output_schema"]
-            RUN --> DER["append to state.derived\n(NO versioning)"]
-        end
-
-        GRAPH --> POST["scratchpad changed?\n→ append_version (+ truncate if branching)\n→ replace_versions (cap 50)\nsave_memory"]
-        POST --> FIN["yield final:\nassistant_message · artifact ·\nversions · head · derived · plan"]
+    subgraph APP["backend/app.py"]
+        AST["astream_conversation"] --> INT["interpret"]
+        INT --> GND["ground — ingest graph retrieval"]
+        GND --> RT{"route"}
+        RT -->|"note / expand / tighten / brainstorm / critique / chat"| SOP["scratchpad op"]
+        SOP --> FU["follow_up"]
+        RT -->|"build"| BLD["in-graph skill run"]
+        FU --> FIN["version + reply"]
+        BLD --> FIN
     end
-
-    RESP -.->|"custom stream: reply / artifact / ui_choice"| MAP
-    SOP -.-> MAP
-    GND -.-> MAP
-    RUN -.-> MAP
-
-    FIN --> MAP
-    MAP -->|"SSE"| P1
-    MAP --> P2
-    MAP --> CHAT
 
     subgraph STORE["Persistence"]
-        DB[("signal.db\ncheckpointer + artifact_version_lists")]
-        MEM[("data/memory/*.json\nper-user durable memory")]
+        SQL[("SQLite signal.db\ncheckpointer, versions, threads")]
+        PG[("Postgres scratchpad schema\ncredits, artifacts, ingest runs")]
+        FDB[("FalkorDB\nblog knowledge graph")]
+        MEM[("data/memory/*.json")]
     end
-    GRAPH --- DB
-    POST --- DB
-    LOAD --- MEM
-    POST --- MEM
+
+    APP --- SQL
+    ART --- PG
+    ING --- PG
+    GND --- FDB
 ```
 
-Entry points in `backend/app.py`:
+Entry points:
 
-- `run_conversation(user_id, conversation_id, user_message, base_version=None)` —
-  sync, one turn.
-- `astream_conversation(...)` — async generator of `artifact` / `reply` /
-  `status` / `ui_choice` / `final` events (used by the AG-UI adapter). The
-  `final` event carries `versions` + `head` for the scratchpad history and
-  `derived` for the open tabs.
+- `run_conversation(...)` / `astream_conversation(...)` in `backend/app.py`
+- AG-UI `POST /agent` plus REST: `/api/artifacts/generate`, `/api/ingest/*`,
+  `/api/feedback`, `/api/account`
 
-## Stack
+### Stack
 
 | Piece | Choice |
 | --- | --- |
-| Orchestration | LangGraph (`AsyncSqliteSaver` checkpointer) |
-| LLM access | OpenRouter via `langchain-openai`, one factory in `backend/llm.py` |
+| Orchestration | LangGraph (`AsyncSqliteSaver`) |
+| LLM | OpenRouter via `langchain-openai` (`backend/llm.py`) |
 | Scratchpad ops | `backend/capabilities/writing.py` |
 | Skills | `backend/skills/registry.py` + `backend/capabilities/skills.py` |
-| Prompts | sectioned + versioned in `backend/prompts.py` (`SCRATCHPAD_V4`) |
-| Safety | `backend/policy.py` + `backend/guardrails.json` (see **Guardrails**) |
-| Scratchpad history | `backend/versions.py` (linear list, table in `signal.db`, cap 50) |
-| Web | `backend/agent.py` — AG-UI / CopilotKit-compatible SSE |
-| Auth | Google OAuth in the Next.js BFF (`frontend/app/api/auth/*`); backend trusts the injected `user_id`, gated by a shared secret |
-| Tracing | Langfuse — one trace per turn, session = thread, user = Google `sub` (`backend/tracing.py`) |
-| Persistence | SQLite for thread state + scratchpad versions + a per-user thread registry, `data/memory/*.json` for per-user memory |
+| Skill persistence | `backend/artifacts_store.py` (Postgres) |
+| Ingest | `backend/ingest/` + FalkorDB (Graphiti) |
+| Credits / accounts | `backend/credits.py` + `backend/db.py` (Supabase Postgres) |
+| Prompts | `backend/prompts.py` (`SCRATCHPAD_V4`) |
+| Safety | `backend/policy.py` + `backend/guardrails.json` |
+| Scratchpad history | `backend/versions.py` (SQLite, cap 50) |
+| Web | `backend/agent.py` — AG-UI SSE + extra routes |
+| Auth | Google OAuth in the Next.js BFF; backend gated by shared secret |
+| Tracing | Langfuse (`backend/tracing.py`) |
 | Eval | pytest + DeepEval |
 
-## Backend layout
+### Backend layout
 
 ```
 backend/
-  agent.py            AG-UI SSE endpoint; streams scratchpad + derived tabs
-  app.py              LangGraph: interpret → route → scratchpad ops | build
+  agent.py            AG-UI /agent, artifacts, feedback, mounts ingest
+  app.py              LangGraph: interpret → ground → ops → follow_up
   artifact.py         Scratchpad + DerivedArtifact models
-  signal_models.py    TurnPlan (modes: expand|tighten|brainstorm|critique|chat|build, skill_id)
-  prompts.py          SCRATCHPAD_SYSTEM_PROMPT + versioned history
+  signal_models.py    TurnPlan (note|expand|tighten|brainstorm|critique|chat|build)
+  prompts.py          SCRATCHPAD_SYSTEM_PROMPT + changelog
   policy.py           deterministic guardrails
   versions.py         scratchpad version list
-  guardrails.json     disallowed phrases, supported_skills, max_scratchpad_versions
-  tracing.py          Langfuse callback handler + per-turn session/user metadata
-  threads_store.py    per-user thread registry (table in signal.db)
+  artifacts_store.py  Postgres skill-output versions
+  credits.py  db.py   accounts + ledger
+  tracing.py          Langfuse + feedback recording
+  threads_store.py    per-user thread registry (SQLite)
   llm.py  config.py  memory_store.py  textutil.py  terminal_chat.py
   capabilities/
-    writing.py        brainstorm / expand / tighten / critique / grounding (scratchpad-scoped)
-    skills.py         run_skill(skill, scratchpad_snapshot) → streamed derived output
+    writing.py        note/expand/tighten/brainstorm/critique/follow_ups/grounding_notes
+    skills.py         run_skill(snapshot) → streamed output
+  ingest/             blog discover → select → graph ingest + query
   skills/
-    registry.py       Skill = {id, name, description, system_prompt, output_schema, craft_notes}
-    blog_outline/  social_post/  marketing_campaign/     # one dir per skill
-    brainstorming/  draft-validation/  grounded-editing/ # scratchpad-side craft notes
+    registry.py
+    blog_outline/  social_post/  marketing_campaign/
 ```
 
-## Guardrails
+### Guardrails
 
-Deterministic (in `policy.py` + graph structure, never a prompt):
+Deterministic (code, not a prompt):
 
-- **No publish / send / schedule.** Publish-phrase detection → `publish_request`
-  → a canned honest reply. The app produces text only.
-- **Skill allow-list.** `build` runs only a `skill_id` in `guardrails.json`'s
-  `supported_skills`; anything else → "I can build blog outline / social post /
-  marketing campaign — which?".
-- **Snapshot-only skill input.** `run_skill()` receives just the scratchpad
-  snapshot dict — no transcript, no web, no external data.
-- **Outputs are outputs.** The `build` node only appends to `state.derived`; a
-  skill can't mutate the scratchpad or another tab.
-- **Non-empty gate.** An expansion or a skill artifact with no content is
-  dropped with a "give me more to work with" reply.
-- **Version bounds.** Scratchpad history capped at `max_scratchpad_versions`
-  (50); `base_version` is range-checked server-side.
+- No publish / send / schedule — canned honest reply.
+- Skill allow-list from `guardrails.json`.
+- Skills receive only a scratchpad snapshot (no live web on that path).
+- Skill output cannot mutate the scratchpad.
+- Empty expansions/artifacts are dropped.
+- Scratchpad history capped at 50; `base_version` is range-checked.
 
-Always-on grounding pass (a graph node that cannot be skipped): re-checks
-scratchpad edits *and* skill output; unsupported specific claims become visible
-`open_questions` — surfaced, not blocked.
+Claim-level flags still land in `open_questions`. Ingest retrieval is additive
+and fail-open: if the graph is empty or errors, the turn continues.
 
-Prompt contract (`SCRATCHPAD_SYSTEM_PROMPT` + each skill prompt): the grounding
-rules, one clarifying question per turn max, "never claim you published".
-
-## Quick start
+### Quick start (local, no Docker)
 
 ```bash
-cd signal_v2
+cd <scratchpad-directory>
 python -m venv .venv && source .venv/bin/activate
 pip install -r backend/requirements.txt
-cp .env.example .env      # set OPENROUTER_API_KEY and OPENROUTER_MODEL
+cp .env.example .env      # OPENROUTER_API_KEY, OPENROUTER_MODEL
 ```
 
 ```python
@@ -212,124 +244,97 @@ result = run_conversation(
     user_message="Jot this down: we're launching faster cold starts for edge functions.",
 )
 print(result["assistant_message"])
-print(result["artifact"]["body"])       # the scratchpad
+print(result["artifact"]["body"])
 ```
-
-CLI (prints the scratchpad + open tabs after each turn):
 
 ```bash
 python -m backend.terminal_chat
 ```
 
-## Web app
+### Web app
 
 ```bash
-uvicorn backend.agent:app --reload --port 8001   # AG-UI endpoint at /agent
-cd frontend && npm run dev                        # http://localhost:3000/app
+uvicorn backend.agent:app --reload --port 8001
+cd frontend && npm run dev          # typically http://localhost:3000/app
 ```
 
-Right-hand panel: **sub-panel 1** is the scratchpad with its `v7 / v10` version
-stepper (step back to preview an older version read-only; sending a message from
-a past version discards the ones after it, with a confirmation modal, and
-continues from there — the client passes `forwarded_props.runConfig.base_version`
-and `astream_conversation` truncates the list). **Sub-panel 2** is the derived
-artifacts as tabs; each skill run opens a new one; no versioning. Both sub-panels
-have a **Copy** button.
+Docker (this is what production and the public hosts use):
 
-While a turn runs, the scratchpad panel animates (a fixed "Analyzing → Thinking →
-Working → Reviewing → Finishing up" ritual line, an indeterminate bar, a
-streaming caret) and a dev-only progress chip (under `next dev`) sits at the
-chat pane's top-right, left of **New Thread**.
+```bash
+docker compose up -d --build                         # prod: :5173 and :8001
+docker compose -f docker-compose.test.yml up -d --build   # dev: :5174 and :8002
+```
 
-Agent-driven UI: when `brainstorm` produces angles it emits a `request_choice`
-tool call; `ChoiceTool` renders radio buttons inline in the chat and a selection
-is sent back as a normal user turn.
+| | Production | Dev / test |
+| --- | --- | --- |
+| Compose | `docker-compose.yml` | `docker-compose.test.yml` |
+| Public host | `scratchpad.raunaqness.com` | `dev-scratchpad.raunaqness.com` |
+| Frontend service | `scratchpad-frontend` | `scratchpad-test-frontend` |
+| Cloudflare origin | `http://scratchpad-frontend:5173` | `http://scratchpad-test-frontend:5173` |
+| Host ports | 5173 / 8001 | 5174 / 8002 |
 
-`SIGNAL_CORS_ORIGINS` controls which origins may call `/agent`
-(default `http://localhost:3000,http://localhost:5173`). For a containerized
-run, `docker compose up --build`.
+Cloudflare must use the **container** port `5173` and the Docker DNS name on
+`tvbox_default`, not `localhost`.
 
-## Auth & tracing
+UI notes: version stepper + branch-from-past confirmation; skill bar hits
+`/api/artifacts/generate`; follow-up chips after a turn; knowledge base at
+`/knowledge-base`.
 
-- **Google login** lives in the Next.js BFF: `GET /api/auth/login` → Google →
-  `GET /api/auth/callback` sets an httpOnly session-JWT cookie
-  (`SIGNAL_SESSION_SECRET`). `GET /api/auth/me` reports the current user;
-  `/api/auth/logout` clears it. The browser only ever talks to Next; the
-  `/api/agent` Route Handler reads the cookie, injects `forwarded_props.user_id`,
-  and stream-proxies to the backend with `x-signal-proxy-secret`. With
-  `GOOGLE_AUTH_ENABLED=true` the backend **rejects** any `/agent` or `/api/*`
-  call missing that secret; with it `false`, a `dev-user` is used and the gate is
-  skipped.
-- **Threads.** Each conversation keeps a stable `thread_id` (persisted in the
-  browser per user, registered in `conversation_threads` in `signal.db` on the
-  first turn). "New Thread" is the only way to start a fresh one.
-- **Langfuse.** When `LANGFUSE_ENABLED=true` + keys are set, every turn is one
-  trace: `session_id = thread_id`, `user_id = Google sub`, tags
-  `["scratchpad", <prompt version>]`. All nested nodes and LLM calls become
-  spans automatically. Init/flush failures are swallowed — tracing is never
-  load-bearing. Set `LANGFUSE_TRACE_CONTENT=false` to mask prompt/completion
-  text.
+### Auth, credits, and tracing
 
-## Environment
+- **Google login** in the Next BFF (`/api/auth/*`). Session JWT uses
+  `SIGNAL_SESSION_SECRET`. Browser → Next only; Next injects `user_id` and
+  `x-signal-proxy-secret`.
+- **Credits** when `SIGNAL_DATABASE_URL` is set: one debit per chat turn and
+  per skill generation; 402 when enforce is on and the balance is 0.
+- **Langfuse:** one trace per turn (`session_id = thread_id`, `user_id = Google
+  sub`). Failures are swallowed.
+
+### Environment
 
 | Variable | Purpose |
 | --- | --- |
 | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` | required for live runs |
-| `SIGNAL_INTERPRET_TEMPERATURE` | turn interpreter temp (default 0.0) |
+| `OPENROUTER_TEMPERATURE_CREATIVE` | follow-ups and skill writers |
+| `OPENROUTER_EMBEDDING_MODEL` | ingest embeddings |
+| `SIGNAL_INTERPRET_TEMPERATURE` | turn interpreter (default 0.0) |
 | `SIGNAL_DATA_DIR` | root for `signal.db` and `memory/` |
-| `SIGNAL_DB_PATH` | override the checkpointer / version DB path |
-| `SIGNAL_CORS_ORIGINS` | comma-separated allowed origins for `/agent` |
+| `SIGNAL_DB_PATH` | override SQLite path |
+| `SIGNAL_CORS_ORIGINS` | allowed origins for `/agent` |
 | `SIGNAL_HISTORY_WINDOW`, `SIGNAL_SUMMARIZE_AFTER` | transcript windowing |
-| `LANGSMITH_TRACING`, `LANGSMITH_API_KEY` | optional LangSmith tracing |
-| `LANGFUSE_ENABLED`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL` | Langfuse tracing |
-| `LANGFUSE_TRACE_CONTENT` | `false` masks prompt/completion text (default `true`) |
-| `GOOGLE_AUTH_ENABLED` | require Google login + backend proxy-secret check |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | OAuth client (redirect URI = `<origin>/api/auth/callback`) |
-| `SIGNAL_SESSION_SECRET` | signs the session cookie **and** is the Next↔backend shared secret |
-| `SIGNAL_COOKIE_SECURE` | `false` only for plain-HTTP local dev |
-| `SIGNAL_BACKEND_URL` | where the Next BFF reaches the backend (compose sets it) |
+| `SIGNAL_DATABASE_URL` | Postgres (credits, artifacts, ingest metadata) |
+| `SIGNAL_CREDITS_ENABLED`, `SIGNAL_CREDITS_ENFORCE` | ledger / hard stop at 0 |
+| `SIGNAL_SIGNUP_CREDITS`, `SIGNAL_MESSAGE_COST` | grant and per-turn cost |
+| `INGEST_FALKORDB_HOST`, `INGEST_FALKORDB_PORT` | knowledge graph |
+| `LANGFUSE_*` | tracing |
+| `GOOGLE_AUTH_ENABLED`, `GOOGLE_CLIENT_*`, `GOOGLE_REDIRECT_URI` | OAuth |
+| `SIGNAL_SESSION_SECRET` | cookie + Next↔backend secret |
+| `SIGNAL_COOKIE_SECURE` | `false` only for plain HTTP |
+| `SIGNAL_BACKEND_URL` | Next BFF → Python (compose sets this) |
 
-> Env vars and the `signal.db` filename keep the `SIGNAL_` prefix for now;
-> renaming them is cosmetic and deferred.
-
-## Testing
-
-Deterministic contract tests (no key, run in CI): the graph routing, scratchpad
-ops, `build` isolation (a skill never touches the scratchpad or its version
-list), unknown-skill → "which one?", grounding-on-output, and the linear version
-history.
+### Testing
 
 ```bash
-pytest -q tests/test_backend.py tests/test_streaming.py tests/test_agent_events.py
+pytest -q tests/test_backend.py tests/test_streaming.py tests/test_agent_events.py \
+  tests/test_artifacts.py tests/test_credits.py tests/test_auth_proxy.py tests/test_grounding.py
 ```
 
-DeepEval suites (need a live OpenRouter key; skip otherwise):
+Live / DeepEval (needs an OpenRouter key; skip otherwise):
 
 ```bash
-pytest -q -s tests/test_conversations.py tests/test_skills_deepeval.py tests/test_helpful_tone_deepeval.py
+pytest -q -s tests/test_conversations.py tests/test_skills_deepeval.py \
+  tests/test_helpful_tone_deepeval.py tests/test_recorded_conversations_deepeval.py
 ./run_deepeval_matrix.sh
 ```
 
-- `tests/test_conversations.py` + `scenario.json` — scratchpad conversation
-  quality (capture, develop, grounding, subject rename, thinking-partner role).
-- `tests/test_skills_deepeval.py` + `skill_scenarios.json` — each skill's
-  **derived artifact** judged on `GEval` (well-formed for its type) and
-  `FaithfulnessMetric` (grounded in the scratchpad body + sources).
-- `tests/test_helpful_tone_deepeval.py` — tone.
+### Workflow rules
 
-DeepEval metrics are LLM-as-judge; scores vary across runs. Scenarios use
-**fixed user turns** and the real backend. `run_deepeval_matrix.sh` snapshots
-each run's log to `.deepeval-runs/<ts>/` so a `SCRATCHPAD_V4 → V5` prompt change
-ties to a score delta.
-
-## Workflow rules
-
-- **Scratchpad:** freeform, format-neutral. No hashtags, hooks, or word ceilings
-  here — those belong to the `social_post` skill.
-- **Skills:** `blog_outline`, `social_post`, `marketing_campaign` (extensible via
-  `skills/registry.py`); each builds only from the current scratchpad snapshot.
-- **Grounding:** only user-confirmed facts; unverified specifics become
-  `open_questions`; `[assumption]` framing allowed; no external research.
-- **Safety:** never publishes, schedules, or sends; says so plainly.
-- **Questions:** at most one per turn, only when it can't otherwise make
-  progress.
+- Scratchpad stays format-neutral. Hashtags, hooks, and word ceilings belong
+  on the `social_post` skill.
+- Skills (`blog_outline`, `social_post`, `marketing_campaign`) read only the
+  current snapshot.
+- Unverified specifics become open questions. Assumptions stay labelled.
+- Ingested blog facts may be used when present; the open web is not crawled
+  on a chat turn.
+- Never publish, schedule, or send.
+- At most one clarifying question per turn.
